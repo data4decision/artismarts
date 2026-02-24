@@ -64,7 +64,7 @@ export default function ReviewSection({ artisanId }: Props) {
   useEffect(() => {
     fetchReviews()
 
-    // Realtime subscription (optional – live updates when new reviews come in)
+    // Realtime subscription
     const channel = supabase
       .channel(`reviews:artisan_${artisanId}`)
       .on(
@@ -78,19 +78,28 @@ export default function ReviewSection({ artisanId }: Props) {
         (payload: unknown) => {
           console.log('Review realtime change:', payload)
 
-          // Type narrowing for payload
           if (!payload || typeof payload !== 'object') return
 
-          const p = payload as { eventType?: string; new?: Review; old?: { id: string } }
+          const p = payload as {
+            eventType?: string
+            new?: Review
+            old?: { id: string }
+          }
 
+          // Simple method: extract new review first
           if (p.eventType === 'INSERT' && p.new) {
-            setReviews((prev) => [p.new, ...prev])
-          } else if (p.eventType === 'UPDATE' && p.new) {
+            const newReview = p.new // ← TypeScript sees this as Review here
+            setReviews((prev) => [newReview, ...prev])
+          } 
+          else if (p.eventType === 'UPDATE' && p.new) {
+            const updatedReview = p.new
             setReviews((prev) =>
-              prev.map((r) => (r.id === p.new!.id ? p.new! : r))
+              prev.map((r) => (r.id === updatedReview.id ? updatedReview : r))
             )
-          } else if (p.eventType === 'DELETE' && p.old) {
-            setReviews((prev) => prev.filter((r) => r.id !== p.old!.id))
+          } 
+          else if (p.eventType === 'DELETE' && p.old?.id) {
+            const deletedId = p.old.id
+            setReviews((prev) => prev.filter((r) => r.id !== deletedId))
           }
         }
       )
