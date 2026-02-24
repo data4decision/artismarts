@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { FaSave, FaTimes, FaSpinner, FaTrashAlt, FaPlus } from 'react-icons/fa'
 import TimePicker from 'react-time-picker'
-import type { Value } from 'react-time-picker'
 import 'react-time-picker/dist/TimePicker.css'
 import 'react-clock/dist/Clock.css'
 
@@ -21,7 +20,7 @@ const DAYS = [
 ] as const
 
 type DayOfWeek = typeof DAYS[number]
-type TimeRange = { start: string; end: string }  // stored as "09:00", "17:00"
+type TimeRange = { start: string; end: string }
 type DaySchedule = { day: DayOfWeek; ranges: TimeRange[] }
 
 export default function EditBioAndAvailability() {
@@ -33,7 +32,6 @@ export default function EditBioAndAvailability() {
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([])
   const [schedules, setSchedules] = useState<DaySchedule[]>([])
 
-  // Force 24h format with leading zero: "9:00" → "09:00", "17:5" → "17:05"
   const normalizeTime = (time: string | null | undefined): string => {
     if (!time || typeof time !== 'string') return ''
     const [h, m] = time.split(':').map(s => s.trim())
@@ -66,31 +64,41 @@ export default function EditBioAndAvailability() {
         if (data?.working_days) {
           const days = data.working_days
             .split(',')
-            .map(d => d.trim())
-            .filter((d): d is DayOfWeek => DAYS.includes(d as DayOfWeek))
+            .map((d: string) => d.trim())
+            .filter((d: string): d is DayOfWeek => DAYS.includes(d as DayOfWeek))
           setSelectedDays(days)
         }
 
         if (data?.available_time_slots) {
           const parsed: DaySchedule[] = []
+
           data.available_time_slots
             .split(';')
-            .map(e => e.trim())
-            .filter(Boolean)
-            .forEach(entry => {
-              const [dayPart, rangesStr] = entry.split(':')
-              const day = dayPart?.trim() as DayOfWeek
+            .map((slot: string) => slot.trim())
+            .filter((slot: string): slot is string => slot.length > 0)
+            .forEach((entry: string) => {
+              const [dayPart = '', rangesStr = ''] = entry.split(':')
+              const day = dayPart.trim() as DayOfWeek
+
               if (!DAYS.includes(day)) return
 
-              const ranges = rangesStr
-                ? rangesStr.split(',').map(r => {
-                    const [s, e] = r.split('-').map(t => t.trim())
-                    return { start: s || '', end: e || '' }
-                  }).filter(r => r.start && r.end)
+              const ranges: TimeRange[] = rangesStr
+                ? rangesStr
+                    .split(',')
+                    .map((rangeStr: string) => {
+                      const [startRaw = '', endRaw = ''] = rangeStr.split('-')
+                      const start = startRaw.trim()
+                      const end = endRaw.trim()
+                      return { start, end }
+                    })
+                    .filter((r): r is TimeRange => r.start.length > 0 && r.end.length > 0)
                 : []
 
-              if (ranges.length > 0) parsed.push({ day, ranges })
+              if (ranges.length > 0) {
+                parsed.push({ day, ranges })
+              }
             })
+
           setSchedules(parsed)
         }
       } catch (err: unknown) {
@@ -129,12 +137,11 @@ export default function EditBioAndAvailability() {
     day: DayOfWeek,
     index: number,
     field: 'start' | 'end',
-    value: Value
+    value: string | null
   ) => {
     if (value === null) return
 
-    // TimePicker with format="HH:mm" returns string like "09:00" or "17:30"
-    const timeStr = typeof value === 'string' ? value : ''
+    const timeStr = value
 
     setSchedules(prev =>
       prev.map(s =>
