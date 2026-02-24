@@ -11,132 +11,114 @@ import {
   FaCheckCircle,
   FaClock,
   FaExclamationTriangle,
-  FaWallet,        
+  FaWallet,
   FaChartLine,
   FaStar,
 } from 'react-icons/fa'
 
-interface DashboardStats {
-  totalUsers: number
-  totalArtisans: number
-  totalCustomers: number
-  pendingVerifications: number
-  activeJobs: number
-  completedJobs: number
-  disputedJobs: number
-  totalPlatformEarnings: number
-  averageRating: string
-  pendingSupportTickets: number
-}
+// ──────────────────────────────────────────────────────────────
+// Configuration – change values here instead of in code
+// ──────────────────────────────────────────────────────────────
+const STATS_CONFIG = [
+  {
+    key: 'totalUsers',
+    title: 'Total Users',
+    icon: FaUsers,
+    color: 'blue',
+    fetch: async () => {
+      const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
+      return count || 0
+    },
+  },
+  {
+    key: 'totalArtisans',
+    title: 'Artisans',
+    icon: FaUserTie,
+    color: 'purple',
+    fetch: async () => {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'artisan')
+      return count || 0
+    },
+  },
+  {
+    key: 'totalCustomers',
+    title: 'Customers',
+    icon: FaUsers,
+    color: 'green',
+    fetch: async () => {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'customer')
+      return count || 0
+    },
+  },
+  {
+    key: 'pendingVerifications',
+    title: 'Pending Verifications',
+    icon: FaClock,
+    color: 'yellow',
+    fetch: async () => {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'artisan')
+        .eq('verification_status', 'pending') // ← update status value if needed
+      return count || 0
+    },
+  },
+  // Add more stats here as needed
+  // Example:
+  // {
+  //   key: 'activeJobs',
+  //   title: 'Active Jobs',
+  //   icon: FaBriefcase,
+  //   color: 'blue',
+  //   fetch: async () => { ... }
+  // },
+]
 
+// ──────────────────────────────────────────────────────────────
+// Main component
+// ──────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalUsers: 0,
-    totalArtisans: 0,
-    totalCustomers: 0,
-    pendingVerifications: 0,
-    activeJobs: 0,
-    completedJobs: 0,
-    disputedJobs: 0,
-    totalPlatformEarnings: 0,
-    averageRating: '0.0',
-    pendingSupportTickets: 0,
-  })
-
+  const [stats, setStats] = useState<Record<string, number | string>>(() =>
+    STATS_CONFIG.reduce((acc, curr) => ({ ...acc, [curr.key]: 0 }), {})
+  )
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetchDashboardStats() {
-      try {
-        setLoading(true)
+  const fetchAllStats = async () => {
+    setLoading(true)
+    try {
+      const newStats = { ...stats }
 
-        // 1. Users & role breakdown
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('role')
-
-        if (profilesError) throw profilesError
-
-        const totalUsers = profiles?.length || 0
-        const totalArtisans = profiles?.filter(p => p.role === 'artisan').length || 0
-        const totalCustomers = profiles?.filter(p => p.role === 'customer').length || 0
-
-        // 2. Pending artisan verifications
-        const { count: pendingVerif, error: verifError } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'artisan')
-          .eq('verification_status', 'not_verified')
-
-        if (verifError) throw verifError
-
-        // 3. Job stats (adjust table/column names to match your schema)
-        const { data: jobs, error: jobsError } = await supabase
-          .from('jobs')           // ← change if your table is named differently
-          .select('status')
-
-        if (jobsError) throw jobsError
-
-        const activeJobs = jobs?.filter(j => ['active', 'in_progress', 'ongoing'].includes(j.status)).length || 0
-        const completedJobs = jobs?.filter(j => j.status === 'completed' || j.status === 'finished').length || 0
-        const disputedJobs = jobs?.filter(j => ['disputed', 'under_review', 'complaint'].includes(j.status)).length || 0
-
-        // 4. Platform earnings (example – adjust to your actual table)
-        const { data: transactions, error: txError } = await supabase
-          .from('transactions')   // ← change table name if different
-          .select('amount')
-          .eq('status', 'completed')
-          .eq('type', 'platform_fee')
-
-        if (txError) throw txError
-
-        const totalEarnings = transactions?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0
-
-        // 5. Average artisan rating
-        const { data: ratings, error: ratingError } = await supabase
-          .from('profiles')
-          .select('average_rating')
-          .eq('role', 'artisan')
-          .not('average_rating', 'is', null)
-
-        if (ratingError) throw ratingError
-
-        const avgRating =
-          ratings && ratings.length > 0
-            ? (ratings.reduce((sum, r) => sum + (Number(r.average_rating) || 0), 0) / ratings.length).toFixed(1)
-            : '0.0'
-
-        // 6. Pending support tickets (if you have this table)
-        const { count: pendingTickets, error: ticketError } = await supabase
-          .from('support_tickets')  // ← adjust table name if different
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'open')
-
-        if (ticketError) throw ticketError
-
-        setStats({
-          totalUsers,
-          totalArtisans,
-          totalCustomers,
-          pendingVerifications: pendingVerif || 0,
-          activeJobs,
-          completedJobs,
-          disputedJobs,
-          totalPlatformEarnings: totalEarnings,
-          averageRating: avgRating,
-          pendingSupportTickets: pendingTickets || 0,
+      await Promise.all(
+        STATS_CONFIG.map(async (stat) => {
+          try {
+            const value = await stat.fetch()
+            newStats[stat.key] = value
+          } catch (err) {
+            console.error(`Failed to fetch ${stat.title}:`, err)
+            newStats[stat.key] = 0 // fallback
+          }
         })
-      } catch (error) {
-        console.error('Dashboard stats fetch failed:', error)
-      } finally {
-        setLoading(false)
-      }
+      )
+
+      setStats(newStats)
+    } catch (error) {
+      console.error('Dashboard stats fetch failed:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    fetchDashboardStats()
+  useEffect(() => {
+    fetchAllStats()
 
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchDashboardStats, 60000)
+    const interval = setInterval(fetchAllStats, 60000) // refresh every 60s
     return () => clearInterval(interval)
   }, [])
 
@@ -181,7 +163,11 @@ export default function AdminDashboard() {
             {loading ? (
               <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
             ) : (
-              <p className="text-2xl md:text-3xl font-bold mt-1">{value}</p>
+              <p className="text-2xl md:text-3xl font-bold mt-1">
+                {typeof value === 'number' && title.includes('Earnings')
+                  ? formatNaira(value)
+                  : value}
+              </p>
             )}
           </div>
           <div className={`p-3 rounded-full ${bgLight.replace('50', '100')}`}>
@@ -203,57 +189,21 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        {/* Main Stats Grid */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <StatCard title="Total Users" value={stats.totalUsers} icon={FaUsers} color="blue" loading={loading} />
-          <StatCard title="Artisans" value={stats.totalArtisans} icon={FaUserTie} color="purple" loading={loading} />
-          <StatCard title="Customers" value={stats.totalCustomers} icon={FaUsers} color="green" loading={loading} />
-          <StatCard
-            title="Pending Verifications"
-            value={stats.pendingVerifications}
-            icon={FaClock}
-            color="yellow"
-            loading={loading}
-          />
-          <StatCard title="Active Jobs" value={stats.activeJobs} icon={FaBriefcase} color="blue" loading={loading} />
-          <StatCard
-            title="Completed Jobs"
-            value={stats.completedJobs}
-            icon={FaCheckCircle}
-            color="green"
-            loading={loading}
-          />
-          <StatCard
-            title="Disputed Jobs"
-            value={stats.disputedJobs}
-            icon={FaExclamationTriangle}
-            color="red"
-            loading={loading}
-          />
-          <StatCard
-            title="Platform Earnings"
-            value={formatNaira(stats.totalPlatformEarnings)}
-            icon={FaWallet}
-            color="purple"
-            loading={loading}
-          />
-          <StatCard
-            title="Avg Artisan Rating"
-            value={`${stats.averageRating} ★`}
-            icon={FaStar}
-            color="yellow"
-            loading={loading}
-          />
-          <StatCard
-            title="Pending Support"
-            value={stats.pendingSupportTickets}
-            icon={FaChartLine}
-            color="red"
-            loading={loading}
-          />
+          {STATS_CONFIG.map((stat) => (
+            <StatCard
+              key={stat.key}
+              title={stat.title}
+              value={stats[stat.key]}
+              icon={stat.icon}
+              color={stat.color as any}
+              loading={loading}
+            />
+          ))}
         </div>
 
-        {/* Placeholder for future sections */}
+        {/* Placeholder sections */}
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow p-6">
             <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
