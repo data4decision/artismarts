@@ -40,7 +40,10 @@ export default function ApprovedArtisansPage() {
   const fetchApprovedArtisans = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      // Call the function to get the actual Supabase client
+      const supabaseClient = supabase()
+
+      const { data, error } = await supabaseClient
         .from('profiles')
         .select(`
           id,
