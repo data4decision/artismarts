@@ -1,4 +1,3 @@
-// components/review/ArtisanReviewsList.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -7,6 +6,7 @@ import { Star, User, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
+// Strict Review interface
 interface Review {
   id: string
   rating: number
@@ -23,6 +23,22 @@ interface Review {
 interface ArtisanReviewsListProps {
   artisanId: string
 }
+
+// Helper to safely map Supabase data → Review[]
+const mapToReview = (item: any): Review => ({
+  id: item.id ?? '',
+  rating: Number(item.rating) || 0,
+  review_text: item.review_text ?? '',
+  photos: Array.isArray(item.photos) ? item.photos : null,
+  created_at: item.created_at ?? new Date().toISOString(),
+  customer: item.customer
+    ? {
+        first_name: item.customer.first_name ?? null,
+        last_name: item.customer.last_name ?? null,
+        profile_image: item.customer.profile_image ?? null,
+      }
+    : null,
+})
 
 export default function ArtisanReviewsList({ artisanId }: ArtisanReviewsListProps) {
   const [reviews, setReviews] = useState<Review[]>([])
@@ -51,17 +67,19 @@ export default function ArtisanReviewsList({ artisanId }: ArtisanReviewsListProp
           `)
           .eq('artisan_id', artisanId)
           .order('created_at', { ascending: false })
-          .limit(20) // optional: limit to latest 20, add pagination later if needed
+          .limit(20)
 
         if (error) throw error
 
-        setReviews(data || [])
+        // Safely map raw data → typed Review[]
+        const typedReviews = (data || []).map(mapToReview)
+        setReviews(typedReviews)
 
         // Calculate average rating
-        if (data && data.length > 0) {
-          const total = data.reduce((sum, r) => sum + r.rating, 0)
-          setAverageRating(total / data.length)
-          setTotalReviews(data.length)
+        if (typedReviews.length > 0) {
+          const total = typedReviews.reduce((sum, r) => sum + r.rating, 0)
+          setAverageRating(total / typedReviews.length)
+          setTotalReviews(typedReviews.length)
         }
       } catch (err: any) {
         console.error('Failed to load reviews:', err)
