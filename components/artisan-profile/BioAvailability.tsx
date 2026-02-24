@@ -80,8 +80,8 @@ export default function BioAndAvailabilityView() {
         if (data?.working_days) {
           const days = data.working_days
             .split(',')
-            .map(d => d.trim())
-            .filter((d): d is DayOfWeek => DAYS.includes(d as DayOfWeek))
+            .map((d: string) => d.trim())
+            .filter((d: string): d is DayOfWeek => DAYS.includes(d as DayOfWeek))
           setWorkingDays(days)
         }
 
@@ -107,8 +107,8 @@ export default function BioAndAvailabilityView() {
 
             const ranges = rangesPart
               .split(',')
-              .map(r => r.trim())
-              .filter(r => r.length > 0 && r.includes('-'))
+              .map((r: string) => r.trim())                      // ← explicit type for r
+              .filter((r: string) => r.length > 0 && r.includes('-'))  // ← explicit type for r
 
             if (ranges.length > 0) {
               parsed[day] = ranges
