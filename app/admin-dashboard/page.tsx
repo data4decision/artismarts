@@ -1,8 +1,9 @@
-// app/(admin)/admin-dashboard/page.tsx
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+export const dynamic = 'force-dynamic'  // ← This line fixes the build error
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 import {
   FaUsers,
   FaUserTie,
@@ -10,22 +11,22 @@ import {
   FaCheckCircle,
   FaClock,
   FaExclamationTriangle,
-  FaWallet,         // ← replacement for FaNairaSign
+  FaWallet,        
   FaChartLine,
   FaStar,
-} from 'react-icons/fa';
+} from 'react-icons/fa'
 
 interface DashboardStats {
-  totalUsers: number;
-  totalArtisans: number;
-  totalCustomers: number;
-  pendingVerifications: number;
-  activeJobs: number;
-  completedJobs: number;
-  disputedJobs: number;
-  totalPlatformEarnings: number;
-  averageRating: string;
-  pendingSupportTickets: number;
+  totalUsers: number
+  totalArtisans: number
+  totalCustomers: number
+  pendingVerifications: number
+  activeJobs: number
+  completedJobs: number
+  disputedJobs: number
+  totalPlatformEarnings: number
+  averageRating: string
+  pendingSupportTickets: number
 }
 
 export default function AdminDashboard() {
@@ -40,78 +41,78 @@ export default function AdminDashboard() {
     totalPlatformEarnings: 0,
     averageRating: '0.0',
     pendingSupportTickets: 0,
-  });
+  })
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchDashboardStats() {
       try {
-        setLoading(true);
+        setLoading(true)
 
         // 1. Users & role breakdown
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('role');
+          .select('role')
 
-        if (profilesError) throw profilesError;
+        if (profilesError) throw profilesError
 
-        const totalUsers = profiles?.length || 0;
-        const totalArtisans = profiles?.filter(p => p.role === 'artisan').length || 0;
-        const totalCustomers = profiles?.filter(p => p.role === 'customer').length || 0;
+        const totalUsers = profiles?.length || 0
+        const totalArtisans = profiles?.filter(p => p.role === 'artisan').length || 0
+        const totalCustomers = profiles?.filter(p => p.role === 'customer').length || 0
 
         // 2. Pending artisan verifications
         const { count: pendingVerif, error: verifError } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true })
           .eq('role', 'artisan')
-          .eq('verification_status', 'not_verified');
+          .eq('verification_status', 'not_verified')
 
-        if (verifError) throw verifError;
+        if (verifError) throw verifError
 
         // 3. Job stats (adjust table/column names to match your schema)
         const { data: jobs, error: jobsError } = await supabase
           .from('jobs')           // ← change if your table is named differently
-          .select('status');
+          .select('status')
 
-        if (jobsError) throw jobsError;
+        if (jobsError) throw jobsError
 
-        const activeJobs = jobs?.filter(j => ['active', 'in_progress', 'ongoing'].includes(j.status)).length || 0;
-        const completedJobs = jobs?.filter(j => j.status === 'completed' || j.status === 'finished').length || 0;
-        const disputedJobs = jobs?.filter(j => ['disputed', 'under_review', 'complaint'].includes(j.status)).length || 0;
+        const activeJobs = jobs?.filter(j => ['active', 'in_progress', 'ongoing'].includes(j.status)).length || 0
+        const completedJobs = jobs?.filter(j => j.status === 'completed' || j.status === 'finished').length || 0
+        const disputedJobs = jobs?.filter(j => ['disputed', 'under_review', 'complaint'].includes(j.status)).length || 0
 
         // 4. Platform earnings (example – adjust to your actual table)
         const { data: transactions, error: txError } = await supabase
           .from('transactions')   // ← change table name if different
           .select('amount')
           .eq('status', 'completed')
-          .eq('type', 'platform_fee');
+          .eq('type', 'platform_fee')
 
-        if (txError) throw txError;
+        if (txError) throw txError
 
-        const totalEarnings = transactions?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0;
+        const totalEarnings = transactions?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0
 
         // 5. Average artisan rating
         const { data: ratings, error: ratingError } = await supabase
           .from('profiles')
           .select('average_rating')
           .eq('role', 'artisan')
-          .not('average_rating', 'is', null);
+          .not('average_rating', 'is', null)
 
-        if (ratingError) throw ratingError;
+        if (ratingError) throw ratingError
 
         const avgRating =
           ratings && ratings.length > 0
             ? (ratings.reduce((sum, r) => sum + (Number(r.average_rating) || 0), 0) / ratings.length).toFixed(1)
-            : '0.0';
+            : '0.0'
 
         // 6. Pending support tickets (if you have this table)
         const { count: pendingTickets, error: ticketError } = await supabase
           .from('support_tickets')  // ← adjust table name if different
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'open');
+          .eq('status', 'open')
 
-        if (ticketError) throw ticketError;
+        if (ticketError) throw ticketError
 
         setStats({
           totalUsers,
@@ -124,20 +125,20 @@ export default function AdminDashboard() {
           totalPlatformEarnings: totalEarnings,
           averageRating: avgRating,
           pendingSupportTickets: pendingTickets || 0,
-        });
+        })
       } catch (error) {
-        console.error('Dashboard stats fetch failed:', error);
+        console.error('Dashboard stats fetch failed:', error)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    fetchDashboardStats();
+    fetchDashboardStats()
 
     // Refresh every 60 seconds
-    const interval = setInterval(fetchDashboardStats, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    const interval = setInterval(fetchDashboardStats, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   const formatNaira = (amount: number) =>
     new Intl.NumberFormat('en-NG', {
@@ -145,7 +146,7 @@ export default function AdminDashboard() {
       currency: 'NGN',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(amount)
 
   const StatCard = ({
     title,
@@ -154,11 +155,11 @@ export default function AdminDashboard() {
     color = 'blue',
     loading,
   }: {
-    title: string;
-    value: string | number;
-    icon: any;
-    color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
-    loading: boolean;
+    title: string
+    value: string | number
+    icon: any
+    color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple'
+    loading: boolean
   }) => {
     const colorMap = {
       blue: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -166,9 +167,9 @@ export default function AdminDashboard() {
       yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
       red: 'bg-red-50 text-red-700 border-red-200',
       purple: 'bg-purple-50 text-purple-700 border-purple-200',
-    };
+    }
 
-    const bgLight = colorMap[color].split(' ')[0];
+    const bgLight = colorMap[color].split(' ')[0]
 
     return (
       <div
@@ -188,8 +189,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    );
-  };
+    )
+  }
 
   return (
     <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
@@ -232,7 +233,7 @@ export default function AdminDashboard() {
           <StatCard
             title="Platform Earnings"
             value={formatNaira(stats.totalPlatformEarnings)}
-            icon={FaWallet}           // ← using FaWallet from fa
+            icon={FaWallet}
             color="purple"
             loading={loading}
           />
@@ -275,5 +276,5 @@ export default function AdminDashboard() {
         </div>
       </div>
     </div>
-  );
+  )
 }
