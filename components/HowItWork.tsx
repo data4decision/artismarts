@@ -6,8 +6,8 @@ import Slider from 'react-slick'
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
 import Link from 'next/link'
-import { Star } from 'lucide-react' // or use react-icons FaStar
-import { supabase } from '@/lib/supabase' // your client
+import { Star } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 // Type (adjust fields to match your profiles table)
 interface Artisan {
@@ -45,10 +45,11 @@ const FeaturedArtisansSlider = () => {
             verification_status
           `)
           .eq('verification_status', 'verified') // only show verified
-          .order('average_rating', { ascending: false, nullsLast: true })
+          .order('average_rating', { ascending: false, nullsFirst: false }) // fixed: nullsFirst: false = nulls last
           .limit(12) // enough for slider
 
         if (error) throw error
+
         setArtisans(data || [])
       } catch (err) {
         console.error('Error fetching artisans:', err)
