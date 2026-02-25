@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ShieldCheck, Clock, XCircle, AlertCircle, Loader2 } from 'lucide-react'
 // Do NOT import supabase here
 
@@ -91,10 +92,26 @@ export default function ArtisanDashboard() {
 
           {/* Verification Badge */}
           {loading ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-gray-200">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
-              <span className="text-sm font-medium text-gray-600">Loading status...</span>
-            </div>
+            <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+                   <div className="relative flex items-center justify-center">
+                     {/* Outer spinning ring */}
+                     <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                 
+                     {/* Inner static logo with subtle pulse */}
+                     <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                       <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                         <Image
+                           src="/log.png"
+                           width={48}
+                           height={48}
+                           priority
+                           alt="Loading..."
+                           className="object-contain"
+                         />
+                       </div>
+                     </div>
+                   </div>
+                 </div>
           ) : error ? (
             <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-200">
               <AlertCircle className="w-5 h-5 text-red-600" />
