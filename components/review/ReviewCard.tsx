@@ -1,4 +1,4 @@
-// components/review/ReviewCard.tsx
+
 import Image from 'next/image'
 import { Star } from 'lucide-react'
 

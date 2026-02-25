@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createSupabaseClient } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash, FaArrowLeft } from 'react-icons/fa';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ export default function AdminLogin() {
   });
 
   const [loading, setLoading] = useState(false);
+  const supabase = createSupabaseClient()
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

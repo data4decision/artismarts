@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseClient } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { CheckCircle, XCircle, User, Building2, ShieldCheck, Eye } from 'lucide-react'
 import Link from 'next/link'
@@ -31,6 +31,7 @@ type ArtisanProfile = {
 }
 
 export default function AdminArtisanVerification() {
+  const supabase = createSupabaseClient()
   const [artisans, setArtisans] = useState<ArtisanProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseClient } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { 
   FaCalendarAlt, 
@@ -59,6 +59,7 @@ const statusStyles: Record<BookingStatus, { bg: string; text: string; icon: Reac
 // Component
 // ────────────────────────────────────────────────
 export default function ArtisanBookingsPage() {
+  const supabase = createSupabaseClient()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [stats, setStats] = useState<Stats>({
     todayEarnings: 0,

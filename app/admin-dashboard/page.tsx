@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseClient } from '@/lib/supabase'
 import {
   FaUsers,
   FaUserTie,
@@ -31,6 +31,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  const supabase = createSupabaseClient()
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalArtisans: 0,
