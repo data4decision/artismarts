@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import React, { useState, useEffect } from 'react'
-import { createSupabaseClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { Search, User, Building2, MapPin, ShieldCheck, Star } from 'lucide-react'
 import Link from 'next/link'
@@ -27,7 +27,6 @@ type ApprovedArtisan = {
 }
 
 export default function ApprovedArtisansPage() {
-  const supabase = createSupabaseClient()
   const [artisans, setArtisans] = useState<ApprovedArtisan[]>([])
   const [filteredArtisans, setFilteredArtisans] = useState<ApprovedArtisan[]>([])
   const [loading, setLoading] = useState(true)

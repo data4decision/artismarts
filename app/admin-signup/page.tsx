@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash, FaArrowLeft } from 'react-icons/fa';
 import Link from 'next/link';
@@ -11,7 +11,6 @@ const SECRET_CODE_REQUIRED = 'D4D_ARTISMART';
 
 export default function AdminSignup() {
   const router = useRouter();
-  const supabase = createSupabaseClient()
 
   const [formData, setFormData] = useState({
     secretCode: '',

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FaCaretDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa'
-import { createSupabaseClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
 interface Profile {
@@ -20,7 +20,6 @@ interface Profile {
 }
 
 export default function ClientHeader() {
-    const supabase = createSupabaseClient()
   const router = useRouter()
   const pathname = usePathname()
   
