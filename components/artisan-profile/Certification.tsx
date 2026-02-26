@@ -1,3 +1,4 @@
+// app/artisan/certifications/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -9,16 +10,14 @@ type Certification = {
   title: string
   issuer: string
   issueDate: string        // YYYY-MM-DD
-  expiryDate?: string      // optional YYYY-MM-DD
-  certificateUrl?: string  // optional URL
+  expiryDate?: string      // optional
+  certificateUrl?: string  // optional
 }
 
 export default function CertificationsPage() {
   const [certs, setCerts] = useState<Certification[]>([])
   const [originalCerts, setOriginalCerts] = useState<Certification[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [editMode, setEditMode] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [form, setForm] = useState<Certification>({
     title: '',
@@ -27,18 +26,15 @@ export default function CertificationsPage() {
     expiryDate: '',
     certificateUrl: '',
   })
+  const [saving, setSaving] = useState(false)
 
   // Load certifications
   useEffect(() => {
     const loadCerts = async () => {
-      setLoading(true)
-      setError(null)
-
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
-          toast.error('Please sign in to view certifications')
-          router.push('/login')
+          toast.error('Please sign in')
           return
         }
 
@@ -48,47 +44,32 @@ export default function CertificationsPage() {
           .eq('id', user.id)
           .maybeSingle()
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
-          throw error
+        if (error && error.code !== 'PGRST116') {
+          console.error('Load error:', error)
+          return
         }
 
-        const loadedCerts = Array.isArray(data?.certifications) 
-          ? data.certifications 
-          : []
-
-        setCerts(loadedCerts)
-        setOriginalCerts(loadedCerts)
-      } catch (err: any) {
-        console.error('Load certifications error:', err)
-        setError('Failed to load certifications. Please try again.')
-        toast.error('Failed to load certifications')
-      } finally {
-        setLoading(false)
+        if (data?.certifications && Array.isArray(data.certifications)) {
+          setCerts(data.certifications)
+          setOriginalCerts(data.certifications)
+        }
+      } catch (err) {
+        console.error(err)
       }
     }
 
     loadCerts()
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (['SIGNED_IN', 'TOKEN_REFRESHED', 'INITIAL_SESSION'].includes(event)) {
         loadCerts()
       }
     })
 
-    return () => {
-      authListener.subscription.unsubscribe()
-    }
+    return () => listener.subscription.unsubscribe()
   }, [])
 
-  const hasChanges = JSON.stringify(certs) !== JSON.stringify(originalCerts)
-
-  const startEdit = (index: number) => {
-    setEditingIndex(index)
-    setForm({ ...certs[index] })
-  }
-
-  const addNew = () => {
-    setEditingIndex(-1) // -1 means adding new
+  const resetForm = () => {
     setForm({
       title: '',
       issuer: '',
@@ -96,6 +77,18 @@ export default function CertificationsPage() {
       expiryDate: '',
       certificateUrl: '',
     })
+    setEditingIndex(null)
+  }
+
+  const startEdit = (index: number) => {
+    setEditingIndex(index)
+    setForm(certs[index])
+    setEditMode(true)
+  }
+
+  const addNew = () => {
+    resetForm()
+    setEditMode(true)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,52 +96,35 @@ export default function CertificationsPage() {
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
-  const saveItem = () => {
+  const saveCert = () => {
     if (!form.title.trim() || !form.issuer.trim() || !form.issueDate) {
       toast.error('Title, Issuer and Issue Date are required')
-      return false
+      return
     }
 
-    // Basic date validation
-    if (form.issueDate && !/^\d{4}-\d{2}-\d{2}$/.test(form.issueDate)) {
-      toast.error('Invalid issue date format')
-      return false
-    }
-    if (form.expiryDate && !/^\d{4}-\d{2}-\d{2}$/.test(form.expiryDate)) {
-      toast.error('Invalid expiry date format')
-      return false
-    }
+    let updated: Certification[]
 
-    let updated = [...certs]
-
-    if (editingIndex === -1) {
-      // Add new
-      updated = [...updated, { ...form }]
-    } else if (editingIndex !== null) {
-      // Update existing
+    if (editingIndex !== null) {
+      updated = [...certs]
       updated[editingIndex] = { ...form }
+    } else {
+      updated = [...certs, { ...form }]
     }
 
     setCerts(updated)
-    setEditingIndex(null)
-    toast.success(editingIndex === -1 ? 'Certification added' : 'Certification updated')
-    return true
+    resetForm()
+    setEditMode(false)
+    toast.success(editingIndex !== null ? 'Updated' : 'Added')
   }
 
   const removeCert = (index: number) => {
     if (!confirm('Remove this certification?')) return
     const updated = certs.filter((_, i) => i !== index)
     setCerts(updated)
-    setEditingIndex(null)
-    toast.success('Certification removed')
+    toast.success('Removed')
   }
 
   const saveAll = async () => {
-    if (!hasChanges) {
-      toast.info('No changes to save')
-      return
-    }
-
     setSaving(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -164,157 +140,200 @@ export default function CertificationsPage() {
 
       if (error) throw error
 
-      toast.success('All changes saved successfully!')
+      toast.success('Saved successfully!')
       setOriginalCerts(certs)
+      setEditMode(false)
     } catch (err: any) {
-      console.error('Save error:', err)
-      toast.error(err.message || 'Failed to save certifications')
+      console.error(err)
+      toast.error('Failed to save')
     } finally {
       setSaving(false)
     }
   }
 
   const cancel = () => {
-    if (hasChanges && !confirm('Discard all unsaved changes?')) return
     setCerts(originalCerts)
-    setEditingIndex(null)
-    toast.info('Changes discarded')
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <FaSpinner className="animate-spin text-5xl text-[var(--orange)] mx-auto mb-4" />
-          <p className="text-lg text-gray-600">Loading certifications...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md p-6 bg-white rounded-xl shadow">
-          <p className="text-red-600 text-xl mb-4">Error</p>
-          <p className="text-gray-700 mb-6">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-[var(--orange)] text-white rounded-lg hover:bg-orange-600"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
+    setEditMode(false)
+    resetForm()
+    toast.success('Changes discarded')
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className=" bg-gray-50 py-4 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
+
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-[var(--blue)] mb-2 flex items-center justify-center gap-3">
-            <FaCertificate className="text-[var(--orange)]" />
+          <h1 className="text-xl sm:text-2xl font-bold text-[var(--blue)] mb-2 flex items-center justify-center gap-3">
+            <FaCertificate className="text-[var(--orange)] text-xl md:text-2xl" />
             Certifications
           </h1>
-          <p className="text-gray-600">
-            Showcase your professional qualifications
+          <p className="text-[var(--blue)] text-sm">
+            List your professional certifications
           </p>
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-xl shadow border border-gray-200">
-          <h2 className="text-xl font-semibold text-[var(--blue)]">
-            Your Certifications {certs.length > 0 && `(${certs.length})`}
-          </h2>
+        {/* Card */}
+        <div className="bg-[var(--white)] rounded-2xl shadow-md border border-gray-200 overflow-hidden">
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={addNew}
-              className="px-5 py-2.5 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition flex items-center gap-2"
-            >
-              <FaPlus /> Add New
-            </button>
+          {/* Controls */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h2 className="text-sm md:text-xl font-bold text-[var(--blue)]">
+                Your Certifications {certs.length > 0 && `(${certs.length})`}
+              </h2>
 
-            {hasChanges && (
-              <>
-                <button
-                  onClick={saveAll}
-                  disabled={saving}
-                  className="px-5 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-60 transition flex items-center gap-2"
-                >
-                  <FaSave />
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-
-                <button
-                  onClick={cancel}
-                  className="px-5 py-2.5 bg-gray-300 text-gray-800 rounded-lg font-medium hover:bg-gray-400 transition flex items-center gap-2"
-                >
-                  <FaTimes /> Cancel
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* List */}
-        <div className="space-y-5">
-          {certs.length === 0 ? (
-            <div className="bg-white rounded-xl shadow border border-dashed border-gray-300 p-12 text-center">
-              <FaCertificate className="text-6xl text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-700 mb-2">
-                No certifications added yet
-              </h3>
-              <p className="text-gray-500 mb-6">
-                Add your professional certifications to strengthen your profile
-              </p>
-              <button
-                onClick={addNew}
-                className="px-6 py-3 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition"
-              >
-                Add Your First Certification
-              </button>
+              {!editMode ? (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={addNew}
+                    className="px-6 py-2.5 text-sm md:text-xl bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2"
+                  >
+                    <FaPlus /> Add New
+                  </button>
+                  {certs.length > 0 && (
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className="px-6 py-2.5 bg-[var(--blue)] text-white rounded-lg font-medium hover:bg-[var(--blue)]/80 transition flex items-center justify-center gap-2"
+                    >
+                      <FaEdit /> Edit
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={saveAll}
+                    disabled={saving}
+                    className="px-6 py-2.5 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 transition flex items-center justify-center gap-2 flex-1"
+                  >
+                    <FaSave />
+                    {saving ? 'Saving...' : 'Save All'}
+                  </button>
+                  <button
+                    onClick={cancel}
+                    className="px-6 py-2.5 bg-gray-200 text-[var(--blue)] rounded-lg font-medium hover:bg-gray-300 transition flex items-center justify-center gap-2 flex-1"
+                  >
+                    <FaTimes />
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
-          ) : (
-            certs.map((cert, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-xl shadow border border-gray-200 p-6 hover:shadow-lg transition-shadow"
-              >
-                {editingIndex === idx ? (
-                  // Edit form inline
-                  <div className="space-y-5">
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {certs.length === 0 && !editMode ? (
+              <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                <FaCertificate className="text-6xl text-gray-300 mx-auto mb-4" />
+                <p className="text-sm md:text-xl font-medium text-[var(--blue)] mb-3">
+                  No certifications added
+                </p>
+                <button
+                  onClick={addNew}
+                  className="px-6 py-3 text-sm md:text-xl bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition"
+                >
+                  Add Certification
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {certs.map((cert, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-[var(--blue)]">
+                          {cert.title}
+                        </h3>
+                        <p className="text-[var(--blue)] mt-1">
+                          {cert.issuer}
+                        </p>
+                        <div className="mt-2 text-sm text-[var(--blue)] flex flex-wrap gap-x-6 gap-y-1">
+                          <div>
+                            <span className="font-medium">Issued:</span>{' '}
+                            {new Date(cert.issueDate).toLocaleDateString('en-GB')}
+                          </div>
+                          {cert.expiryDate && (
+                            <div>
+                              <span className="font-medium">Expires:</span>{' '}
+                              {new Date(cert.expiryDate).toLocaleDateString('en-GB')}
+                            </div>
+                          )}
+                        </div>
+                        {cert.certificateUrl && (
+                          <a
+                            href={cert.certificateUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center gap-2 text-[var(--orange)] hover:underline text-sm font-medium"
+                          >
+                            View Certificate
+                          </a>
+                        )}
+                      </div>
+
+                      {editMode && (
+                        <div className="flex gap-3 self-start">
+                          <button
+                            onClick={() => startEdit(idx)}
+                            className="p-2.5 text-[var(--blue)] hover:bg-blue-50 rounded-lg transition"
+                          >
+                            <FaEdit size={18} />
+                          </button>
+                          <button
+                            onClick={() => removeCert(idx)}
+                            className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                          >
+                            <FaTrash size={18} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {editMode && (
+                  <div className="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-6 mt-6">
+                    <h3 className="text-lg font-semibold text-[var(--blue)] mb-5 flex items-center gap-2">
+                      <FaPlus className="text-[var(--orange)]" />
+                      {editingIndex !== null ? 'Edit Certification' : 'Add Certification'}
+                    </h3>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
                           Title *
                         </label>
                         <input
                           name="title"
                           value={form.title}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none"
+                          placeholder="e.g. Certified Electrician"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
                           Issuer *
                         </label>
                         <input
                           name="issuer"
                           value={form.issuer}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none"
+                          placeholder="e.g. Trade Test Council"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
                           Issue Date *
                         </label>
                         <input
@@ -322,13 +341,13 @@ export default function CertificationsPage() {
                           name="issueDate"
                           value={form.issueDate}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
                           Expiry Date (optional)
                         </label>
                         <input
@@ -336,12 +355,12 @@ export default function CertificationsPage() {
                           name="expiryDate"
                           value={form.expiryDate || ''}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
                         />
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
                           Certificate URL (optional)
                         </label>
                         <input
@@ -349,186 +368,32 @@ export default function CertificationsPage() {
                           value={form.certificateUrl || ''}
                           onChange={handleChange}
                           placeholder="https://..."
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
                         />
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                    <div className="mt-6 flex flex-col sm:flex-row gap-4">
                       <button
-                        onClick={() => {
-                          if (saveItem()) setEditingIndex(null)
-                        }}
+                        onClick={saveCert}
                         className="flex-1 px-6 py-3 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2"
                       >
-                        <FaSave /> Update
+                        <FaSave />
+                        {editingIndex !== null ? 'Update' : 'Add'}
                       </button>
                       <button
-                        onClick={() => setEditingIndex(null)}
-                        className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition flex items-center justify-center gap-2"
+                        onClick={resetForm}
+                        className="flex-1 px-6 py-3 bg-gray-200 text-[var(--blue)] rounded-lg font-medium hover:bg-gray-300 transition flex items-center justify-center gap-2"
                       >
-                        <FaTimes /> Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // View mode
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-[var(--blue)] mb-1">
-                        {cert.title}
-                      </h3>
-                      <p className="text-gray-700 font-medium">{cert.issuer}</p>
-                      <div className="mt-3 text-sm text-gray-600 flex flex-wrap gap-x-6 gap-y-1">
-                        <div>
-                          <span className="font-medium">Issued:</span>{' '}
-                          {new Date(cert.issueDate).toLocaleDateString('en-GB', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </div>
-                        {cert.expiryDate && (
-                          <div>
-                            <span className="font-medium">Expires:</span>{' '}
-                            {new Date(cert.expiryDate).toLocaleDateString('en-GB', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      {cert.certificateUrl && (
-                        <a
-                          href={cert.certificateUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-4 inline-flex items-center gap-2 text-[var(--orange)] hover:underline font-medium"
-                        >
-                          View Certificate →
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex gap-3 self-start mt-4 sm:mt-0">
-                      <button
-                        onClick={() => startEdit(idx)}
-                        className="p-3 text-[var(--blue)] hover:bg-blue-50 rounded-lg transition"
-                        title="Edit"
-                      >
-                        <FaEdit size={20} />
-                      </button>
-                      <button
-                        onClick={() => removeCert(idx)}
-                        className="p-3 text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Remove"
-                      >
-                        <FaTrash size={20} />
+                        <FaTimes />
+                        Cancel
                       </button>
                     </div>
                   </div>
                 )}
               </div>
-            ))
-          )}
-
-          {/* Add new form - shown when clicking Add New */}
-          {editingIndex === -1 && (
-            <div className="bg-white rounded-xl shadow border border-dashed border-[var(--orange)] p-6 mt-6">
-              <h3 className="text-xl font-semibold text-[var(--blue)] mb-6 flex items-center gap-3">
-                <FaPlus className="text-[var(--orange)]" />
-                Add New Certification
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Title *
-                  </label>
-                  <input
-                    name="title"
-                    value={form.title}
-                    onChange={handleChange}
-                    placeholder="e.g. Certified Master Electrician"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Issuer *
-                  </label>
-                  <input
-                    name="issuer"
-                    value={form.issuer}
-                    onChange={handleChange}
-                    placeholder="e.g. City & Guilds"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Issue Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="issueDate"
-                    value={form.issueDate}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Expiry Date (optional)
-                  </label>
-                  <input
-                    type="date"
-                    name="expiryDate"
-                    value={form.expiryDate || ''}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Certificate URL (optional)
-                  </label>
-                  <input
-                    name="certificateUrl"
-                    value={form.certificateUrl || ''}
-                    onChange={handleChange}
-                    placeholder="https://example.com/cert.pdf"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => {
-                    if (saveItem()) setEditingIndex(null)
-                  }}
-                  className="flex-1 px-8 py-4 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2 text-lg"
-                >
-                  <FaSave /> Add Certification
-                </button>
-                <button
-                  onClick={() => setEditingIndex(null)}
-                  className="flex-1 px-8 py-4 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition flex items-center justify-center gap-2 text-lg"
-                >
-                  <FaTimes /> Cancel
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
