@@ -7,6 +7,22 @@ import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash, FaArrowLeft } from 'react-icons/fa';
 import Link from 'next/link';
 
+// Get the correct base URL (works in dev & production)
+const getBaseUrl = () => {
+  // In production → use env variable (set in Vercel/Netlify/Hosting dashboard)
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  
+  // Client-side fallback (works during local dev)
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
+  // Server-side fallback (rare case)
+  return 'http://localhost:3000'; // won't be used in production
+};
+
 type Step = 'role' | 'form' | 'success';
 
 export default function SignUp() {
@@ -106,6 +122,7 @@ export default function SignUp() {
     }
 
     const email = formData.email.trim().toLowerCase();
+    const baseUrl = getBaseUrl();
 
     setLoading(true);
     setErrorMsg(null);
@@ -116,7 +133,8 @@ export default function SignUp() {
         email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
+          // Use reliable base URL + path
+          emailRedirectTo: `${baseUrl}/login?from=signup`,
           data: {
             role: selectedRole,
             first_name: formData.firstName.trim(),
@@ -145,7 +163,7 @@ export default function SignUp() {
       toast.success('Account created! Check your email to verify.');
 
       if (authData.session) {
-        // auto-login (if confirmations off)
+        // auto-login (if email confirmations are disabled)
         const path = selectedRole === 'artisan' ? '/dashboard/artisan' : '/dashboard/customer';
         router.push(path);
       } else {
@@ -153,6 +171,7 @@ export default function SignUp() {
       }
     } catch (err: any) {
       const msg = err?.message || 'Failed to create account';
+      console.error('Signup error:', err);
       setErrorMsg(msg);
       toast.error(msg);
     } finally {

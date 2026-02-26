@@ -101,7 +101,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="font-roboto  flex flex-col bg-[var(--blue)]/20 ">
-      <div className="flex flex-1 ">
+      <div className="flex flex-col sm:flex-1 ">
         {/* MAIN CONTENT – takes 4fr on sm+, scrollable */}
         <main className="flex-1 ">
           <div className=" p-2 md:p-3 lg:p-3 ">

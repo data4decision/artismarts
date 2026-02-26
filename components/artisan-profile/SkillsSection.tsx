@@ -167,7 +167,7 @@ export default function ArtisanSkillsPage() {
   return (
     <div className=" bg-gray-50  px-4 sm:px-6 lg:px-8 py-6.5">
       <div className="max-w-4xl mx-auto rounded-2xl shadow-xl border-1 border-gray-200 ">
-        <h1 className="text-xl md:text-2xl font-bold md:px-10 py-2.5 text-[var(--blue)] mb-3 ">
+        <h1 className="text-xl md:text-2xl font-bold px-7 md:px-10 py-2.5 text-[var(--blue)] mb-3 ">
           Select Your Skills
         </h1>
         
@@ -198,19 +198,19 @@ export default function ArtisanSkillsPage() {
           <>
             {selectedSkills.length > 0 && (
               <div className="mb-10 p-6 bg-[var(--white)] rounded-xl shadow-sm border border-gray-200">
-                <h3 className="text-lg font-semibold text-[var(--blue)] mb-4">
+                <h3 className="text-sm md:text-xl font-semibold text-[var(--blue)] mb-4">
                   Your Current Skills ({selectedSkills.length})
                 </h3>
                 <div className="flex flex-wrap gap-2.5">
                   {selectedSkills.map(skill => (
                     <div
                       key={skill}
-                      className="flex items-center gap-2 px-4 py-2 bg-[var(--white)] text-[var(--blue)] rounded-full border border-[var(--blue)]/80"
+                      className="flex text-sm md:text-xl items-center gap-2 px-4 py-2 bg-[var(--white)] text-[var(--blue)] rounded-full border border-[var(--blue)]/80"
                     >
-                      <span className="font-medium">{skill}</span>
+                      <span className="font-medium text-sm md:text-xl">{skill}</span>
                       <button
                         onClick={() => toggleSkill(skill)}
-                        className="text-[var(--orange)]/80 hover:text-[var(--orange)] text-xl leading-none font-bold"
+                        className="text-[var(--orange)]/80 hover:text-[var(--orange)] text-sm md:text-xl leading-none font-bold"
                         title="Remove skill"
                       >
                         ×
@@ -223,20 +223,20 @@ export default function ArtisanSkillsPage() {
 
             <form onSubmit={onSubmit} className="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden p-6 md:p-10 space-y-10">
               {form.formState.errors.skills && (
-                <p className="text-center text-[var(--orange)] font-medium">
+                <p className="text-center text-sm md:text-xl text-[var(--orange)] font-medium">
                   {form.formState.errors.skills.message}
                 </p>
               )}
 
               <div className="space-y-4">
                 {skillCategories.map(category => (
-                  <div key={category.title} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div key={category.title} className="border text-sm md:text-xl border-gray-200 rounded-lg overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setOpenCategory(prev => prev === category.title ? null : category.title)}
-                      className="w-full px-6 py-4 text-left flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                      className="w-full text-sm md:text-xl px-6 py-4 text-left flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
                     >
-                      <span className="text-lg font-medium text-[var(--blue)]">{category.title}</span>
+                      <span className="text-[15px] md:text-[17px] font-medium text-[var(--blue)]">{category.title}</span>
                       <span className="text-2xl font-bold text-[var(--blue)]">
                         {openCategory === category.title ? '−' : '+'}
                       </span>
@@ -261,7 +261,7 @@ export default function ArtisanSkillsPage() {
                                 onChange={() => toggleSkill(skill)}
                                 className="h-5 w-5 text-[var(--blue)] rounded border-gray-300 focus:ring-[var(--blue)]"
                               />
-                              <span className="text-[var(--blue)] font-medium">{skill}</span>
+                              <span className="text-[var(--blue)] text-sm md:text-xl font-medium">{skill}</span>
                             </label>
                           )
                         })}
@@ -275,7 +275,7 @@ export default function ArtisanSkillsPage() {
                 <button
                   type="submit"
                   disabled={submitting || loading}
-                  className="px-12 py-3.5 bg-[var(--orange)] text-white font-medium rounded-lg hover:bg-[var(--orange)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md"
+                  className="px-12 py-3.5 text-sm md:text-xl bg-[var(--orange)] text-white font-medium rounded-lg hover:bg-[var(--orange)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md"
                 >
                   {submitting ? 'Saving...' : 'Save Changes'}
                 </button>

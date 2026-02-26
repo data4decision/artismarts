@@ -162,7 +162,7 @@ export default function BioAndAvailabilityView() {
         {/* Header */}
         <div className="  px-6 py-1 text-[var(--blue)]">
           <h1 className="text-xl md:text-2xl font-bold">Bio & Availability</h1>
-          <p className="mt-1 opacity-90">
+          <p className="mt-1 opacity-90 text-[var(--blue)] text-sm sm:text-xl">
             Your professional summary and when clients can reach you
           </p>
         </div>
@@ -171,13 +171,13 @@ export default function BioAndAvailabilityView() {
           {/* Bio */}
           <section className="pb-10 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[var(--blue)]">Professional Bio</h2>
+              <h2 className="text-xl md:text-2xl font-semibold text-[var(--blue)]">Professional Bio</h2>
               <button
                 onClick={() => router.push('/dashboard/artisan/profile/bio-availability/edit')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--orange)] text-white rounded-lg font-medium hover:opacity-90 transition"
+                className="flex items-center gap-1 px-1.5 py-1 sm:px-5 sm:py-2.5 bg-[var(--orange)] text-white rounded-lg font-medium hover:opacity-90 transition"
               >
                 <FaEdit size={14} />
-                Edit Bio
+                Edit
               </button>
             </div>
 
@@ -188,7 +188,7 @@ export default function BioAndAvailabilityView() {
                 ))}
               </div>
             ) : (
-              <p className="text-[var(--blue)] italic text-center py-6">
+              <p className="text-[var(--blue)] text-sm md:text-xl italic text-center py-6">
                 No professional bio added yet.
               </p>
             )}
@@ -196,28 +196,28 @@ export default function BioAndAvailabilityView() {
 
           {/* Availability */}
           <section>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-              <h2 className="text-xl font-semibold text-[var(--blue)]">Availability</h2>
+            <div className="flex justify-between sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+              <h2 className="text-xl sm:text-2xl font-semibold text-[var(--blue)]">Availability</h2>
               <button
                 onClick={() => router.push('/dashboard/artisan/profile/bio-availability/edit')}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-[var(--orange)] text-white rounded-xl font-medium hover:opacity-90 transition shadow-md w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 px-2 py-1 sm:px-3 sm:py-2 bg-[var(--orange)] text-white rounded-xl font-medium hover:opacity-90 transition shadow-md  sm:w-auto"
               >
-                <FaEdit size={16} />
-                Edit Availability
+                <FaEdit size={14} />
+                Edit 
               </button>
             </div>
 
             {!hasAvailability ? (
               <div className="bg-gray-50 p-8 rounded-xl text-center border border-gray-200">
-                <p className="text-[var(--blue)] text-lg mb-3 font-medium">
+                <p className="text-[var(--blue)] text-sm md:text-xl mb-3 font-medium">
                   No availability set yet
                 </p>
-                <p className="text-text-[var(--blue)] mb-6">
+                <p className="text-[var(--blue)] text-sm md:text-xl mb-6">
                   Let clients know when you're available by adding your working days and time ranges.
                 </p>
                 <button
                   onClick={() => router.push('/dashboard/artisan/profile/bio-availability/edit')}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--orange)] text-white rounded-xl font-medium hover:opacity-90 transition"
+                  className="inline-flex items-center gap-2 px-6 py-3 text-sm md:text-xl bg-[var(--orange)] text-white rounded-lg font-medium hover:opacity-90 transition"
                 >
                   <FaPlus size={16} />
                   Set Availability Now
@@ -227,12 +227,12 @@ export default function BioAndAvailabilityView() {
               <div className="space-y-10">
                 {workingDays.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-medium text-[var(--blue)] mb-4">Working Days</h3>
+                    <h3 className="text-sm md:text-xl font-medium text-[var(--blue)] mb-4">Working Days</h3>
                     <div className="flex flex-wrap gap-3">
                       {workingDays.map(day => (
                         <span
                           key={day}
-                          className="inline-flex px-5 py-2.5 bg-[var(--orange)]/10 text-[var(--orange)] rounded-full text-sm font-medium border border-[var(--orange)]/30 shadow-sm"
+                          className="inline-flex px-5 py-2.5 text-sm  bg-[var(--orange)]/10 text-[var(--orange)] rounded-full font-medium border border-[var(--orange)]/30 shadow-sm"
                         >
                           {day}
                         </span>
@@ -243,7 +243,7 @@ export default function BioAndAvailabilityView() {
 
                 {Object.keys(timeRanges).length > 0 && (
                   <div>
-                    <h3 className="text-lg font-medium text-[var(--blue)] mb-4">Available Time Ranges</h3>
+                    <h3 className="text-xl md:text-2xl font-medium text-[var(--blue)] mb-4">Available Time Ranges</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {Object.entries(timeRanges).map(([dayKey, ranges]) => {
                         const day = dayKey as DayOfWeek
@@ -251,7 +251,7 @@ export default function BioAndAvailabilityView() {
                         return (
                           <div
                             key={day}
-                            className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm"
+                            className="bg-gray-[var(--blue)]/20 p-6 rounded-xl border border-gray-200 shadow-sm"
                           >
                             <h4 className="text-base font-semibold text-[var(--blue)] mb-4">
                               {day}
@@ -277,7 +277,7 @@ export default function BioAndAvailabilityView() {
                                 return (
                                   <span
                                     key={i}
-                                    className="inline-flex px-4 py-1.5 bg-white border border-gray-300 rounded-lg text-sm text-[var(--blue)] font-medium shadow-sm"
+                                    className="inline-flex px-4 py-1.5 bg[var(--orange)]/40 border border-gray-300 rounded-lg text-sm text-[var(--blue)] font-medium shadow-sm"
                                   >
                                     {startFormatted} – {endFormatted}
                                   </span>

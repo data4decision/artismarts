@@ -92,19 +92,19 @@ export default function ArtisanProfileView() {
             <div className="absolute inset-0 bg-black/40"></div> {/* dark overlay for contrast */}
 
             {/* Name + business/skill positioned like LinkedIn banner text */}
-            <div className="absolute bottom-8 md:bottom-5   md:right-50 z-10 text-white">
-              <h1 className="text-[15px] md:text-xl lg:text-[20px] font-bold tracking-tight drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">
+            <div className="absolute bottom-4 md:bottom-5 right-0  md:right-50 z-10 text-white">
+              <h1 className="text-[12px] md:text-xl lg:text-[20px] font-bold tracking-tight drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">
                 {fullName}
               </h1>
 
               {profile.business_name && (
-                <p className="text-[15px] md:text-[20px] font-semibold mt-1 drop-shadow-md">
+                <p className="text-[12px] md:text-[20px] font-semibold mt-1 drop-shadow-md">
                   {profile.business_name}
                 </p>
               )}
 
               {profile.primary_skill && (
-                <p className="text-xl md:text-[20px] mt-1 opacity-90 drop-shadow-sm">
+                <p className="text-[12px] md:text-[20px] mt-1 opacity-90 drop-shadow-sm">
                   <span className="font-semibold min-w-[90px] text-right">Skills: </span>
                   {profile.primary_skill}
                 </p>
@@ -122,9 +122,9 @@ export default function ArtisanProfileView() {
                   </div>
                 )}
                  {profile.residential_address && (
-                  <div className="text-[12px] md:text-[15px]  mt-1 drop-shadow-md">
-                    <span className="font-semibold min-w-[90px] text-right">Address:</span>
-                    <span className="text-[var(--white)] italic text-base">
+                  <div className="text-[10px] md:text-[15px]  mt-1 drop-shadow-md break-words">
+                    <span className="font-semibold min-w-[90px] text-right ">Address:</span>
+                    <span className="text-[12px] md:text-[15px] text-[var(--white)] italic text-base break-words px-2">
                       (private) {profile.residential_address}
                     </span>
                   </div>
@@ -142,8 +142,8 @@ export default function ArtisanProfileView() {
           {/* Profile picture overlapping banner bottom edge */}
           <div className="relative px-6 md:px-10 -mt-20 md:-mt-28 pb-12 ">
             <div className="flex flex-col md:flex-row md:items-start gap-8 lg:gap-12">
-              <div className="flex flex-col items-center md:items-start flex-shrink-0">
-                <div className="relative w-40 h-40 md:w-48 md:h-48 lg:w-56 lg:h-56 rounded-full overflow-hidden border-[10px] border-white shadow-2xl ring-1 ring-gray-200/50 bg-white">
+              <div className="flex flex-col sm:items-center md:items-start flex-shrink-0">
+                <div className="relative w-23 h-23 mt-6 mr-4 md:w-48 md:h-48 lg:w-56 lg:h-56 rounded-full overflow-hidden border-[10px] border-white shadow-2xl ring-1 ring-gray-200/50 bg-white">
                   {profile.profile_image ? (
                     <Image
                       src={profile.profile_image}
