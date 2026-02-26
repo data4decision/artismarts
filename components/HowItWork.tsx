@@ -16,7 +16,17 @@ function HowItWork() {
     slidesToShow: 4,
     slidesToScroll: 1,
     initialSlide: 0,
+     swipeToSlide: true,
     responsive: [
+      {
+        breakpoint: 1280,     
+        settings: {
+          slidesToShow: 4,
+          slidesToScroll: 1,
+          infinite: true,
+          dots: false
+        }
+      },
       {
         breakpoint: 1024,
         settings: {
@@ -27,7 +37,7 @@ function HowItWork() {
         }
       },
       {
-        breakpoint: 600,
+        breakpoint: 768,
         settings: {
           slidesToShow: 2,
           slidesToScroll: 1,
@@ -35,6 +45,13 @@ function HowItWork() {
         }
       },
       {
+        breakpoint: 640,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1
+        }
+      },
+       {
         breakpoint: 480,
         settings: {
           slidesToShow: 1,
