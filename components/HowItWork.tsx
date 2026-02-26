@@ -8,59 +8,72 @@ import { FaSearch, FaCalendarCheck, FaUserCheck, FaShieldAlt, FaCheckDouble, FaU
 
 function HowItWork() {
   const settings = {
-    dots: false,
-    infinite: true,  
-    speed: 500,
-    autoplay: true,  
-    autoplaySpeed: 3000,  
-    slidesToShow: 4,
-    slidesToScroll: 1,
-    initialSlide: 0,
-     swipeToSlide: true,
-    responsive: [
-      {
-        breakpoint: 1280,     
-        settings: {
-          slidesToShow: 4,
-          slidesToScroll: 1,
-          infinite: true,
-          dots: false
-        }
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 1,
-          infinite: true,
-          dots: false
-        }
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          initialSlide: 0
-        }
-      },
-      {
-        breakpoint: 640,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1
-        }
-      },
-       {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1
-        }
-      }
-    ]
-  };
+  dots: true,                    // ← enable dots on mobile – very helpful
+  infinite: true,
+  speed: 500,
+  autoplay: true,
+  autoplaySpeed: 3500,           // slightly slower = better readability
+  slidesToShow: 4,
+  slidesToScroll: 1,
+  initialSlide: 0,
+  arrows: true,                  // arrows on desktop
+  swipeToSlide: true,
+  pauseOnHover: true,
+  pauseOnDotsHover: true,
 
+  responsive: [
+    // Extra large desktops (≥ 1280px)
+    {
+      breakpoint: 1280,
+      settings: {
+        slidesToShow: 4,
+        slidesToScroll: 1,
+        dots: false,
+        arrows: true
+      }
+    },
+    // Large screens / laptops (≥ 1024px)
+    {
+      breakpoint: 1024,
+      settings: {
+        slidesToShow: 3,
+        slidesToScroll: 1,
+        dots: false,
+        arrows: true
+      }
+    },
+    // Tablets / medium screens (≥ 768px)
+    {
+      breakpoint: 768,
+      settings: {
+        slidesToShow: 2,
+        slidesToScroll: 1,
+        dots: true,
+        arrows: true
+      }
+    },
+    // Mobile landscape / small tablets (≥ 640px)
+    {
+      breakpoint: 640,
+      settings: {
+        slidesToShow: 1,          // ← changed to 1
+        slidesToScroll: 1,
+        dots: true,
+        arrows: false             // no arrows on small screens – swipe only
+      }
+    },
+    // Very small phones (< 640px)
+    {
+      breakpoint: 480,
+      settings: {
+        slidesToShow: 1,
+        slidesToScroll: 1,
+        dots: true,
+        arrows: false
+      }
+    }
+  ]
+};
   const steps = [
     {
       name: "Choose a Service", 
