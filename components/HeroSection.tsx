@@ -30,7 +30,7 @@ const HeroSection = () => {
               href="/signup"
               className="inline-block bg-[var(--orange)]/90 hover:bg-[var(--orange)] text-white font-medium px-8 py-4 rounded-lg text-lg transition"
             >
-              Get Started or Find an Artisan
+              Get Started 
             </Link>
           </div>
 
