@@ -27,16 +27,16 @@ const logout = () => {
 }
 
 const nav = [
-  { label: 'Dashboard', href: '/dashboard/custom', icon: FaTachometerAlt },
-  { label: 'Profile', href: '/dashboard/custom/profile', icon: FaUser },
-  { label: 'Browse Artisans', href: '/dashboard/custom/artisans', icon: FaSearch },
-  { label: 'My Bookings', href: '/dashboard/custom/bookings', icon: FaClipboardList },
-  { label: 'Booking Requests', href: '/dashboard/custom/requests', icon: FaBriefcase },
-  { label: 'Messages', href: '/dashboard/custom/messages', icon: FaComments },
-  { label: 'Payments', href: '/dashboard/custom/payments', icon: FaCreditCard },
+  { label: 'Dashboard', href: '/dashboard/customer', icon: FaTachometerAlt },
+  { label: 'Profile', href: '/dashboard/customer/profile', icon: FaUser },
+  { label: 'Browse Artisans', href: '/dashboard/customer/artisans', icon: FaSearch },
+  { label: 'My Bookings', href: '/dashboard/customer/bookings', icon: FaClipboardList },
+  { label: 'Booking Requests', href: '/dashboard/customer/requests', icon: FaBriefcase },
+  { label: 'Messages', href: '/dashboard/customer/messages', icon: FaComments },
+  { label: 'Payments', href: '/dashboard/customer/payments', icon: FaCreditCard },
   { label: 'Reviews', href: '/dashboard/customer/reviews', icon: FaStar },
-  { label: 'Notifications', href: '/dashboard/custom/notifications', icon: FaBell },
-  { label: 'Support', href: '/dashboard/custom/support', icon: FaLifeRing },
+  { label: 'Notifications', href: '/dashboard/customer/notifications', icon: FaBell },
+  { label: 'Support', href: '/dashboard/customer/support', icon: FaLifeRing },
 ]
 
 export default function Sidebar() {

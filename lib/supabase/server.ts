@@ -1,5 +1,4 @@
-// lib/supabase/server.ts
-// Utility for SERVER-SIDE Supabase client (Server Components, Server Actions, Route Handlers)
+
 
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'

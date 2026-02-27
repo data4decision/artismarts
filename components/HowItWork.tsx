@@ -179,6 +179,15 @@ function HowItWork() {
             {steps.map(renderCard)}
           </Slider>
         </div>
+        <div className="flex justify-center mt-8 sm:mt-12">
+          <Link
+            href="/signup"
+            className="inline-flex items-center px-8 sm:px-10 py-4 sm:py-5 bg-[var(--blue)] hover:bg-[var(--blue)]/90 text-white font-semibold text-base sm:text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
+          >
+            Join as a Customer →
+          </Link>
+        </div>
+        
       </div>
 
       {/* Artisans Section */}
@@ -198,7 +207,7 @@ function HowItWork() {
         <div className="flex justify-center mt-8 sm:mt-12">
           <Link
             href="/signup"
-            className="inline-flex items-center px-8 sm:px-10 py-4 sm:py-5 bg-[var(--orange)] hover:bg-[var(--orange)]/90 text-white font-semibold text-base sm:text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
+            className="inline-flex items-center px-8 sm:px-10 py-4 sm:py-5 bg-[var(--blue)] hover:bg-[var(--blue)]/90 text-white font-semibold text-base sm:text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
           >
             Join as an Artisan →
           </Link>

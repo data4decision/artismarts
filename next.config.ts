@@ -15,6 +15,11 @@ const nextConfig = {
         port: '',
         pathname: '/storage/v1/object/public/profile-photos/**',
       },
+      {
+  protocol: 'https',
+  hostname: 'iwfjgvurissjsyybmlrn.supabase.co',
+  pathname: '/storage/v1/object/public/verification-docs/**',
+},
     ],
   },
  

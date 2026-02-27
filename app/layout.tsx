@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
-
-// No more next/font/google import — we load Roboto via CSS now
+import { AuthProvider } from "@/contexts/AuthContext"
 
 export const metadata: Metadata = {
   title: "Artismart",
@@ -17,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-roboto antialiased">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <Toaster position="top-center" reverseOrder={false} />
       </body>
     </html>
