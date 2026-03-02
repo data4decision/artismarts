@@ -1,378 +1,682 @@
-// 'use client'
+// app/dashboard/artisan/jobs/page.tsx
+'use client'
 
-// import { useState, useEffect } from 'react'
-// import { supabase } from '@/lib/supabase'
-// import { format } from 'date-fns'
-// import { 
-//   FaCalendarAlt, 
-//   FaClock, 
-//   FaMapMarkerAlt, 
-//   FaPhoneAlt, 
-//   FaCheckCircle, 
-//   FaHourglassHalf, 
-//   FaTimesCircle, 
-//   FaMoneyBillWave,
-//   FaBell 
-// } from 'react-icons/fa'
-// import React from 'react'   
+export const dynamic = 'force-dynamic'
 
+import React, { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import toast from 'react-hot-toast'
+import { 
+  FaSpinner, 
+  FaExclamationTriangle, 
+  FaCheckCircle, 
+  FaTimesCircle, 
+  FaUserTie, 
+  FaMapMarkerAlt, 
+  FaDollarSign, 
+  FaClock, 
+  FaCommentDots, 
+  FaRedo,
+  FaImage,
+  FaCalendarCheck,
+  FaUpload
+} from 'react-icons/fa'
+import Link from 'next/link'
+import Image from 'next/image'
 
-// type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
+interface Customer {
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+}
 
-// interface Booking {
-//   id: string
-//   client_name: string
-//   client_phone: string | null
-//   service_type: string
-//   address: string
-//   scheduled_date: string          // ISO string
-//   scheduled_time: string          // e.g. "14:30"
-//   duration_minutes: number | null
-//   status: BookingStatus
-//   total_amount: number | null
-//   notes: string | null
-//   created_at: string
-//   // If you later add paid_at field (used in stats):
-//   // paid_at: string | null
-// }
+interface Job {
+  id: string
+  title: string
+  description: string
+  budget_min: number | null
+  budget_max: number | null
+  job_type: string | null
+  duration: string | null
+  location: string
+  preferred_date: string | null
+  preferred_time: string | null
+  status: string
+  created_at: string
+  updated_at: string | null
+  completion_photo_urls: string[] | null
+  customer: Customer | null
+  decline_reason?: string | null
+}
 
-// interface Stats {
-//   todayEarnings: number
-//   weekEarnings: number
-//   todayJobs: number
-//   upcomingJobs: number
-//   pendingPayments: number
-// }
+type Tab = 'assigned' | 'completed'
 
-// // ────────────────────────────────────────────────
-// // Status Colors & Icons
-// // ────────────────────────────────────────────────
-// const statusStyles: Record<BookingStatus, { bg: string; text: string; icon: React.JSX.Element }> = {
-//   pending:    { bg: 'bg-amber-100',     text: 'text-amber-700', icon: <FaHourglassHalf /> },
-//   confirmed:  { bg: 'bg-green-500',      text: 'text-blue-700',  icon: <FaCalendarAlt /> },
-//   in_progress:{ bg: 'bg-purple-100',    text: 'text-purple-700', icon: <FaClock /> },
-//   completed:  { bg: 'bg-green-100',     text: 'text-green-700', icon: <FaCheckCircle /> },
-//   cancelled:  { bg: 'bg-red-100',       text: 'text-red-700',   icon: <FaTimesCircle /> },
-// }
+export default function ArtisanJobsPage() {
+  const [activeTab, setActiveTab] = useState<Tab>('assigned')
+  const [assignedJobs, setAssignedJobs] = useState<Job[]>([])
+  const [completedJobs, setCompletedJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [updating, setUpdating] = useState<string | null>(null)
+  const [declineModalOpen, setDeclineModalOpen] = useState<string | null>(null)
+  const [declineReason, setDeclineReason] = useState('')
+  const [selectedCompletedJob, setSelectedCompletedJob] = useState<Job | null>(null)
 
-// // ────────────────────────────────────────────────
-// // Component
-// // ────────────────────────────────────────────────
-// export default function ArtisanBookingsPage() {
-//   const [bookings, setBookings] = useState<Booking[]>([])
-//   const [stats, setStats] = useState<Stats>({
-//     todayEarnings: 0,
-//     weekEarnings: 0,
-//     todayJobs: 0,
-//     upcomingJobs: 0,
-//     pendingPayments: 0,
-//   })
-//   const [loading, setLoading] = useState(true)
-//   const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    fetchJobs()
+  }, [])
 
-//   useEffect(() => {
-//     const fetchBookingsAndStats = async () => {
-//       try {
-//         setLoading(true)
-//         setError(null)
+  const fetchJobs = async () => {
+    setLoading(true)
+    setError(null)
 
-//         const { data: { user } } = await supabase.auth.getUser()
-//         if (!user) throw new Error('Not authenticated')
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('Please sign in')
+        return
+      }
 
-//         // ── Fetch bookings ───────────────────────────────────────
-//         const { data: bookingsData, error: bookingsError } = await supabase
-//           .from('bookings')
-//           .select('*')
-//           .eq('artisan_id', user.id)
-//           .order('scheduled_date', { ascending: true })
-//           .order('scheduled_time', { ascending: true })
-//           .limit(50)
+      // Assigned jobs (pending + in_progress)
+      const { data: assignedData, error: assignedError } = await supabase
+        .from('job_requests')
+        .select(`
+          id,
+          title,
+          description,
+          budget_min,
+          budget_max,
+          job_type,
+          duration,
+          location,
+          preferred_date,
+          preferred_time,
+          status,
+          created_at,
+          updated_at,
+          completion_photo_urls,
+          customer:customer_id (first_name, last_name, phone),
+          decline_reason
+        `)
+        .eq('assigned_artisan_id', user.id)
+        .in('status', ['assigned', 'in_progress'])
+        .order('created_at', { ascending: false })
 
-//         if (bookingsError) throw bookingsError
+      if (assignedError) throw assignedError
 
-//         setBookings(bookingsData || [])
+      // Completed jobs
+      const { data: completedData, error: completedError } = await supabase
+        .from('job_requests')
+        .select(`
+          id,
+          title,
+          description,
+          budget_min,
+          budget_max,
+          job_type,
+          duration,
+          location,
+          preferred_date,
+          preferred_time,
+          status,
+          created_at,
+          updated_at,
+          completion_photo_urls,
+          customer:customer_id (first_name, last_name, phone),
+          decline_reason
+        `)
+        .eq('assigned_artisan_id', user.id)
+        .eq('status', 'completed')
+        .order('updated_at', { ascending: false })
 
-//         // ── Simple stats calculation ──
-//         const today = new Date()
-//         today.setHours(0, 0, 0, 0)
+      if (completedError) throw completedError
 
-//         const weekStart = new Date(today)
-//         weekStart.setDate(today.getDate() - today.getDay())
+      // Map with explicit typing
+      const mapJob = (item: any): Job => ({
+        id: item.id || '',
+        title: item.title || '',
+        description: item.description || '',
+        budget_min: item.budget_min ?? null,
+        budget_max: item.budget_max ?? null,
+        job_type: item.job_type ?? null,
+        duration: item.duration ?? null,
+        location: item.location || '',
+        preferred_date: item.preferred_date ?? null,
+        preferred_time: item.preferred_time ?? null,
+        status: item.status || 'assigned',
+        created_at: item.created_at || '',
+        updated_at: item.updated_at || null,
+        completion_photo_urls: item.completion_photo_urls || null,
+        customer: item.customer ? {
+          first_name: item.customer.first_name ?? null,
+          last_name: item.customer.last_name ?? null,
+          phone: item.customer.phone ?? null,
+        } : null,
+        decline_reason: item.decline_reason ?? null,
+      })
 
-//         let todayEarnings = 0
-//         let weekEarnings = 0
-//         let todayJobs = 0
-//         let upcomingJobs = 0
-//         let pendingPayments = 0
+      setAssignedJobs((assignedData || []).map(mapJob))
+      setCompletedJobs((completedData || []).map(mapJob))
+    } catch (err: any) {
+      console.error('Fetch error:', err)
+      setError(err.message || 'Failed to load jobs')
+      toast.error('Failed to load jobs')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-//         bookingsData?.forEach(b => {
-//           const jobDate = new Date(b.scheduled_date)
+  const handleAccept = async (jobId: string) => {
+    if (!confirm('Accept this job?')) return
 
-//           if (b.status === 'completed' && b.total_amount) {
-//             if (jobDate.toDateString() === today.toDateString()) {
-//               todayEarnings += b.total_amount
-//             }
-//             if (jobDate >= weekStart) {
-//               weekEarnings += b.total_amount
-//             }
-//           }
+    setUpdating(jobId)
 
-//           if (jobDate.toDateString() === today.toDateString()) todayJobs++
-          
-//           // Upcoming = future days OR today but not completed
-//           if (jobDate > today || 
-//               (jobDate.toDateString() === today.toDateString() && b.status !== 'completed')) {
-//             upcomingJobs++
-//           }
+    try {
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          status: 'in_progress',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId)
 
-//           // Pending payments — assuming you have a paid_at column
-//           // If not, remove or adjust this condition
-//           if (b.status === 'completed' && !b.paid_at) {
-//             pendingPayments += b.total_amount || 0
-//           }
-//         })
+      if (error) throw error
 
-//         setStats({
-//           todayEarnings,
-//           weekEarnings,
-//           todayJobs,
-//           upcomingJobs,
-//           pendingPayments,
-//         })
-//       } catch (err: any) {
-//         console.error(err)
-//         setError(err.message || 'Failed to load bookings')
-//       } finally {
-//         setLoading(false)
-//       }
-//     }
+      toast.success('Job accepted!')
+      fetchJobs()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to accept job')
+    } finally {
+      setUpdating(null)
+    }
+  }
 
-//     fetchBookingsAndStats()
+  const handleDecline = async (jobId: string) => {
+    if (!declineReason.trim()) {
+      toast.error('Please provide a reason for declining')
+      return
+    }
 
-//     // Realtime subscription (optional)
-//     const channel = supabase
-//       .channel('bookings-changes')
-//       .on('postgres_changes', 
-//         { event: '*', schema: 'public', table: 'bookings' },
-//         () => {
-//           // For simplicity — full refresh
-//           fetchBookingsAndStats()
-//         }
-//       )
-//       .subscribe()
+    setUpdating(jobId)
 
-//     return () => {
-//       supabase.removeChannel(channel)
-//     }
-//   }, [])
+    try {
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          assigned_artisan_id: null,
+          status: 'pending',
+          decline_reason: declineReason.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId)
 
-//   if (loading) {
-//     return (
-//       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-//         <div className="text-[var(--blue)] text-lg animate-pulse">Loading jobs...</div>
-//       </div>
-//     )
-//   }
+      if (error) throw error
 
-//   if (error) {
-//     return (
-//       <div className="min-h-screen bg-gray-50 p-6">
-//         <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-xl">
-//           {error}
-//         </div>
-//       </div>
-//     )
-//   }
+      toast.success('Job declined and returned to admin')
+      setDeclineModalOpen(null)
+      setDeclineReason('')
+      fetchJobs()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to decline job')
+    } finally {
+      setUpdating(null)
+    }
+  }
 
-//   const todayBookings = bookings.filter(b => {
-//     const d = new Date(b.scheduled_date)
-//     return d.toDateString() === new Date().toDateString()
-//   })
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[var(--blue)]">
+              My Jobs
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Manage your assigned and completed jobs
+            </p>
+          </div>
 
-//   return (
-//     <div className="min-h-screen bg-gray-50/70 pb-20 md:pb-8">
-//       {/* Header */}
-//       <div className="bg-[var(--blue)] text-[var(--white)] px-5 sm:px-8 py-6 shadow-md">
-//         <div className="max-w-7xl mx-auto">
-//           <h1 className="text-2xl sm:text-3xl font-bold">
-//             Job Dashboard
-//           </h1>
-//           <p className="mt-1 opacity-90">
-//             {format(new Date(), 'EEEE, MMMM d, yyyy')}
-//           </p>
-//         </div>
-//       </div>
+          <button
+            onClick={fetchJobs}
+            disabled={loading}
+            className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50"
+          >
+            <FaRedo className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
 
-//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-//         {/* Quick Stats */}
-//         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-//           <StatCard 
-//             title="Today Earnings" 
-//             value={`₦${stats.todayEarnings.toLocaleString()}`} 
-//             icon={<FaMoneyBillWave className="text-[var(--orange)] text-2xl" />} 
-//           />
-//           <StatCard 
-//             title="Week Earnings" 
-//             value={`₦${stats.weekEarnings.toLocaleString()}`} 
-//             icon={<FaMoneyBillWave className="text-[var(--orange)] text-2xl" />} 
-//           />
-//           <StatCard 
-//             title="Today's Jobs" 
-//             value={stats.todayJobs.toString()} 
-//             icon={<FaCalendarAlt className="text-[var(--orange)] text-2xl" />} 
-//           />
-//           <StatCard 
-//             title="Upcoming" 
-//             value={stats.upcomingJobs.toString()} 
-//             icon={<FaClock className="text-[var(--orange)] text-2xl" />} 
-//           />
-//           <StatCard 
-//             title="Pending ₦" 
-//             value={`₦${stats.pendingPayments.toLocaleString()}`} 
-//             icon={<FaBell className="text-[var(--orange)] text-2xl" />} 
-//           />
-//         </div>
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('assigned')}
+            className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+              activeTab === 'assigned'
+                ? 'border-b-4 border-[var(--orange)] text-[var(--orange)]'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Assigned Jobs ({assignedJobs.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+              activeTab === 'completed'
+                ? 'border-b-4 border-[var(--orange)] text-[var(--orange)]'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Completed Jobs ({completedJobs.length})
+          </button>
+        </div>
 
-//         {/* Today's Jobs - Highlighted */}
-//         <section>
-//           <h2 className="text-xl font-semibold text-[var(--blue)] mb-4 flex items-center gap-2">
-//             <FaClock /> Today's Schedule
-//           </h2>
+        {/* Loading / Error */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <FaSpinner className="animate-spin text-[var(--orange)] text-5xl" />
+            <span className="ml-4 text-lg text-gray-600">Loading jobs...</span>
+          </div>
+        )}
 
-//           {todayBookings.length === 0 ? (
-//             <div className="bg-white rounded-xl p-8 text-center text-gray-500 border border-gray-200">
-//               No jobs scheduled for today
-//             </div>
-//           ) : (
-//             <div className="space-y-4">
-//               {todayBookings.map(booking => (
-//                 <JobCard key={booking.id} booking={booking} />
-//               ))}
-//             </div>
-//           )}
-//         </section>
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <FaExclamationTriangle className="text-red-500 text-4xl mx-auto mb-4" />
+            <p className="text-red-700 font-medium">{error}</p>
+            <button
+              onClick={fetchJobs}
+              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
 
-//         {/* All Upcoming + Recent */}
-//         <section>
-//           <h2 className="text-xl font-semibold text-[var(--blue)] mb-4">
-//             All Bookings
-//           </h2>
+        {/* Content */}
+        {!loading && !error && (
+          <>
+            {activeTab === 'assigned' && (
+              <>
+                {assignedJobs.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-500 mt-8">
+                    <FaExclamationTriangle className="text-6xl text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                      No assigned jobs
+                    </h3>
+                    <p>
+                      Jobs assigned to you will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6 mt-6">
+                    {assignedJobs.map(job => (
+                      <div
+                        key={job.id}
+                        className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
+                              {job.title}
+                            </h3>
 
-//           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-//             <div className="overflow-x-auto">
-//               <table className="min-w-full divide-y divide-gray-200">
-//                 <thead className="bg-gray-50">
-//                   <tr>
-//                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-//                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-//                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">When</th>
-//                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-//                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-//                   </tr>
-//                 </thead>
-//                 <tbody className="bg-white divide-y divide-gray-200">
-//                   {bookings.map(booking => (
-//                     <tr key={booking.id} className="hover:bg-gray-50">
-//                       <td className="px-6 py-4 whitespace-nowrap">
-//                         <div className="font-medium text-gray-900">{booking.client_name}</div>
-//                         {booking.client_phone && (
-//                           <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-//                             <FaPhoneAlt className="text-xs" /> {booking.client_phone}
-//                           </div>
-//                         )}
-//                       </td>
-//                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-//                         {booking.service_type}
-//                       </td>
-//                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-//                         {format(new Date(booking.scheduled_date), 'MMM d')} • {booking.scheduled_time}
-//                       </td>
-//                       <td className="px-6 py-4 whitespace-nowrap">
-//                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusStyles[booking.status].bg} ${statusStyles[booking.status].text}`}>
-//                           {statusStyles[booking.status].icon}
-//                           {booking.status.replace('_', ' ')}
-//                         </span>
-//                       </td>
-//                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-//                         {booking.total_amount ? `₦${booking.total_amount.toLocaleString()}` : '—'}
-//                       </td>
-//                     </tr>
-//                   ))}
-//                 </tbody>
-//               </table>
-//             </div>
+                            <p className="text-gray-700 mb-4 line-clamp-3">
+                              {job.description}
+                            </p>
 
-//             {bookings.length === 0 && (
-//               <div className="p-12 text-center text-gray-500">
-//                 No bookings found
-//               </div>
-//             )}
-//           </div>
-//         </section>
-//       </div>
-//     </div>
-//   )
-// }
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+                              <div className="flex items-center gap-2">
+                                <FaDollarSign className="text-[var(--orange)]" />
+                                Budget: {job.budget_min ? `₦${job.budget_min}` : 'Not specified'}
+                                {job.budget_max ? ` – ₦${job.budget_max}` : ''}
+                              </div>
 
-// // ────────────────────────────────────────────────
-// // Reusable Components
-// // ────────────────────────────────────────────────
-// function StatCard({ title, value, icon }: { title: string; value: string; icon: React.JSX.Element }) {
-//   return (
-//     <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-200">
-//       <div className="flex items-center justify-between">
-//         <div>
-//           <p className="text-sm text-gray-500">{title}</p>
-//           <p className="text-xl sm:text-2xl font-bold text-[var(--blue)] mt-1">{value}</p>
-//         </div>
-//         <div className="opacity-80">{icon}</div>
-//       </div>
-//     </div>
-//   )
-// }
+                              <div className="flex items-center gap-2">
+                                <FaClock className="text-[var(--orange)]" />
+                                Preferred: {job.preferred_date || 'Anytime'} {job.preferred_time || ''}
+                              </div>
 
-// function JobCard({ booking }: { booking: Booking }) {
-//   const status = statusStyles[booking.status]
+                              <div className="flex items-center gap-2">
+                                <FaMapMarkerAlt className="text-[var(--orange)]" />
+                                {job.location}
+                              </div>
 
-//   return (
-//     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
-//       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-//         <div className="space-y-2">
-//           <h3 className="font-semibold text-lg text-[var(--blue)]">{booking.service_type}</h3>
-//           <div className="flex items-center gap-2 text-gray-700">
-//             <FaMapMarkerAlt className="text-[var(--orange)]" />
-//             <span>{booking.address}</span>
-//           </div>
-//           <div className="flex items-center gap-2 text-gray-600 text-sm">
-//             <FaClock />
-//             <span>
-//               {format(new Date(booking.scheduled_date), 'MMM d, yyyy')} • {booking.scheduled_time}
-//             </span>
-//           </div>
-//         </div>
+                              {job.customer && (
+                                <div className="flex items-center gap-2">
+                                  <FaUserTie className="text-[var(--orange)]" />
+                                  Customer: {job.customer.first_name} {job.customer.last_name}
+                                </div>
+                              )}
+                            </div>
 
-//         <div className="flex flex-col items-end gap-3">
-//           <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-medium ${status.bg} ${status.text}`}>
-//             {status.icon}
-//             {booking.status.replace('_', ' ')}
-//           </span>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="font-medium">Status:</span>
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                job.status === 'assigned' ? 'bg-yellow-100 text-yellow-800' :
+                                job.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {job.status === 'assigned' ? 'Assigned' : 'In Progress'}
+                              </span>
+                            </div>
+                          </div>
 
-//           {booking.total_amount && (
-//             <span className="text-lg font-bold text-[var(--orange)]">
-//               ₦{booking.total_amount.toLocaleString()}
-//             </span>
-//           )}
+                          <div className="flex flex-col gap-3 mt-4 sm:mt-0 min-w-[180px]">
+                            {job.status === 'assigned' && (
+                              <>
+                                <button
+                                  onClick={() => handleAccept(job.id)}
+                                  disabled={updating === job.id}
+                                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                  {updating === job.id && <FaSpinner className="animate-spin" />}
+                                  Accept Job
+                                </button>
 
-//           <div className="flex gap-2">
-//             <button className="px-4 py-2 bg-[var(--orange)] text-white rounded-lg text-sm hover:bg-orange-600 transition">
-//               Start Job
-//             </button>
-//             <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
-//               Details
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   )
-// }
+                                <button
+                                  onClick={() => setDeclineModalOpen(job.id)}
+                                  disabled={updating === job.id}
+                                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50"
+                                >
+                                  Decline Job
+                                </button>
+                              </>
+                            )}
+
+                            {job.status === 'in_progress' && (
+                              <Link
+                                href={`/dashboard/artisan/jobs/${job.id}/complete`}
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition flex items-center justify-center gap-2"
+                              >
+                                <FaUpload />
+                                Complete Job
+                              </Link>
+                            )}
+
+                            <Link
+                              href="/dashboard/artisan/messages"
+                              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center gap-2"
+                            >
+                              <FaCommentDots size={16} />
+                              Chat with Admin
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'completed' && (
+              <>
+                {completedJobs.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-500 mt-8">
+                    <FaCalendarCheck className="text-6xl text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                      No completed jobs yet
+                    </h3>
+                    <p>
+                      Once you complete a job, it will appear here with photos.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6 mt-6">
+                    {completedJobs.map(job => (
+                      <div
+                        key={job.id}
+                        className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                        onClick={() => setSelectedCompletedJob(job)}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
+                              {job.title}
+                            </h3>
+
+                            <p className="text-gray-700 mb-4 line-clamp-3">
+                              {job.description}
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
+                              <div className="flex items-center gap-2">
+                                <FaDollarSign className="text-[var(--orange)]" />
+                                {job.budget_min ? `₦${job.budget_min}` : 'Not specified'}
+                                {job.budget_max ? ` – ₦${job.budget_max}` : ''}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <FaMapMarkerAlt className="text-[var(--orange)]" />
+                                {job.location}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <FaClock className="text-[var(--orange)]" />
+                                Completed: {job.updated_at ? new Date(job.updated_at).toLocaleDateString() : 'N/A'}
+                              </div>
+
+                              {job.customer && (
+                                <div className="flex items-center gap-2">
+                                  <FaUserTie className="text-[var(--orange)]" />
+                                  {job.customer.first_name} {job.customer.last_name}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="font-medium">Status:</span>
+                              <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                Completed
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Completion Photos Gallery */}
+                          {job.completion_photo_urls && job.completion_photo_urls.length > 0 && (
+                            <div className="mt-4 sm:mt-0">
+                              <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                <FaImage className="text-[var(--orange)]" />
+                                Completion Photos ({job.completion_photo_urls.length})
+                              </p>
+                              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-w-xs">
+                                {job.completion_photo_urls.map((url, idx) => (
+                                  <div key={idx} className="relative rounded-lg overflow-hidden shadow-sm">
+                                    <Image
+                                      src={url}
+                                      alt={`Completion photo ${idx + 1}`}
+                                      width={100}
+                                      height={100}
+                                      className="object-cover w-full h-24 rounded"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-2 italic">
+                                Click card to see full details
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* Decline Modal */}
+        {declineModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-[var(--blue)] mb-4">
+                Why are you declining this job?
+              </h3>
+
+              <textarea
+                value={declineReason}
+                onChange={e => setDeclineReason(e.target.value)}
+                placeholder="e.g. Too busy, not suitable skill, location too far..."
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] resize-none mb-4"
+                required
+              />
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setDeclineModalOpen(null)
+                    setDeclineReason('')
+                  }}
+                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={() => handleDecline(declineModalOpen)}
+                  disabled={updating === declineModalOpen || !declineReason.trim()}
+                  className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {updating === declineModalOpen && <FaSpinner className="animate-spin" />}
+                  Decline
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Full Details Modal for Completed Jobs */}
+        {selectedCompletedJob && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+            onClick={() => setSelectedCompletedJob(null)}
+          >
+            <div 
+              className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-gradient-to-r from-[var(--blue)] to-blue-900 text-white px-8 py-6 rounded-t-3xl z-10 flex items-center justify-between">
+                <h2 className="text-2xl font-bold">
+                  {selectedCompletedJob.title}
+                </h2>
+                <button
+                  onClick={() => setSelectedCompletedJob(null)}
+                  className="text-white hover:text-[var(--orange)] text-3xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-lg font-semibold text-[var(--blue)] mb-3">
+                      Description
+                    </h3>
+                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                      {selectedCompletedJob.description || 'No description provided'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                        <FaDollarSign className="text-[var(--orange)]" />
+                        Budget
+                      </h4>
+                      <p className="text-xl font-bold text-gray-900">
+                        {selectedCompletedJob.budget_min ? `₦${selectedCompletedJob.budget_min.toLocaleString()}` : '—'}
+                        {selectedCompletedJob.budget_max ? ` – ₦${selectedCompletedJob.budget_max.toLocaleString()}` : ''}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                        <FaMapMarkerAlt className="text-[var(--orange)]" />
+                        Location
+                      </h4>
+                      <p className="text-gray-900 font-medium">
+                        {selectedCompletedJob.location || 'Not specified'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                        <FaCalendarCheck className="text-[var(--orange)]" />
+                        Completed on
+                      </h4>
+                      <p className="text-gray-900 font-medium">
+                        {selectedCompletedJob.updated_at 
+                          ? new Date(selectedCompletedJob.updated_at).toLocaleString() 
+                          : 'N/A'}
+                      </p>
+                    </div>
+
+                    {selectedCompletedJob.customer && (
+                      <div>
+                        <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                          <FaUserTie className="text-[var(--orange)]" />
+                          Customer
+                        </h4>
+                        <p className="text-gray-900 font-medium">
+                          {selectedCompletedJob.customer.first_name} {selectedCompletedJob.customer.last_name}
+                          {selectedCompletedJob.customer.phone && (
+                            <span className="block text-sm text-gray-600">
+                              {selectedCompletedJob.customer.phone}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Completion Photos */}
+                {selectedCompletedJob.completion_photo_urls && selectedCompletedJob.completion_photo_urls.length > 0 && (
+                  <div className="pt-6 border-t border-gray-200">
+                    <h3 className="text-xl font-semibold text-[var(--blue)] mb-4 flex items-center gap-3">
+                      <FaImage className="text-[var(--orange)]" />
+                      Completion Photos ({selectedCompletedJob.completion_photo_urls.length})
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      {selectedCompletedJob.completion_photo_urls.map((url, idx) => (
+                        <div key={idx} className="relative rounded-xl overflow-hidden shadow-md group">
+                          <Image
+                            src={url}
+                            alt={`Completion photo ${idx + 1}`}
+                            width={300}
+                            height={300}
+                            className="object-cover w-full aspect-square transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <p className="text-white font-medium text-sm">
+                              Photo {idx + 1}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-6 flex justify-end">
+                  <button
+                    onClick={() => setSelectedCompletedJob(null)}
+                    className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-xl transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

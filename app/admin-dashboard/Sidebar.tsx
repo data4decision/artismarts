@@ -37,7 +37,7 @@ const nav = [
    { label: 'Verification', href: '/admin-dashboard/verification', icon: FaUsers },                    
   { label: 'Artisans', href: '/admin-dashboard/artisans', icon: FaUserCog },              
   { label: 'Customers', href: '/admin-dashboard/customers', icon: FaUsers },              
-  { label: 'Job Requests', href: '/admin-dashboard/jobs/requests', icon: FaBriefcase },   
+  { label: 'Job Requests', href: '/admin-dashboard/requests', icon: FaBriefcase },   
   { label: 'Active Jobs', href: '/admin-dashboard/jobs/active', icon: FaTasks },          
   { label: 'Completed Jobs', href: '/admin-dashboard/jobs/completed', icon: FaCheckCircle },
   { label: 'Disputed Jobs', href: '/admin-dashboard/jobs/disputes', icon: FaTimesCircle },

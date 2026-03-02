@@ -8,7 +8,10 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { FaStar, FaMapMarkerAlt, FaClock, FaUser, FaPhone, FaSpinner, FaExclamationTriangle, FaBriefcase, FaTools } from 'react-icons/fa'
+import Image from 'next/image'
 import Link from 'next/link'
+
+
 
 interface ArtisanProfile {
   id: string
@@ -83,12 +86,16 @@ export default function ArtisanProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <FaSpinner className="animate-spin text-[var(--orange)] text-6xl" />
-          <p className="text-lg text-gray-600">Loading artisan profile...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+        <div className="relative flex items-center justify-center">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                    <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                        <Image src="/log.png" width={48} height={48} priority alt="Loading..." className="object-contain"/>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     )
   }
 
@@ -97,12 +104,12 @@ export default function ArtisanProfilePage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md">
           <FaExclamationTriangle className="text-red-500 text-6xl mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Profile Not Found</h2>
-          <p className="text-gray-600 mb-8">
+          <h2 className="text-2xl font-bold text-[var(--blue)] mb-4">Profile Not Found</h2>
+          <p className="text-[var(--blue)] mb-8">
             {error || "This artisan profile may be unavailable or not verified."}
           </p>
           <Link
-            href="/dashboard/customer/find-artisans"
+            href="/dashboard/customer/artisans"
             className="inline-block px-8 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition"
           >
             ← Back to Find Artisans
@@ -117,8 +124,8 @@ export default function ArtisanProfilePage() {
       <div className="max-w-5xl mx-auto">
         {/* Back Button */}
         <Link
-          href="/dashboard/customer/find-artisans"
-          className="inline-flex items-center gap-2 text-[var(--orange)] hover:text-orange-700 font-medium mb-8 transition-colors"
+          href="/dashboard/customer/artisans"
+          className="inline-flex items-center gap-2 text-[var(--blue)] hover:text-[var(--blue)]/90 font-medium mb-8 transition-colors"
         >
           ← Back to Artisans
         </Link>
@@ -137,7 +144,7 @@ export default function ArtisanProfilePage() {
                   />
                 ) : (
                   <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-gray-200 flex items-center justify-center border-4 border-[var(--orange)]/20 shadow-lg">
-                    <FaUser className="text-gray-400 text-5xl" />
+                    <FaUser className="text-[var(--blue)] text-5xl" />
                   </div>
                 )}
               </div>
@@ -159,26 +166,26 @@ export default function ArtisanProfilePage() {
                     <div className="flex items-center gap-1 text-lg">
                       <FaStar className="text-yellow-400" />
                       <span className="font-semibold">{artisan.average_rating.toFixed(1)}</span>
-                      <span className="text-gray-500">({artisan.rating_count || 0} reviews)</span>
+                      <span className="text-[var(--blue)]">({artisan.rating_count || 0} reviews)</span>
                     </div>
                   )}
                 </div>
 
                 {artisan.business_name && (
-                  <p className="text-lg text-gray-700 mb-2">
+                  <p className="text-lg text-[var(--blue)] mb-2">
                     <strong>{artisan.business_name}</strong>
                   </p>
                 )}
 
                 {artisan.work_location && (
-                  <div className="flex items-center gap-2 text-gray-600 mb-4">
+                  <div className="flex items-center gap-2 text-[var(--blue)] mb-4">
                     <FaMapMarkerAlt className="text-[var(--orange)]" />
                     <span>{artisan.work_location}</span>
                   </div>
                 )}
 
                 {artisan.years_of_experience && (
-                  <div className="flex items-center gap-2 text-gray-600 mb-4">
+                  <div className="flex items-center gap-2 text-[var(--blue)] mb-4">
                     <FaClock className="text-[var(--orange)]" />
                     <span>{artisan.years_of_experience} years experience</span>
                   </div>
@@ -188,7 +195,7 @@ export default function ArtisanProfilePage() {
                 {artisan.bio && (
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold text-[var(--blue)] mb-2">About</h3>
-                    <p className="text-gray-700 whitespace-pre-line">{artisan.bio}</p>
+                    <p className="text-[var(--blue)] whitespace-pre-line">{artisan.bio}</p>
                   </div>
                 )}
               </div>
@@ -198,19 +205,19 @@ export default function ArtisanProfilePage() {
           {/* Action Buttons */}
           <div className="px-6 sm:px-10 py-6 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-4">
             <Link
-              href={`/dashboard/customer/book/${artisan.id}`}
+              href={`/dashboard/customer/bookings/${artisan.id}`}
               className="flex-1 min-w-[200px] py-3 px-6 bg-[var(--orange)] hover:bg-orange-600 text-white font-medium rounded-xl transition text-center"
             >
               Book Now
             </Link>
 
-            <button
+            {/* <button
               onClick={() => window.open(`tel:${artisan.phone}`)}
               disabled={!artisan.phone}
               className="flex-1 min-w-[200px] py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition text-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Call {artisan.phone || '(No phone)'}
-            </button>
+            </button> */}
           </div>
         </div>
 

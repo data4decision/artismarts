@@ -1,4 +1,4 @@
-// app/dashboard/customer/find-artisans/page.tsx
+
 'use client'
 
 export const dynamic = 'force-dynamic'
@@ -7,7 +7,10 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { FaSearch, FaSpinner, FaExclamationTriangle, FaStar, FaMapMarkerAlt, FaUser, FaClock } from 'react-icons/fa'
+
+import Image from 'next/image'
 import Link from 'next/link'
+
 
 // Define skill categories (make sure this is inside the file)
 const skillCategories = [
@@ -108,7 +111,7 @@ export default function FindArtisansPage() {
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--blue)] mb-4">
             Find Skilled Artisans
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600">
+          <p className="text-lg sm:text-xl text-[var(--blue)]">
             Connect with verified professionals for your needs
           </p>
         </div>
@@ -123,7 +126,7 @@ export default function FindArtisansPage() {
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition shadow-sm"
             />
-            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--blue)] text-xl" />
           </div>
         </div>
 
@@ -132,10 +135,33 @@ export default function FindArtisansPage() {
           <button
             onClick={fetchArtisans}
             disabled={loading}
-            className="px-6 py-3 bg-[var(--orange)] text-white font-medium rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50"
+            className="px-3 py-2 bg-[var(--orange)] text-white font-medium rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50"
           >
-            {loading && <FaSpinner className="animate-spin" />}
-            Refresh Artisans
+            {loading && (
+              <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+                           <div className="relative flex items-center justify-center">
+                             {/* Outer spinning ring */}
+                             <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                         
+                             {/* Inner static logo with subtle pulse */}
+                             <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                               <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                                 <Image
+                                   src="/log.png"
+                                   width={48}
+                                   height={48}
+                                   priority
+                                   alt="Loading..."
+                                   className="object-contain"
+                                 />
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+            )
+          }
+            Refresh Artisans 
+          
           </button>
         </div>
 
@@ -164,9 +190,9 @@ export default function FindArtisansPage() {
         {!loading && !error && (
           <>
             {filteredArtisans.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-500">
+              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-[var(--blue)]">
                 <FaSearch className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
                   No artisans found
                 </h3>
                 <p className="mb-6">
@@ -176,7 +202,7 @@ export default function FindArtisansPage() {
                 </p>
                 <button
                   onClick={fetchArtisans}
-                  className="inline-block px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition"
+                  className="inline-block px-6 py-3 bg-[var(--blue)] text-white rounded-xl hover:bg-[var(--blue)]/90 transition"
                 >
                   Refresh List
                 </button>
@@ -198,7 +224,7 @@ export default function FindArtisansPage() {
                         />
                       ) : (
                         <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                          <FaUser className="text-gray-500 text-2xl" />
+                          <FaUser className="text-[var(--blue)] text-2xl" />
                         </div>
                       )}
 
@@ -206,13 +232,13 @@ export default function FindArtisansPage() {
                         <h3 className="text-xl font-semibold text-[var(--blue)] group-hover:text-[var(--orange)] transition-colors">
                           {artisan.first_name} {artisan.last_name}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-[var(--blue)]">
                           {artisan.primary_skill || artisan.skills_categories?.[0] || 'Artisan'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="space-y-3 text-sm text-gray-700">
+                    <div className="space-y-3 text-sm text-[var(--blue)]">
                       {artisan.average_rating && (
                         <div className="flex items-center gap-1">
                           <FaStar className="text-yellow-400" />
