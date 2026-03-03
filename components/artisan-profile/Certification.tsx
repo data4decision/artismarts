@@ -1,4 +1,3 @@
-// app/artisan/certifications/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -9,14 +8,13 @@ import { FaCertificate, FaPlus, FaTrash, FaEdit, FaSave, FaTimes, FaSpinner } fr
 type Certification = {
   title: string
   issuer: string
-  issueDate: string        // YYYY-MM-DD
-  expiryDate?: string      // optional
-  certificateUrl?: string  // optional
+  issueDate: string
+  expiryDate?: string
+  certificateUrl?: string
 }
 
 export default function CertificationsPage() {
   const [certs, setCerts] = useState<Certification[]>([])
-  const [originalCerts, setOriginalCerts] = useState<Certification[]>([])
   const [editMode, setEditMode] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [form, setForm] = useState<Certification>({
@@ -27,10 +25,12 @@ export default function CertificationsPage() {
     certificateUrl: '',
   })
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  // Load certifications
+  // Load certifications once
   useEffect(() => {
     const loadCerts = async () => {
+      setLoading(true)
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
@@ -46,37 +46,25 @@ export default function CertificationsPage() {
 
         if (error && error.code !== 'PGRST116') {
           console.error('Load error:', error)
+          toast.error('Could not load certifications')
           return
         }
 
-        if (data?.certifications && Array.isArray(data.certifications)) {
-          setCerts(data.certifications)
-          setOriginalCerts(data.certifications)
-        }
+        const loaded = Array.isArray(data?.certifications) ? data.certifications : []
+        setCerts(loaded)
       } catch (err) {
         console.error(err)
+        toast.error('Error loading data')
+      } finally {
+        setLoading(false)
       }
     }
 
     loadCerts()
-
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (['SIGNED_IN', 'TOKEN_REFRESHED', 'INITIAL_SESSION'].includes(event)) {
-        loadCerts()
-      }
-    })
-
-    return () => listener.subscription.unsubscribe()
   }, [])
 
   const resetForm = () => {
-    setForm({
-      title: '',
-      issuer: '',
-      issueDate: '',
-      expiryDate: '',
-      certificateUrl: '',
-    })
+    setForm({ title: '', issuer: '', issueDate: '', expiryDate: '', certificateUrl: '' })
     setEditingIndex(null)
   }
 
@@ -93,10 +81,38 @@ export default function CertificationsPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setForm(prev => ({ ...prev, [name]: value }))
+    setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const saveCert = () => {
+  // ── Core: Save single certification to DB ───────────────────────
+  const saveToDatabase = async (newList: Certification[]) => {
+    setSaving(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          certifications: newList,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      return true
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'Failed to save')
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── Add or update (persist immediately) ───────────────────────────
+  const saveCert = async () => {
     if (!form.title.trim() || !form.issuer.trim() || !form.issueDate) {
       toast.error('Title, Issuer and Issue Date are required')
       return
@@ -105,77 +121,60 @@ export default function CertificationsPage() {
     let updated: Certification[]
 
     if (editingIndex !== null) {
-      updated = [...certs]
-      updated[editingIndex] = { ...form }
+      updated = certs.map((item, i) => (i === editingIndex ? { ...form } : item))
     } else {
       updated = [...certs, { ...form }]
     }
 
-    setCerts(updated)
-    resetForm()
-    setEditMode(false)
-    toast.success(editingIndex !== null ? 'Updated' : 'Added')
-  }
-
-  const removeCert = (index: number) => {
-    if (!confirm('Remove this certification?')) return
-    const updated = certs.filter((_, i) => i !== index)
-    setCerts(updated)
-    toast.success('Removed')
-  }
-
-  const saveAll = async () => {
-    setSaving(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not logged in')
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          certifications: certs,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
-
-      if (error) throw error
-
-      toast.success('Saved successfully!')
-      setOriginalCerts(certs)
+    const success = await saveToDatabase(updated)
+    if (success) {
+      setCerts(updated)
+      resetForm()
       setEditMode(false)
-    } catch (err: any) {
-      console.error(err)
-      toast.error('Failed to save')
-    } finally {
-      setSaving(false)
+      toast.success(editingIndex !== null ? 'Certification updated' : 'Certification added')
+    }
+    // else → toast already shown, list stays as-is
+  }
+
+  // ── Remove (persist immediately) ─────────────────────────────────
+  const removeCert = async (index: number) => {
+    if (!confirm('Remove this certification?')) return
+
+    const updated = certs.filter((_, i) => i !== index)
+
+    const success = await saveToDatabase(updated)
+    if (success) {
+      setCerts(updated)
+      toast.success('Certification removed')
     }
   }
 
   const cancel = () => {
-    setCerts(originalCerts)
-    setEditMode(false)
     resetForm()
-    toast.success('Changes discarded')
+    setEditMode(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <FaSpinner className="animate-spin text-5xl text-[var(--orange)]" />
+      </div>
+    )
   }
 
   return (
-    <div className=" bg-gray-50 py-4 px-4 sm:px-6 lg:px-8">
+    <div className="bg-gray-50 py-4 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
-
         {/* Header */}
         <div className="text-center">
           <h1 className="text-xl sm:text-2xl font-bold text-[var(--blue)] mb-2 flex items-center justify-center gap-3">
             <FaCertificate className="text-[var(--orange)] text-xl md:text-2xl" />
             Certifications
           </h1>
-          <p className="text-[var(--blue)] text-sm">
-            List your professional certifications
-          </p>
+          <p className="text-[var(--blue)] text-sm">List your professional certifications</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-[var(--white)] rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
           {/* Controls */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -187,35 +186,26 @@ export default function CertificationsPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={addNew}
-                    className="px-6 py-2.5 text-sm md:text-xl bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2"
+                    className="px-6 py-2.5 text-sm md:text-base bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2"
                   >
                     <FaPlus /> Add New
                   </button>
                   {certs.length > 0 && (
                     <button
                       onClick={() => setEditMode(true)}
-                      className="px-6 py-2.5 bg-[var(--blue)] text-white rounded-lg font-medium hover:bg-[var(--blue)]/80 transition flex items-center justify-center gap-2"
+                      className="px-6 py-2.5 bg-[var(--blue)] text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
                     >
-                      <FaEdit /> Edit
+                      <FaEdit /> Edit Mode
                     </button>
                   )}
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
-                    onClick={saveAll}
-                    disabled={saving}
-                    className="px-6 py-2.5 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 transition flex items-center justify-center gap-2 flex-1"
-                  >
-                    <FaSave />
-                    {saving ? 'Saving...' : 'Save All'}
-                  </button>
-                  <button
                     onClick={cancel}
                     className="px-6 py-2.5 bg-gray-200 text-[var(--blue)] rounded-lg font-medium hover:bg-gray-300 transition flex items-center justify-center gap-2 flex-1"
                   >
-                    <FaTimes />
-                    Cancel
+                    <FaTimes /> Done
                   </button>
                 </div>
               )}
@@ -228,13 +218,13 @@ export default function CertificationsPage() {
               <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                 <FaCertificate className="text-6xl text-gray-300 mx-auto mb-4" />
                 <p className="text-sm md:text-xl font-medium text-[var(--blue)] mb-3">
-                  No certifications added
+                  No certifications added yet
                 </p>
                 <button
                   onClick={addNew}
-                  className="px-6 py-3 text-sm md:text-xl bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition"
+                  className="px-6 py-3 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition"
                 >
-                  Add Certification
+                  Add Your First Certification
                 </button>
               </div>
             ) : (
@@ -246,13 +236,9 @@ export default function CertificationsPage() {
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-[var(--blue)]">
-                          {cert.title}
-                        </h3>
-                        <p className="text-[var(--blue)] mt-1">
-                          {cert.issuer}
-                        </p>
-                        <div className="mt-2 text-sm text-[var(--blue)] flex flex-wrap gap-x-6 gap-y-1">
+                        <h3 className="text-xl font-bold text-[var(--blue)]">{cert.title}</h3>
+                        <p className="text-[var(--blue)] mt-1">{cert.issuer}</p>
+                        <div className="mt-2 text-sm text-gray-600 flex flex-wrap gap-x-6 gap-y-1">
                           <div>
                             <span className="font-medium">Issued:</span>{' '}
                             {new Date(cert.issueDate).toLocaleDateString('en-GB')}
@@ -271,7 +257,7 @@ export default function CertificationsPage() {
                             rel="noopener noreferrer"
                             className="mt-3 inline-flex items-center gap-2 text-[var(--orange)] hover:underline text-sm font-medium"
                           >
-                            View Certificate
+                            View Certificate →
                           </a>
                         )}
                       </div>
@@ -287,6 +273,7 @@ export default function CertificationsPage() {
                           <button
                             onClick={() => removeCert(idx)}
                             className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            disabled={saving}
                           >
                             <FaTrash size={18} />
                           </button>
@@ -304,89 +291,43 @@ export default function CertificationsPage() {
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* same form fields as before */}
                       <div>
-                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
-                          Title *
-                        </label>
-                        <input
-                          name="title"
-                          value={form.title}
-                          onChange={handleChange}
-                          placeholder="e.g. Certified Electrician"
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                          required
-                        />
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Title *</label>
+                        <input name="title" value={form.title} onChange={handleChange} className="w-full px-4 py-2.5 border ..." required />
                       </div>
-
                       <div>
-                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
-                          Issuer *
-                        </label>
-                        <input
-                          name="issuer"
-                          value={form.issuer}
-                          onChange={handleChange}
-                          placeholder="e.g. Trade Test Council"
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                          required
-                        />
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Issuer *</label>
+                        <input name="issuer" value={form.issuer} onChange={handleChange} className="w-full px-4 py-2.5 border ..." required />
                       </div>
-
                       <div>
-                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
-                          Issue Date *
-                        </label>
-                        <input
-                          type="date"
-                          name="issueDate"
-                          value={form.issueDate}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                          required
-                        />
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Issue Date *</label>
+                        <input type="date" name="issueDate" value={form.issueDate} onChange={handleChange} className="w-full px-4 py-2.5 border ..." required />
                       </div>
-
                       <div>
-                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
-                          Expiry Date (optional)
-                        </label>
-                        <input
-                          type="date"
-                          name="expiryDate"
-                          value={form.expiryDate || ''}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                        />
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Expiry Date (optional)</label>
+                        <input type="date" name="expiryDate" value={form.expiryDate || ''} onChange={handleChange} className="w-full px-4 py-2.5 border ..." />
                       </div>
-
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
-                          Certificate URL (optional)
-                        </label>
-                        <input
-                          name="certificateUrl"
-                          value={form.certificateUrl || ''}
-                          onChange={handleChange}
-                          placeholder="https://..."
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition"
-                        />
+                        <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Certificate URL (optional)</label>
+                        <input name="certificateUrl" value={form.certificateUrl || ''} onChange={handleChange} placeholder="https://" className="w-full px-4 py-2.5 border ..." />
                       </div>
                     </div>
 
                     <div className="mt-6 flex flex-col sm:flex-row gap-4">
                       <button
                         onClick={saveCert}
-                        className="flex-1 px-6 py-3 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 transition flex items-center justify-center gap-2"
+                        disabled={saving}
+                        className="flex-1 px-6 py-3 bg-[var(--orange)] text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-60 transition flex items-center justify-center gap-2"
                       >
-                        <FaSave />
-                        {editingIndex !== null ? 'Update' : 'Add'}
+                        {saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
+                        {editingIndex !== null ? 'Update' : 'Add & Save'}
                       </button>
                       <button
-                        onClick={resetForm}
+                        onClick={cancel}
                         className="flex-1 px-6 py-3 bg-gray-200 text-[var(--blue)] rounded-lg font-medium hover:bg-gray-300 transition flex items-center justify-center gap-2"
                       >
-                        <FaTimes />
-                        Cancel
+                        <FaTimes /> Cancel
                       </button>
                     </div>
                   </div>

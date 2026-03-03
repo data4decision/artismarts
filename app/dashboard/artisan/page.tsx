@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ShieldCheck, Clock, XCircle, AlertCircle, Loader2 } from 'lucide-react'
-// Do NOT import supabase here
+import { ShieldCheck, Clock, XCircle, AlertCircle } from 'lucide-react'
 
 type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'not_verified' | null
 
@@ -16,16 +15,13 @@ export default function ArtisanDashboard() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Dynamically import supabase (client-side only)
     import('@/lib/supabase').then(({ supabase }) => {
-      // Check session first
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) {
           router.replace('/login')
           return
         }
 
-        // Get current user's profile verification status
         supabase
           .from('profiles')
           .select('verification_status')
@@ -36,15 +32,60 @@ export default function ArtisanDashboard() {
 
             if (error) {
               console.error('Error fetching verification status:', error)
-              setError('Could not load verification status')
+              setError('Could not load verification status. Please try again.')
               return
             }
 
-            setStatus(data?.verification_status as VerificationStatus ?? 'not_verified')
+            setStatus((data?.verification_status as VerificationStatus) ?? 'not_verified')
           })
       })
     })
   }, [router])
+
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50/70 flex items-center justify-center">
+        <div className="relative flex items-center justify-center">
+          {/* Outer spinning ring */}
+          <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-orange-500 border-opacity-70 shadow-lg"></div>
+
+          {/* Inner logo with pulse */}
+          <div className="absolute inset-0 flex items-center justify-center animate-pulse">
+            <div className="bg-white rounded-full p-3 shadow-md">
+              <Image
+                src="/log.png"
+                width={56}
+                height={56}
+                priority
+                alt="Loading..."
+                className="object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+          <h2 className="text-2xl font-bold text-[var(--blue)] mb-2">Something went wrong</h2>
+          <p className="text-[var(--blue)] mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-[var(--blue)] text-white rounded-lg hover:bg-[var(--blue)]/90"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
 
   const getStatusInfo = () => {
     switch (status) {
@@ -69,7 +110,6 @@ export default function ArtisanDashboard() {
           icon: <XCircle className="w-5 h-5" />,
           description: 'Please update your documents and resubmit'
         }
-      case 'not_verified':
       default:
         return {
           label: 'Not Verified',
@@ -90,83 +130,51 @@ export default function ArtisanDashboard() {
             Welcome to Artisan Dashboard
           </h1>
 
-          {/* Verification Badge */}
-          {loading ? (
-            <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
-                   <div className="relative flex items-center justify-center">
-                     {/* Outer spinning ring */}
-                     <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
-                 
-                     {/* Inner static logo with subtle pulse */}
-                     <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
-                       <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
-                         <Image
-                           src="/log.png"
-                           width={48}
-                           height={48}
-                           priority
-                           alt="Loading..."
-                           className="object-contain"
-                         />
-                       </div>
-                     </div>
-                   </div>
-                 </div>
-          ) : error ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-200">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <span className="text-sm font-medium text-red-700">{error}</span>
-            </div>
-          ) : (
-            <div
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full border shadow-sm ${statusInfo.color}`}
-            >
-              {statusInfo.icon}
-              <span className="font-medium">{statusInfo.label}</span>
-            </div>
-          )}
+          <div
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full border shadow-sm text-[var(--blue)] ${statusInfo.color}`}
+          >
+            {statusInfo.icon}
+            <span className="font-medium text-[var(--blue)]">{statusInfo.label}</span>
+          </div>
         </div>
 
-        {/* Status message / call to action */}
-        {!loading && !error && (
-          <div className={`mb-8 p-5 rounded-xl border ${statusInfo.color.replace('100', '50').replace('800', '700')}`}>
-            <div className="flex items-start gap-3">
-              {statusInfo.icon}
-              <div>
-                <p className="font-medium mb-1">{statusInfo.description}</p>
-                {status !== 'approved' && (
-                  <Link
-                    href="/dashboard/artisan/verification"
-                    className="text-sm text-[var(--blue)] hover:underline inline-flex items-center gap-1 mt-2"
-                  >
-                    {status === 'not_verified' ? 'Start Verification' : 'Update Verification'}
-                    <span aria-hidden="true">→</span>
-                  </Link>
-                )}
-              </div>
+        <div className={`mb-8 p-5 rounded-xl border ${statusInfo.color.replace('100', '50').replace('800', '700')}`}>
+          <div className="flex items-start gap-3">
+            {statusInfo.icon}
+            <div>
+              <p className="font-medium mb-1 text-[var(--blue)]">{statusInfo.description}</p>
+              {status !== 'approved' && (
+                <Link
+                  href="/dashboard/artisan/verification"
+                  className="text-sm text-[var(--blue)] hover:underline inline-flex items-center gap-1 mt-2"
+                >
+                  {status === 'not_verified' ? 'Start Verification' : 'Update Verification'}
+                  <span aria-hidden="true">→</span>
+                </Link>
+              )}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Dashboard content */}
+        {/* Dashboard cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
-            <h3 className="font-semibold text-lg mb-4">Upcoming Jobs</h3>
-            <p className="text-gray-500">No upcoming jobs yet</p>
+          <div className="bg-white p-6 rounded-xl shadow border border-[var(--orange)]">
+            <h3 className="font-semibold text-lg mb-4 text-[var(--blue)]">Upcoming Jobs</h3>
+            <p className="text-[var(--blue)]">No upcoming jobs yet</p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
-            <h3 className="font-semibold text-lg mb-4">Earnings This Month</h3>
-            <p className="text-gray-500">₦0.00</p>
+          <div className="bg-white p-6 rounded-xl shadow border border-[var(--orange)]">
+            <h3 className="font-semibold text-lg mb-4 text-[var(--blue)]">Earnings This Month</h3>
+            <p className="text-[var(--blue)]">₦0.00</p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow border border-gray-100">
-            <h3 className="font-semibold text-lg mb-4">Profile Completion</h3>
+          <div className="bg-white p-6 rounded-xl shadow border border-[var(--orange)]">
+            <h3 className="font-semibold text-lg mb-4 text-[var(--blue)]">Profile Completion</h3>
             <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
               <div
-                className="bg-[var(--blue)] h-2.5 rounded-full"
+                className="bg-[var(--blue)] h-2.5 rounded-full transition-all"
                 style={{ width: status === 'approved' ? '100%' : '60%' }}
-              ></div>
+              />
             </div>
             <p className="text-sm text-[var(--blue)]">
               {status === 'approved' ? '100%' : '60%'} complete
