@@ -35,17 +35,11 @@ export default function AdminSignup() {
   };
 
   const validateForm = (): string | null => {
-    if (formData.secretCode.trim() !== SECRET_CODE_REQUIRED) {
-      return 'Invalid secret code';
-    }
+    if (formData.secretCode.trim() !== SECRET_CODE_REQUIRED) return 'Invalid secret code';
     if (!formData.firstName.trim()) return 'First name is required';
     if (!formData.lastName.trim()) return 'Last name is required';
-    if (!formData.email.trim() || !formData.email.includes('@')) {
-      return 'Valid email is required';
-    }
-    if (!formData.password.trim() || formData.password.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
+    if (!formData.email.trim() || !formData.email.includes('@')) return 'Valid email is required';
+    if (!formData.password.trim() || formData.password.length < 8) return 'Password must be at least 8 characters';
     if (!formData.address.trim()) return 'Residential address is required';
     if (!formData.state.trim()) return 'State is required';
     if (!formData.lga.trim()) return 'LGA is required';
@@ -67,7 +61,6 @@ export default function AdminSignup() {
     setError(null);
 
     try {
-      // 1. Sign up with Supabase Auth
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password: formData.password,
@@ -76,49 +69,42 @@ export default function AdminSignup() {
           data: {
             first_name: formData.firstName.trim(),
             last_name: formData.lastName.trim(),
+            phone: formData.phone.trim() || undefined,
+            address: formData.address.trim(),
+            state: formData.state.trim(),
+            lga: formData.lga.trim(),
+            secret_code: formData.secretCode.trim(), // Used by trigger
           },
         },
       });
 
       if (signUpError) throw signUpError;
-      if (!signUpData.user) throw new Error('No user returned after signup');
+      if (!signUpData.user) throw new Error('Signup succeeded but no user object returned');
 
-      // 2. Insert into separate admin_profiles table
-      const { error: profileError } = await supabase.from('admin_profiles').insert({
-        id: signUpData.user.id,
-        secret_code: formData.secretCode.trim(),
-        first_name: formData.firstName.trim(),
-        last_name: formData.lastName.trim(),
-        phone: formData.phone.trim() || null,
-        residential_address: formData.address.trim(),
-        state: formData.state.trim(),
-        lga: formData.lga.trim(),
-      });
-
-      if (profileError) {
-        console.error('Admin profile insert failed:', profileError);
-        if (profileError.message?.includes('row-level security')) {
-          throw new Error('Permission denied – check RLS on admin_profiles table.');
-        }
-        throw profileError;
-      }
-
-      toast.success('Admin account created! Check your email to verify.');
+      toast.success('Admin account created! Check your email (including spam) to verify.');
       setStep('success');
     } catch (err: any) {
-      const message = err?.message || 'Failed to create admin account';
+      let message = 'Failed to create admin account';
+      if (err?.message?.includes('duplicate key')) {
+        message = 'This email is already registered.';
+      } else if (err?.message) {
+        message = err.message;
+      }
       setError(message);
       toast.error(message);
-      console.error('Admin signup failed:', err);
+      console.error('Admin signup error:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  // ────────────────────────────────────────────────────────────────────────────────
+  // JSX remains almost identical — only minor cleanup
+  // ────────────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="h-screen flex items-center justify-center bg-[var(--background)] px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 bg-[var(--blue)] p-8 rounded-xl shadow-2xl">
-        {/* Header */}
         <div className="text-center">
           <Link
             href="/"
@@ -138,7 +124,7 @@ export default function AdminSignup() {
 
         {step === 'form' ? (
           <form onSubmit={handleAdminSignup} className="mt-8 space-y-6">
-            {/* Secret Code – placed at the top */}
+            {/* Secret Code */}
             <div>
               <label htmlFor="secretCode" className="block text-sm font-medium text-[var(--white)]">
                 Secret Code
@@ -293,7 +279,6 @@ export default function AdminSignup() {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -312,8 +297,7 @@ export default function AdminSignup() {
           <div className="mt-8 text-center text-[var(--white)] space-y-6">
             <h3 className="text-2xl font-bold">Check Your Email</h3>
             <p className="text-lg">
-              A verification link has been sent to
-              <br />
+              A verification link has been sent to <br />
               <strong className="text-[var(--orange)]">{formData.email}</strong>
             </p>
             <p className="text-sm opacity-80">

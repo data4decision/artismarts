@@ -100,7 +100,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const offset = circleCircumference - (circleCircumference * progress) / 100
 
   return (
-    <div className="font-roboto  flex flex-col bg-[var(--blue)]/20 ">
+    <div className="font-roboto  flex flex-col bg-[var(--blue)]/10 ">
       <div className="flex flex-col flex-col-reverse sm:flex-1 sm:flex-row">
         {/* MAIN CONTENT – takes 4fr on sm+, scrollable */}
         <main className="flex-1 ">
@@ -115,7 +115,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
              sm:flex flex-col
             bg-[var(--white)]
             border-l border-[var(--orange)]/30
-            w-full max-w-[340px] 
+            w-full max-w-[340px] m-auto 
             
           "
         >
