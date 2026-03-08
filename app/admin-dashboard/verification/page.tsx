@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { CheckCircle, XCircle, User, Building2, ShieldCheck, Eye } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 type ArtisanProfile = {
   id: string
@@ -93,9 +94,26 @@ export default function AdminArtisanVerification() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
+      <div className="min-h-screen bg-gray-50/70 flex items-center justify-center ">
+                <div className="relative flex items-center justify-center">
+                  {/* Outer spinning ring */}
+                  <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-orange-500 border-opacity-70 shadow-lg"></div>
+        
+                  {/* Inner logo with pulse */}
+                  <div className="absolute inset-0 flex items-center justify-center animate-pulse">
+                    <div className="bg-white rounded-full p-3 shadow-md">
+                      <Image
+                        src="/log.png"
+                        width={56}
+                        height={56}
+                        priority
+                        alt="Loading..."
+                        className="object-contain"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
     )
   }
 

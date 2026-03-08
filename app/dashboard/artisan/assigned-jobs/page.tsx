@@ -1,9 +1,9 @@
-// app/dashboard/artisan/assigned-jobs/page.tsx
 'use client'
 
 export const dynamic = 'force-dynamic'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { 
@@ -17,9 +17,11 @@ import {
   FaClock, 
   FaCommentDots, 
   FaRedo, 
-  FaUpload
+  FaUpload,
+  FaPlayCircle
 } from 'react-icons/fa'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface AssignedJob {
   id: string
@@ -43,6 +45,7 @@ interface AssignedJob {
 }
 
 export default function ArtisanAssignedJobs() {
+  const router = useRouter()
   const [jobs, setJobs] = useState<AssignedJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -84,33 +87,30 @@ export default function ArtisanAssignedJobs() {
           decline_reason
         `)
         .eq('assigned_artisan_id', user.id)
-        .in('status', ['assigned', 'in_progress', 'completed'])
+        .in('status', ['assigned', 'in_progress', 'completed_pending_review', 'completed'])
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      // Explicit mapping to fix type error
       const typedJobs: AssignedJob[] = (data || []).map((item: any) => ({
-        id: item.id || '',
-        title: item.title || '',
-        description: item.description || '',
-        budget_min: item.budget_min ?? null,
-        budget_max: item.budget_max ?? null,
-        job_type: item.job_type ?? null,
-        duration: item.duration ?? null,
-        location: item.location || '',
-        preferred_date: item.preferred_date ?? null,
-        preferred_time: item.preferred_time ?? null,
-        status: item.status || 'assigned',
-        created_at: item.created_at || '',
-        customer: item.customer
-          ? {
-              first_name: item.customer.first_name ?? null,
-              last_name: item.customer.last_name ?? null,
-              phone: item.customer.phone ?? null,
-            }
-          : null,
-        decline_reason: item.decline_reason ?? null,
+        id: String(item.id || ''),
+        title: String(item.title || ''),
+        description: String(item.description || ''),
+        budget_min: item.budget_min != null ? Number(item.budget_min) : null,
+        budget_max: item.budget_max != null ? Number(item.budget_max) : null,
+        job_type: item.job_type ? String(item.job_type) : null,
+        duration: item.duration ? String(item.duration) : null,
+        location: String(item.location || ''),
+        preferred_date: item.preferred_date ? String(item.preferred_date) : null,
+        preferred_time: item.preferred_time ? String(item.preferred_time) : null,
+        status: String(item.status || 'assigned'),
+        created_at: String(item.created_at || ''),
+        customer: item.customer ? {
+          first_name: item.customer.first_name != null ? String(item.customer.first_name) : null,
+          last_name: item.customer.last_name != null ? String(item.customer.last_name) : null,
+          phone: item.customer.phone != null ? String(item.customer.phone) : null,
+        } : null,
+        decline_reason: item.decline_reason ? String(item.decline_reason) : null,
       }))
 
       setJobs(typedJobs)
@@ -139,10 +139,18 @@ export default function ArtisanAssignedJobs() {
 
       if (error) throw error
 
-      toast.success('Job accepted!')
+      toast.success('Job accepted successfully!', { duration: 3000 })
+
+      // Auto-redirect after short delay so toast is visible
+      setTimeout(() => {
+        router.push(`/dashboard/artisan/job/${jobId}/active`)
+      }, 1200)
+
+      // Refresh list immediately
       fetchAssignedJobs()
     } catch (err: any) {
       toast.error(err.message || 'Failed to accept job')
+      console.error(err)
     } finally {
       setUpdating(null)
     }
@@ -169,7 +177,7 @@ export default function ArtisanAssignedJobs() {
 
       if (error) throw error
 
-      toast.success('Job declined and returned to admin')
+      toast.success('Job declined and returned to pool')
       setDeclineModalOpen(null)
       setDeclineReason('')
       fetchAssignedJobs()
@@ -190,31 +198,44 @@ export default function ArtisanAssignedJobs() {
               My Assigned Jobs
             </h1>
             <p className="mt-2 text-gray-600">
-              Jobs assigned to you by admin
+              Jobs waiting for your action
             </p>
           </div>
 
           <button
             onClick={fetchAssignedJobs}
             disabled={loading}
-            className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50 shadow-md"
           >
             <FaRedo className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
         </div>
 
-        {/* Loading / Error */}
+        {/* Loading */}
         {loading && (
-          <div className="flex justify-center items-center py-20">
-            <FaSpinner className="animate-spin text-[var(--orange)] text-5xl" />
-            <span className="ml-4 text-lg text-gray-600">Loading your jobs...</span>
+          <div className="min-h-[400px] flex items-center justify-center">
+            <div className="relative flex items-center justify-center">
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-lg"></div>
+              <div className="absolute inset-0 flex items-center justify-center animate-pulse">
+                <div className="bg-white rounded-full p-3 shadow-md">
+                  <Image
+                    src="/log.png"
+                    width={56}
+                    height={56}
+                    alt="Loading..."
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
+        {/* Error */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <FaExclamationTriangle className="text-red-500 text-4xl mx-auto mb-4" />
+            <FaExclamationTriangle className="text-red-500 text-5xl mx-auto mb-4" />
             <p className="text-red-700 font-medium">{error}</p>
             <button
               onClick={fetchAssignedJobs}
@@ -258,8 +279,8 @@ export default function ArtisanAssignedJobs() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
                           <div className="flex items-center gap-2">
                             <FaDollarSign className="text-[var(--orange)]" />
-                            Budget: {job.budget_min ? `₦${job.budget_min}` : 'Not specified'}
-                            {job.budget_max ? ` – ₦${job.budget_max}` : ''}
+                            Budget: {job.budget_min ? `₦${job.budget_min.toLocaleString()}` : 'Not specified'}
+                            {job.budget_max ? ` – ₦${job.budget_max.toLocaleString()}` : ''}
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -276,6 +297,7 @@ export default function ArtisanAssignedJobs() {
                             <div className="flex items-center gap-2">
                               <FaUserTie className="text-[var(--orange)]" />
                               Customer: {job.customer.first_name} {job.customer.last_name}
+                              {job.customer.phone && ` (${job.customer.phone})`}
                             </div>
                           )}
                         </div>
@@ -284,11 +306,16 @@ export default function ArtisanAssignedJobs() {
                           <span className="font-medium">Status:</span>
                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                             job.status === 'assigned' ? 'bg-yellow-100 text-yellow-800' :
-                            job.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                            job.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            job.status === 'in_progress' ? 'bg-blue-100 text-blue-800 animate-pulse' :
+                            job.status === 'completed_pending_review' ? 'bg-green-100 text-green-800' :
+                            job.status === 'completed' ? 'bg-green-200 text-green-900' :
                             'bg-gray-100 text-gray-800'
                           }`}>
-                            {job.status}
+                            {job.status === 'assigned' ? 'Assigned – Action Required' :
+                             job.status === 'in_progress' ? 'Active / In Progress' :
+                             job.status === 'completed_pending_review' ? 'Waiting for Review' :
+                             job.status === 'completed' ? 'Completed' :
+                             job.status}
                           </span>
                         </div>
                       </div>
@@ -300,16 +327,16 @@ export default function ArtisanAssignedJobs() {
                             <button
                               onClick={() => handleAccept(job.id)}
                               disabled={updating === job.id}
-                              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+                              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium shadow-sm"
                             >
                               {updating === job.id && <FaSpinner className="animate-spin" />}
-                              Accept Job
+                              Accept & Start Job
                             </button>
 
                             <button
                               onClick={() => setDeclineModalOpen(job.id)}
                               disabled={updating === job.id}
-                              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50"
+                              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50 font-medium shadow-sm"
                             >
                               Decline Job
                             </button>
@@ -318,18 +345,23 @@ export default function ArtisanAssignedJobs() {
 
                         {job.status === 'in_progress' && (
                           <Link
-                            href={`/dashboard/artisan/jobs/${job.id}/complete`}
-                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition flex items-center justify-center gap-2"
+                            href={`/dashboard/artisan/jobs/${job.id}/active`}
+                            className="px-6 py-3 bg-[var(--blue)] hover:bg-blue-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
                           >
-                            <FaUpload />
-                            Complete Job
+                            <FaPlayCircle />
+                            View Active Job
                           </Link>
                         )}
 
-                        {/* Chat with Admin */}
+                        {job.status === 'completed_pending_review' && (
+                          <div className="px-6 py-3 bg-green-100 text-green-800 rounded-xl text-center font-medium shadow-sm">
+                            Waiting for customer review
+                          </div>
+                        )}
+
                         <Link
                           href="/dashboard/artisan/messages"
-                          className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center gap-2"
+                          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
                         >
                           <FaCommentDots size={16} />
                           Chat with Admin
@@ -343,7 +375,7 @@ export default function ArtisanAssignedJobs() {
           </>
         )}
 
-        {/* Decline Reason Modal */}
+        {/* Decline Modal */}
         {declineModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
@@ -354,9 +386,9 @@ export default function ArtisanAssignedJobs() {
               <textarea
                 value={declineReason}
                 onChange={e => setDeclineReason(e.target.value)}
-                placeholder="e.g. Too busy, not suitable skill, location too far..."
+                placeholder="e.g. Too busy, not suitable skillset, location too far, other commitments..."
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] resize-none mb-4"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] resize-none mb-6"
                 required
               />
 
@@ -366,7 +398,7 @@ export default function ArtisanAssignedJobs() {
                     setDeclineModalOpen(null)
                     setDeclineReason('')
                   }}
-                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl transition"
+                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-[var(--blue)] rounded-xl transition font-medium"
                 >
                   Cancel
                 </button>
@@ -374,10 +406,10 @@ export default function ArtisanAssignedJobs() {
                 <button
                   onClick={() => handleDecline(declineModalOpen)}
                   disabled={updating === declineModalOpen || !declineReason.trim()}
-                  className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
                 >
                   {updating === declineModalOpen && <FaSpinner className="animate-spin" />}
-                  Decline
+                  Confirm Decline
                 </button>
               </div>
             </div>

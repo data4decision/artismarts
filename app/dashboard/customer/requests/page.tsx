@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -19,7 +18,8 @@ import {
   FaTrashAlt,
   FaEye,
   FaCommentDots,
-  FaHistory
+  FaHistory,
+  FaStar
 } from 'react-icons/fa'
 import Link from 'next/link'
 
@@ -87,7 +87,7 @@ export default function MyRequestsPage() {
 
       if (error) throw error
 
-      // Explicit mapping to fix type error
+      // Explicit mapping to fix type issues + ensure status is always string
       const typedRequests: CustomerRequest[] = (data || []).map((item: any) => ({
         id: item.id || '',
         title: item.title || '',
@@ -97,7 +97,7 @@ export default function MyRequestsPage() {
         location: item.location || '',
         preferred_date: item.preferred_date ?? null,
         preferred_time: item.preferred_time ?? null,
-        status: item.status || 'pending',
+        status: item.status || 'pending', // fallback to avoid undefined
         created_at: item.created_at || '',
         assigned_artisan: item.assigned_artisan
           ? {
@@ -139,7 +139,6 @@ export default function MyRequestsPage() {
 
       if (error) throw error
 
-      // Optional: log cancellation reason
       await supabase
         .from('request_status_logs')
         .insert({
@@ -172,21 +171,24 @@ export default function MyRequestsPage() {
     return `Submitted ${days} day${days === 1 ? '' : 's'} ago`
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status?: string) => {
+    const s = status || 'unknown'
     const base = 'inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm'
-    switch (status) {
+    switch (s) {
       case 'pending':
         return <span className={`${base} bg-yellow-100 text-yellow-800 border border-yellow-200`}><FaHourglassHalf className="mr-1.5" /> Pending Review</span>
       case 'assigned':
         return <span className={`${base} bg-blue-100 text-blue-800 border border-blue-200`}><FaUserCheck className="mr-1.5" /> Assigned</span>
       case 'in_progress':
         return <span className={`${base} bg-purple-100 text-purple-800 border border-purple-200`}>In Progress</span>
+      case 'completed_pending_review':
+        return <span className={`${base} bg-green-100 text-green-800 border border-green-200 animate-pulse`}><FaStar className="mr-1.5" /> Ready for Review</span>
       case 'completed':
         return <span className={`${base} bg-green-100 text-green-800 border border-green-200`}><FaCheckCircle className="mr-1.5" /> Completed</span>
       case 'cancelled':
         return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}><FaTimesCircle className="mr-1.5" /> Cancelled</span>
       default:
-        return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}>{status}</span>
+        return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}>{s}</span>
     }
   }
 
@@ -334,7 +336,7 @@ export default function MyRequestsPage() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-4">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -345,6 +347,18 @@ export default function MyRequestsPage() {
                         <FaEye />
                         View Details
                       </button>
+
+                      {/* Direct link to review page when job is ready */}
+                      {req.status === 'completed_pending_review' && (
+                        <Link
+                          href={`/dashboard/customer/jobs/${req.id}/review`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition shadow-md"
+                        >
+                          <FaStar />
+                          Review & Confirm
+                        </Link>
+                      )}
 
                       {req.status === 'pending' && (
                         <button
@@ -367,7 +381,7 @@ export default function MyRequestsPage() {
                       {req.status === 'assigned' && (
                         <Link
                           href="/dashboard/customer/messages"
-                          onClick={e => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
                           className="text-[var(--orange)] hover:text-orange-700 font-medium flex items-center gap-2 transition"
                         >
                           <FaCommentDots />
@@ -415,6 +429,19 @@ export default function MyRequestsPage() {
                     {getStatusBadge(selectedRequest.status)}
                   </div>
                 </div>
+
+                {/* Direct review button in modal */}
+                {selectedRequest.status === 'completed_pending_review' && (
+                  <div className="pt-4">
+                    <Link
+                      href={`/dashboard/customer/jobs/${selectedRequest.id}/review`}
+                      className="inline-flex items-center justify-center gap-3 w-full py-4 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-2xl transition shadow-lg"
+                    >
+                      <FaStar size={20} />
+                      Review & Confirm Job
+                    </Link>
+                  </div>
+                )}
 
                 <div>
                   <h3 className="text-lg font-semibold text-[var(--blue)] mb-3">
@@ -481,7 +508,6 @@ export default function MyRequestsPage() {
                   </div>
                 )}
 
-                {/* History Log */}
                 {selectedRequest.status_logs && selectedRequest.status_logs.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-[var(--blue)] mb-4 flex items-center gap-2">
@@ -504,7 +530,6 @@ export default function MyRequestsPage() {
                   </div>
                 )}
 
-                {/* Chat with Admin (after assigned) */}
                 {selectedRequest.status === 'assigned' && (
                   <div className="pt-4">
                     <Link
@@ -566,22 +591,25 @@ export default function MyRequestsPage() {
   )
 }
 
-// Status badge helper
-function getStatusBadge(status: string) {
+// Status badge helper (updated to highlight review-ready state)
+function getStatusBadge(status?: string) {
+  const s = status || 'unknown'
   const base = 'inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm'
-  switch (status) {
+  switch (s) {
     case 'pending':
       return <span className={`${base} bg-yellow-100 text-yellow-800 border border-yellow-200`}><FaHourglassHalf className="mr-1.5" /> Pending Review</span>
     case 'assigned':
       return <span className={`${base} bg-blue-100 text-blue-800 border border-blue-200`}><FaUserCheck className="mr-1.5" /> Assigned</span>
     case 'in_progress':
       return <span className={`${base} bg-purple-100 text-purple-800 border border-purple-200`}>In Progress</span>
+    case 'completed_pending_review':
+      return <span className={`${base} bg-green-100 text-green-800 border border-green-200 animate-pulse`}><FaStar className="mr-1.5" /> Ready for Your Review</span>
     case 'completed':
       return <span className={`${base} bg-green-100 text-green-800 border border-green-200`}><FaCheckCircle className="mr-1.5" /> Completed</span>
     case 'cancelled':
       return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}><FaTimesCircle className="mr-1.5" /> Cancelled</span>
     default:
-      return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}>{status}</span>
+      return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}>{s}</span>
   }
 }
 

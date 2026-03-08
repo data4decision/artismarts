@@ -1,22 +1,15 @@
 // app/dashboard/admin/requests/page.tsx
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { 
-  FaSpinner, 
-  FaExclamationTriangle, 
-  FaCheckCircle, 
-  FaTimesCircle, 
-  FaUserTie, 
-  FaMapMarkerAlt, 
-  FaDollarSign, 
-  FaClock, 
-  FaRedo 
+  FaSpinner, FaExclamationTriangle, FaCheckCircle, FaTimesCircle, 
+  FaUserTie, FaMapMarkerAlt, FaDollarSign, FaClock, FaRedo, 
+  FaFilePdf, FaImage, FaDownload 
 } from 'react-icons/fa'
+import Image from 'next/image'
 
 interface JobRequest {
   id: string
@@ -31,6 +24,7 @@ interface JobRequest {
   location: string
   preferred_date: string | null
   preferred_time: string | null
+  attachment_url: string | null
   status: string
   created_at: string
   customer: {
@@ -77,6 +71,7 @@ export default function AdminRequestsDashboard() {
           location,
           preferred_date,
           preferred_time,
+          attachment_url,
           status,
           created_at,
           customer:customer_id (first_name, last_name, phone),
@@ -87,39 +82,7 @@ export default function AdminRequestsDashboard() {
 
       if (error) throw error
 
-      // Safe explicit mapping – fixes the type error
-      const typedRequests: JobRequest[] = (data || []).map((raw: any) => ({
-        id: String(raw.id || ''),
-        customer_id: String(raw.customer_id || ''),
-        preferred_artisan_id: raw.preferred_artisan_id ? String(raw.preferred_artisan_id) : null,
-        title: String(raw.title || ''),
-        description: String(raw.description || ''),
-        budget_min: raw.budget_min != null ? Number(raw.budget_min) : null,
-        budget_max: raw.budget_max != null ? Number(raw.budget_max) : null,
-        job_type: raw.job_type ? String(raw.job_type) : null,
-        duration: raw.duration ? String(raw.duration) : null,
-        location: String(raw.location || ''),
-        preferred_date: raw.preferred_date ? String(raw.preferred_date) : null,
-        preferred_time: raw.preferred_time ? String(raw.preferred_time) : null,
-        status: String(raw.status || 'pending'),
-        created_at: String(raw.created_at || ''),
-        customer: raw.customer
-          ? {
-              first_name: raw.customer.first_name != null ? String(raw.customer.first_name) : null,
-              last_name: raw.customer.last_name != null ? String(raw.customer.last_name) : null,
-              phone: raw.customer.phone != null ? String(raw.customer.phone) : null,
-            }
-          : null,
-        preferred_artisan: raw.preferred_artisan
-          ? {
-              first_name: raw.preferred_artisan.first_name != null ? String(raw.preferred_artisan.first_name) : null,
-              last_name: raw.preferred_artisan.last_name != null ? String(raw.preferred_artisan.last_name) : null,
-              primary_skill: raw.preferred_artisan.primary_skill != null ? String(raw.preferred_artisan.primary_skill) : null,
-            }
-          : null,
-      }))
-
-      setRequests(typedRequests)
+      setRequests(data || [])
     } catch (err: any) {
       console.error('Fetch error:', err)
       setError(err.message || 'Failed to load pending requests')
@@ -141,7 +104,7 @@ export default function AdminRequestsDashboard() {
       if (error) throw error
 
       const formatted = (data || []).map(a => ({
-        id: String(a.id),
+        id: a.id,
         name: `${a.first_name || ''} ${a.last_name || ''}`.trim(),
         skill: a.primary_skill || 'General Artisan',
       }))
@@ -199,6 +162,12 @@ export default function AdminRequestsDashboard() {
     }
   }
 
+  const getAttachmentIcon = (url: string | null) => {
+    if (!url) return null
+    if (url.toLowerCase().endsWith('.pdf')) return <FaFilePdf className="text-red-500 text-xl" />
+    return <FaImage className="text-blue-500 text-xl" />
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -206,38 +175,44 @@ export default function AdminRequestsDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[var(--blue)]">
-              Pending Job Requests
+              Pending Customer Requests
             </h1>
             <p className="mt-2 text-gray-600">
-              Review and assign requests to artisans
+              Review detailed job requests and assign artisans
             </p>
           </div>
 
           <button
             onClick={fetchRequests}
             disabled={loading}
-            className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50 shadow-md"
           >
             <FaRedo className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
         </div>
 
-        {/* Loading / Error */}
+        {/* Loading State */}
         {loading && (
-          <div className="flex justify-center items-center py-20">
-            <FaSpinner className="animate-spin text-[var(--orange)] text-5xl" />
-            <span className="ml-4 text-lg text-gray-600">Loading requests...</span>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative">
+              <FaSpinner className="animate-spin text-[var(--orange)] text-7xl" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Image src="/log.png" width={40} height={40} alt="Loading..." className="opacity-70" />
+              </div>
+            </div>
+            <p className="mt-6 text-gray-600 font-medium">Loading customer requests...</p>
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <FaExclamationTriangle className="text-red-500 text-4xl mx-auto mb-4" />
-            <p className="text-red-700 font-medium">{error}</p>
+        {/* Error State */}
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+            <FaExclamationTriangle className="text-red-500 text-6xl mx-auto mb-6" />
+            <p className="text-red-700 font-medium text-lg mb-4">{error}</p>
             <button
               onClick={fetchRequests}
-              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              className="px-8 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition shadow-md"
             >
               Try Again
             </button>
@@ -248,98 +223,145 @@ export default function AdminRequestsDashboard() {
         {!loading && !error && (
           <>
             {requests.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-500">
-                <FaExclamationTriangle className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  No pending requests
+              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center">
+                <FaExclamationTriangle className="text-6xl text-gray-300 mx-auto mb-6" />
+                <h3 className="text-2xl font-semibold text-gray-700 mb-3">
+                  No pending customer requests
                 </h3>
-                <p className="mb-6">
-                  New job requests from customers will appear here.
+                <p className="text-gray-500 max-w-xl mx-auto">
+                  When customers submit new job requests, they will appear here for review and assignment.
                 </p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {requests.map(request => (
                   <div
                     key={request.id}
-                    className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                    className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
-                          {request.title}
-                        </h3>
+                    {/* Card Header */}
+                    <div className="bg-gradient-to-r from-[var(--blue)] to-blue-800 text-white p-6">
+                      <h3 className="text-xl font-bold mb-1">
+                        {request.title}
+                      </h3>
+                      <p className="text-sm opacity-90">
+                        Submitted {new Date(request.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
 
-                        <p className="text-gray-700 mb-4 line-clamp-3">
-                          {request.description}
-                        </p>
+                    {/* Card Body */}
+                    <div className="p-6 space-y-5">
+                      {/* Description */}
+                      <p className="text-gray-700 line-clamp-3">
+                        {request.description}
+                      </p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
-                          <div className="flex items-center gap-2">
-                            <FaDollarSign className="text-[var(--orange)]" />
-                            Budget: {request.budget_min ? `₦${request.budget_min}` : 'Not specified'}
-                            {request.budget_max ? ` – ₦${request.budget_max}` : ''}
+                      {/* Details Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+                        <div className="flex items-start gap-3">
+                          <FaUserTie className="text-[var(--orange)] mt-1 text-xl" />
+                          <div>
+                            <p className="font-medium text-gray-800">Customer</p>
+                            <p>
+                              {request.customer?.first_name} {request.customer?.last_name}
+                              {request.customer?.phone && ` • ${request.customer.phone}`}
+                            </p>
                           </div>
+                        </div>
 
-                          <div className="flex items-center gap-2">
-                            <FaClock className="text-[var(--orange)]" />
-                            Preferred: {request.preferred_date || 'Anytime'} {request.preferred_time || ''}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <FaMapMarkerAlt className="text-[var(--orange)]" />
-                            {request.location}
-                          </div>
-
-                          {request.customer && (
-                            <div className="flex items-center gap-2">
-                              <FaUserTie className="text-[var(--orange)]" />
-                              Requested by: {request.customer.first_name} {request.customer.last_name}
-                              {request.customer.phone ? ` (${request.customer.phone})` : ''}
+                        {request.preferred_artisan && (
+                          <div className="flex items-start gap-3">
+                            <FaUserTie className="text-[var(--orange)] mt-1 text-xl" />
+                            <div>
+                              <p className="font-medium text-gray-800">Preferred Artisan</p>
+                              <p>
+                                {request.preferred_artisan.first_name} {request.preferred_artisan.last_name}
+                                {request.preferred_artisan.primary_skill && ` • ${request.preferred_artisan.primary_skill}`}
+                              </p>
                             </div>
-                          )}
+                          </div>
+                        )}
 
-                          {request.preferred_artisan && (
-                            <div className="flex items-center gap-2">
-                              <FaUserTie className="text-[var(--orange)]" />
-                              Preferred artisan: {request.preferred_artisan.first_name} {request.preferred_artisan.last_name}
-                              {request.preferred_artisan.primary_skill ? ` (${request.preferred_artisan.primary_skill})` : ''}
-                            </div>
-                          )}
+                        <div className="flex items-start gap-3">
+                          <FaDollarSign className="text-[var(--orange)] mt-1 text-xl" />
+                          <div>
+                            <p className="font-medium text-gray-800">Budget Range</p>
+                            <p>
+                              {request.budget_min ? `₦${request.budget_min.toLocaleString()}` : 'Not specified'}
+                              {request.budget_max ? ` – ₦${request.budget_max.toLocaleString()}` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <FaClock className="text-[var(--orange)] mt-1 text-xl" />
+                          <div>
+                            <p className="font-medium text-gray-800">Preferred Time</p>
+                            <p>{request.preferred_date || 'Anytime'} {request.preferred_time || ''}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3 sm:col-span-2">
+                          <FaMapMarkerAlt className="text-[var(--orange)] mt-1 text-xl" />
+                          <div>
+                            <p className="font-medium text-gray-800">Location</p>
+                            <p className="break-words">{request.location}</p>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex flex-col gap-3 mt-4 sm:mt-0">
-                        {assigning === request.id ? (
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <FaSpinner className="animate-spin" />
-                            Assigning...
-                          </div>
-                        ) : (
-                          <select
-                            onChange={(e) => handleAssign(request.id, e.target.value)}
-                            defaultValue=""
-                            disabled={assigning === request.id}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)]"
+                      {/* Attachment */}
+                      {request.attachment_url && (
+                        <div className="pt-4 border-t">
+                          <p className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                            {getAttachmentIcon(request.attachment_url)}
+                            Attached File
+                          </p>
+                          <a
+                            href={request.attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-[var(--blue)] text-sm font-medium shadow-sm"
                           >
-                            <option value="">Assign to Artisan...</option>
-                            {artisans.map(a => (
-                              <option key={a.id} value={a.id}>
-                                {a.name} ({a.skill})
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                            <FaDownload />
+                            Download / View
+                          </a>
+                        </div>
+                      )}
+                    </div>
 
-                        <button
-                          onClick={() => handleReject(request.id)}
+                    {/* Actions Footer */}
+                    <div className="p-6 bg-gray-50 border-t flex flex-col sm:flex-row gap-4">
+                      {assigning === request.id ? (
+                        <div className="flex items-center gap-3 text-gray-600 flex-1">
+                          <FaSpinner className="animate-spin text-xl" />
+                          Assigning...
+                        </div>
+                      ) : (
+                        <select
+                          onChange={(e) => handleAssign(request.id, e.target.value)}
+                          defaultValue=""
                           disabled={assigning === request.id}
-                          className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50"
+                          className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] bg-white shadow-sm"
                         >
-                          Reject Request
-                        </button>
-                      </div>
+                          <option value="">Assign to Artisan...</option>
+                          {artisans.map(a => (
+                            <option key={a.id} value={a.id}>
+                              {a.name} ({a.skill})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      <button
+                        onClick={() => handleReject(request.id)}
+                        disabled={assigning === request.id}
+                        className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
+                      >
+                        <FaTimesCircle />
+                        Reject
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -350,4 +372,10 @@ export default function AdminRequestsDashboard() {
       </div>
     </div>
   )
+}
+
+function getAttachmentIcon(url: string | null) {
+  if (!url) return null
+  if (url.toLowerCase().endsWith('.pdf')) return <FaFilePdf className="text-red-500 text-xl" />
+  return <FaImage className="text-blue-500 text-xl" />
 }

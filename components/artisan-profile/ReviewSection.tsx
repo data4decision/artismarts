@@ -2,194 +2,217 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { FaStar, FaUserCircle } from 'react-icons/fa'
 import toast from 'react-hot-toast'
+import { FaStar, FaSpinner, FaUserTie, FaRegStar } from 'react-icons/fa'
+import Image from 'next/image'
 
-interface Review {
-  id: string
-  rating: number
-  comment: string | null
-  created_at: string
-  customer_name: string | null
-}
-
-type Props = {
-  artisanId: string
-}
-
-export default function ReviewSection({ artisanId }: Props) {
-  const [reviews, setReviews] = useState<Review[]>([])
+export default function ArtisanProfilePage() {
+  const [profile, setProfile] = useState<any>(null)
+  const [reviews, setReviews] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [averageRating, setAverageRating] = useState<number | null>(null)
+  const [reviewCount, setReviewCount] = useState(0)
 
-  const fetchReviews = async () => {
+  useEffect(() => {
+    loadProfileAndReviews()
+  }, [])
+
+  const loadProfileAndReviews = async () => {
+    setLoading(true)
+
     try {
-      setLoading(true)
-      const { data, error, count } = await supabase
-        .from('reviews')
-        .select(
-          `
+      // 1. Get current artisan
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not logged in')
+
+      // 2. Get artisan profile
+      const { data: artisan, error: profileErr } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, profile_image, bio, location, skills')
+        .eq('id', user.id)
+        .single()
+
+      if (profileErr) throw profileErr
+      setProfile(artisan)
+
+      // 3. Get all reviews for jobs assigned to this artisan
+      const { data: reviewData, error: reviewErr } = await supabase
+        .from('job_reviews')
+        .select(`
           id,
           rating,
-          comment,
+          review_text,
           created_at,
-          customer_name
-        `,
-          { count: 'exact' }
-        )
-        .eq('artisan_id', artisanId)
+          job:job_id (
+            title,
+            customer:customer_id (first_name, last_name, profile_image)
+          )
+        `)
+        .eq('job.assigned_artisan_id', user.id)
+        .eq('is_draft', false)           // only final reviews
         .order('created_at', { ascending: false })
-        .limit(10)
 
-      if (error) {
-        console.error('Supabase fetch error:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        })
-        throw error
+      if (reviewErr) throw reviewErr
+
+      setReviews(reviewData || [])
+
+      // 4. Calculate average rating
+      if (reviewData?.length > 0) {
+        const total = reviewData.reduce((sum, r) => sum + r.rating, 0)
+        setAverageRating(total / reviewData.length)
+        setReviewCount(reviewData.length)
       }
-
-      console.log(`Fetched ${count || 0} reviews for artisan ${artisanId}`)
-      setReviews(data || [])
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      console.error('Reviews fetch error:', errorMessage)
-      toast.error(`Could not load reviews: ${errorMessage}`)
+    } catch (err: any) {
+      console.error('Profile load error:', err)
+      toast.error('Failed to load profile and reviews')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchReviews()
-
-    // Realtime subscription
-    const channel = supabase
-      .channel(`reviews:artisan_${artisanId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reviews',
-          filter: `artisan_id=eq.${artisanId}`,
-        },
-        (payload: unknown) => {
-          console.log('Review realtime change:', payload)
-
-          if (!payload || typeof payload !== 'object') return
-
-          const p = payload as {
-            eventType?: string
-            new?: Review
-            old?: { id: string }
-          }
-
-          // Simple method: extract new review first
-          if (p.eventType === 'INSERT' && p.new) {
-            const newReview = p.new // ← TypeScript sees this as Review here
-            setReviews((prev) => [newReview, ...prev])
-          } 
-          else if (p.eventType === 'UPDATE' && p.new) {
-            const updatedReview = p.new
-            setReviews((prev) =>
-              prev.map((r) => (r.id === updatedReview.id ? updatedReview : r))
-            )
-          } 
-          else if (p.eventType === 'DELETE' && p.old?.id) {
-            const deletedId = p.old.id
-            setReviews((prev) => prev.filter((r) => r.id !== deletedId))
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [artisanId])
-
-  const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-      : 0
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <FaSpinner className="animate-spin text-6xl text-[var(--orange)]" />
+      </div>
+    )
+  }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-[var(--blue)]">
-          Customer Reviews {reviews.length > 0 && `(${reviews.length})`}
-        </h2>
-        {reviews.length > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <FaStar
-                  key={i}
-                  className={`text-xl ${
-                    i < Math.round(averageRating)
-                      ? 'text-amber-500'
-                      : 'text-gray-300'
-                  }`}
-                />
-              ))}
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto space-y-10">
+
+        {/* Profile Header */}
+        <div className="bg-white rounded-2xl shadow p-8 flex flex-col md:flex-row gap-8 items-center md:items-start">
+          {profile?.profile_image ? (
+            <Image
+              src={profile.profile_image}
+              alt={`${profile.first_name} ${profile.last_name}`}
+              width={140}
+              height={140}
+              className="rounded-full object-cover border-4 border-[var(--orange)]/30 shadow-lg"
+            />
+          ) : (
+            <div className="w-36 h-36 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+              <FaUserTie size={60} />
             </div>
-            <span className="text-lg font-medium text-gray-700">
-              {averageRating.toFixed(1)}
-            </span>
-          </div>
-        )}
-      </div>
+          )}
 
-      {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading reviews...</div>
-      ) : reviews.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <FaStar className="mx-auto text-6xl text-gray-300 mb-4" />
-          <p className="text-gray-600 text-lg">No reviews yet</p>
-          <p className="text-sm text-gray-500 mt-2">
-            Be the first to leave a review!
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-6 divide-y divide-gray-100">
-          {reviews.map((review) => (
-            <div key={review.id} className="pt-6 first:pt-0">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <FaUserCircle className="text-5xl text-gray-400" />
-                </div>
+          <div className="text-center md:text-left">
+            <h1 className="text-3xl font-bold text-[var(--blue)]">
+              {profile?.first_name} {profile?.last_name}
+            </h1>
 
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <FaStar
-                          key={i}
-                          className={`text-lg ${
-                            i < review.rating ? 'text-amber-500' : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="font-medium text-gray-900">
-                      {review.customer_name || 'Anonymous'}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      • {new Date(review.created_at).toLocaleDateString()}
+            {/* Rating Summary */}
+            <div className="flex items-center justify-center md:justify-start gap-3 mt-3">
+              {averageRating !== null ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    <FaStar className="text-[var(--orange)] text-3xl" />
+                    <span className="text-3xl font-bold text-[var(--blue)]">
+                      {averageRating.toFixed(1)}
                     </span>
                   </div>
-
-                  <p className="text-gray-700 leading-relaxed">
-                    {review.comment || 'No comment provided.'}
-                  </p>
-                </div>
-              </div>
+                  <span className="text-lg text-gray-600">
+                    ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
+                  </span>
+                </>
+              ) : (
+                <span className="text-lg text-gray-500 italic">
+                  No reviews yet
+                </span>
+              )}
             </div>
-          ))}
+
+            {profile?.bio && (
+              <p className="mt-4 text-gray-700 max-w-2xl">
+                {profile.bio}
+              </p>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Reviews Section */}
+        <div className="bg-white rounded-2xl shadow p-8">
+          <h2 className="text-2xl font-bold text-[var(--blue)] mb-6">
+            Customer Reviews
+          </h2>
+
+          {reviews.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <FaStar className="text-[var(--orange)] text-5xl mx-auto mb-4 opacity-50" />
+              <p className="text-lg">You don't have any reviews yet.</p>
+              <p className="mt-2">Complete more jobs to start receiving feedback!</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="border-b border-gray-200 pb-8 last:border-0 last:pb-0"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Customer avatar */}
+                    {review.job?.customer?.profile_image ? (
+                      <Image
+                        src={review.job.customer.profile_image}
+                        alt="Customer"
+                        width={56}
+                        height={56}
+                        className="rounded-full object-cover border-2 border-gray-100"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                        <FaUserTie size={24} />
+                      </div>
+                    )}
+
+                    <div className="flex-1">
+                      {/* Job title & customer name */}
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-[var(--blue)]">
+                            {review.job?.title || 'Job'}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            by {review.job?.customer?.first_name || 'Customer'}{' '}
+                            {review.job?.customer?.last_name || ''}
+                          </p>
+                        </div>
+
+                        {/* Stars */}
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map(s => (
+                            <FaStar
+                              key={s}
+                              size={20}
+                              className={s <= review.rating ? 'text-[var(--orange)]' : 'text-gray-300'}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Review text */}
+                      <p className="mt-3 text-gray-700">
+                        {review.review_text || <em>No comment provided</em>}
+                      </p>
+
+                      {/* Date */}
+                      <p className="mt-2 text-sm text-gray-500">
+                        {new Date(review.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

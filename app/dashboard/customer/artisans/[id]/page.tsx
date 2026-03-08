@@ -205,7 +205,7 @@ export default function ArtisanProfilePage() {
           {/* Action Buttons */}
           <div className="px-6 sm:px-10 py-6 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-4">
             <Link
-              href={`/dashboard/customer/bookings/${artisan.id}`}
+              href={`/dashboard/customer/bookings`}
               className="flex-1 min-w-[200px] py-3 px-6 bg-[var(--orange)] hover:bg-orange-600 text-white font-medium rounded-xl transition text-center"
             >
               Book Now

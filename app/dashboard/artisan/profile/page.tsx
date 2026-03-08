@@ -30,6 +30,7 @@ import SkillsSection from '@/components/artisan-profile/SkillsSection'
 import PortfolioSection from '@/components/artisan-profile/PortfolioSection'
 import Certification from '@/components/artisan-profile/Certification'
 import Image from 'next/image'
+import Reviews from '@/app/dashboard/artisan/profile/Reviews'
 
 export default function ArtisanProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -84,6 +85,7 @@ export default function ArtisanProfilePage() {
         <SkillsSection />
         <PortfolioSection />
         <Certification />
+        <Reviews/>
       </div>
     </div>
   )

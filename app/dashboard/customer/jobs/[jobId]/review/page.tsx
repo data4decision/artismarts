@@ -19,7 +19,8 @@ export default function CustomerJobReviewPage() {
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [alreadyReviewed, setAlreadyReviewed] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [appRating, setAppRating] = useState<number | null>(null)
 
   // Form states
   const [overallRating, setOverallRating] = useState<number>(0)
@@ -32,8 +33,8 @@ export default function CustomerJobReviewPage() {
   const [comment, setComment] = useState('')
 
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null)
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false)
 
-  // Combined photos (progress + completion)
   const [allPhotos, setAllPhotos] = useState<{ url: string; type: 'progress' | 'completion' }[]>([])
 
   useEffect(() => {
@@ -42,8 +43,6 @@ export default function CustomerJobReviewPage() {
       setLoading(false)
       return
     }
-
-    console.log('[CustomerReview] Loading job:', jobId)
     fetchJobAndReview()
   }, [jobId])
 
@@ -52,18 +51,13 @@ export default function CustomerJobReviewPage() {
     setErrorMessage(null)
 
     try {
-      // 1. Get current user
       const { data: { user }, error: authErr } = await supabase.auth.getUser()
       if (authErr || !user) {
-        console.error('[CustomerReview] Auth error:', authErr)
-        toast.error('Please sign in')
+        toast.error('Please sign in to continue')
         router.replace('/login')
         return
       }
 
-      console.log('[CustomerReview] User ID:', user.id)
-
-      // 2. Fetch job
       const { data: jobData, error: jobErr } = await supabase
         .from('job_requests')
         .select(`
@@ -80,35 +74,16 @@ export default function CustomerJobReviewPage() {
         .eq('customer_id', user.id)
         .single()
 
-      if (jobErr) {
-        console.error('[CustomerReview] Job query error:', jobErr)
-        throw jobErr
-      }
-
-      if (!jobData) {
-        console.warn('[CustomerReview] No job found for ID:', jobId)
-        throw new Error('Job not found or you do not have access')
-      }
-
-      console.log('[CustomerReview] Job loaded:', { 
-        id: jobData.id, 
-        status: jobData.status,
-        photos: {
-          progress: jobData.progress_photo_urls?.length || 0,
-          completion: jobData.completion_photo_urls?.length || 0
-        }
-      })
+      if (jobErr) throw jobErr
+      if (!jobData) throw new Error('Job not found or you do not have access')
 
       setJob(jobData)
 
-      // Combine photos
       const progress = (jobData.progress_photo_urls || []).map((url: string) => ({ url, type: 'progress' as const }))
       const completion = (jobData.completion_photo_urls || []).map((url: string) => ({ url, type: 'completion' as const }))
       setAllPhotos([...progress, ...completion])
 
-      // Check if already reviewed
       if (jobData.customer_review_rating !== null) {
-        console.log('[CustomerReview] Already reviewed')
         setAlreadyReviewed(true)
         setOverallRating(jobData.customer_review_rating)
         setQualityRating(jobData.customer_quality_rating ?? 0)
@@ -120,8 +95,7 @@ export default function CustomerJobReviewPage() {
         return
       }
 
-      // Load draft review
-      const { data: draftRow, error: draftErr } = await supabase
+      const { data: draftRow } = await supabase
         .from('job_reviews')
         .select('rating, review_text, is_draft')
         .eq('job_id', jobId)
@@ -129,33 +103,24 @@ export default function CustomerJobReviewPage() {
         .eq('is_draft', true)
         .maybeSingle()
 
-      if (draftErr) {
-        console.warn('[CustomerReview] Draft load warning:', draftErr)
-      }
-
       if (draftRow) {
-        console.log('[CustomerReview] Draft loaded')
         setOverallRating(draftRow.rating ?? 0)
         setComment(draftRow.review_text ?? '')
       }
 
-      // Status validation
       if (jobData.status !== 'completed_pending_review') {
-        console.warn('[CustomerReview] Invalid status:', jobData.status)
         toast.error('This job is not ready for review')
         router.push('/dashboard/customer/jobs')
       }
     } catch (err: any) {
-      console.error('[CustomerReview] Critical error:', err)
       setErrorMessage(err.message || 'Failed to load job information')
       toast.error(err.message || 'Something went wrong')
     } finally {
-      console.log('[CustomerReview] Fetch complete — loading = false')
       setLoading(false)
     }
   }
 
-  // ─── Draft Auto-Save (debounced) ───────────────────────────────────────────
+  // Draft auto-save (debounced)
   useEffect(() => {
     if (alreadyReviewed || submitting) return
 
@@ -175,19 +140,13 @@ export default function CustomerJobReviewPage() {
           }, {
             onConflict: 'job_id, reviewer_id, is_draft'
           })
-
-        console.log('[CustomerReview] Draft saved')
-      } catch (err) {
-        console.warn('[CustomerReview] Draft save failed:', err)
+      } catch {
+        // silent fail
       }
     }, 1500)
 
     return () => clearTimeout(timer)
-  }, [
-    overallRating, qualityRating, punctualityRating,
-    communicationRating, cleanlinessRating, wouldHireAgain, comment,
-    alreadyReviewed, submitting, jobId
-  ])
+  }, [overallRating, qualityRating, punctualityRating, communicationRating, cleanlinessRating, wouldHireAgain, comment, alreadyReviewed, submitting, jobId])
 
   const handleSubmitReview = async () => {
     if (overallRating === 0) {
@@ -202,7 +161,6 @@ export default function CustomerJobReviewPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      // Finalize review
       const { error: reviewErr } = await supabase
         .from('job_reviews')
         .upsert({
@@ -217,7 +175,6 @@ export default function CustomerJobReviewPage() {
 
       if (reviewErr) throw reviewErr
 
-      // Update job status
       await supabase
         .from('job_requests')
         .update({
@@ -229,18 +186,41 @@ export default function CustomerJobReviewPage() {
         })
         .eq('id', jobId)
 
-      toast.success('Thank you! Your review has been submitted.', { duration: 6000 })
+      setSubmitSuccess(true)
       await fetchJobAndReview()
     } catch (err: any) {
-      toast.error('Failed to submit review')
-      console.error('[CustomerReview] Submit error:', err)
+      toast.error('Failed to submit review. Please try again.')
+      console.error('Submit error:', err)
     } finally {
       setSubmitting(false)
     }
   }
 
+  const handleAppRating = async (rating: number) => {
+    setAppRating(rating)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      await supabase
+        .from('app_ratings')
+        .insert({
+          user_id: user.id,
+          rating,
+          comment: null // can extend later
+        })
+
+      toast.success(`Thank you for rating the app ${rating} stars!`)
+    } catch (err) {
+      console.warn('App rating save failed:', err)
+    } finally {
+      setSubmitSuccess(false)
+    }
+  }
+
   const handleRequestChanges = async () => {
-    if (!confirm('Request changes? The artisan will be notified to fix issues.')) return
+    if (!confirm('Request changes? The artisan will be notified.')) return
 
     try {
       await supabase
@@ -251,11 +231,10 @@ export default function CustomerJobReviewPage() {
         })
         .eq('id', jobId)
 
-      toast.success('Changes requested. Artisan has been notified.')
+      toast.success('Changes requested. Artisan notified.')
       router.push('/dashboard/customer/jobs')
     } catch (err: any) {
       toast.error('Failed to request changes')
-      console.error('[CustomerReview] Changes request error:', err)
     }
   }
 
@@ -272,7 +251,6 @@ export default function CustomerJobReviewPage() {
     setFullscreenIndex((prev) => prev! === 0 ? allPhotos.length - 1 : prev! - 1)
   }
 
-  // ─── Render ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50/70 flex items-center justify-center">
@@ -422,7 +400,7 @@ export default function CustomerJobReviewPage() {
           )}
         </div>
 
-        {/* Review Form / Submitted View */}
+        {/* Review Form */}
         {alreadyReviewed ? (
           <div className="bg-blue-50 border border-[var(--blue)]/30 rounded-2xl p-8 text-center">
             <FaCheckCircle className="text-[var(--blue)] text-6xl mx-auto mb-4" />
@@ -596,7 +574,7 @@ export default function CustomerJobReviewPage() {
                 disabled={submitting || overallRating === 0}
                 className={`
                   flex-1 py-5 px-8 rounded-xl font-bold text-[var(--white)] text-lg flex items-center justify-center gap-3 transition-all shadow-lg
-                  ${overallRating === 0 || submitting
+                  ${submitting || overallRating === 0
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-[var(--orange)] hover:bg-orange-600'
                   }
@@ -661,6 +639,68 @@ export default function CustomerJobReviewPage() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Success Popup */}
+      {submitSuccess && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md md:max-w-lg w-full p-8 md:p-10 text-center relative overflow-y-auto max-h-[90vh]">
+            <button
+              onClick={() => setSubmitSuccess(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-4xl transition"
+            >
+              ×
+            </button>
+
+            <div className="mb-8">
+              <FaCheckCircle className="text-green-500 text-8xl mx-auto mb-6 animate-bounce-once" />
+              <h2 className="text-3xl md:text-4xl font-bold text-[var(--blue)] mb-4">
+                Successful!
+              </h2>
+              <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
+                Thank you for your review!<br />
+                Your feedback helps artisans improve and makes the platform better for everyone.
+              </p>
+            </div>
+
+            {/* App Rating */}
+            <div className="mb-10">
+              <p className="text-xl md:text-2xl font-semibold text-[var(--blue)] mb-5">
+                How would you rate this app?
+              </p>
+              <div className="flex justify-center gap-3 md:gap-4">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button
+                    key={star}
+                    onClick={() => handleAppRating(star)}
+                    className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
+                  >
+                    <FaStar
+                      size={56}
+                      className={
+                        appRating && star <= appRating
+                          ? 'text-[var(--orange)] drop-shadow-md'
+                          : 'text-gray-300 hover:text-[var(--orange)]/70'
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+              {appRating && (
+                <p className="mt-4 text-lg text-gray-700">
+                  You rated {appRating} {appRating === 1 ? 'star' : 'stars'} — thank you!
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={() => setSubmitSuccess(false)}
+              className="px-10 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition font-medium text-lg shadow-md w-full md:w-auto"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
