@@ -1,17 +1,28 @@
-// app/admin-dashboard/assigned-jobs/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+export const dynamic = 'force-dynamic'
+
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { 
-  FaSpinner, FaExclamationTriangle, FaCheckCircle, FaTimesCircle, 
-  FaUserTie, FaMapMarkerAlt, FaDollarSign, FaClock, FaRedo, 
-  FaImage, FaEye, FaCommentDots, FaFilePdf, FaDownload, 
-  FaCalendarCheck
+  FaSpinner, 
+  FaExclamationTriangle, 
+  FaCheckCircle, 
+  FaTimesCircle, 
+  FaUserTie, 
+  FaMapMarkerAlt, 
+  FaDollarSign, 
+  FaClock, 
+  FaCommentDots, 
+  FaRedo, 
+  FaUpload,
+  FaPlayCircle,
+  FaBell
 } from 'react-icons/fa'
-import Image from 'next/image'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface AssignedJob {
   id: string
@@ -19,72 +30,48 @@ interface AssignedJob {
   description: string
   budget_min: number | null
   budget_max: number | null
-  location: string | null
+  job_type: string | null
+  duration: string | null
+  location: string
   preferred_date: string | null
   preferred_time: string | null
-  attachment_url: string | null
   status: string
   created_at: string
-  updated_at: string | null
-  assigned_artisan_id: string
-  completion_photo_urls: string[] | null
   customer: {
     first_name: string | null
     last_name: string | null
     phone: string | null
   } | null
-  artisan: {
-    first_name: string | null
-    last_name: string | null
-    primary_skill: string | null
-  } | null
+  decline_reason?: string | null
+  artisan_notified_of_review?: boolean
 }
 
-export default function AdminAssignedJobs() {
+export default function ArtisanAssignedJobs() {
+  const router = useRouter()
   const [jobs, setJobs] = useState<AssignedJob[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedJob, setSelectedJob] = useState<AssignedJob | null>(null)
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [updating, setUpdating] = useState<string | null>(null)
+  const [notifying, setNotifying] = useState<string | null>(null)
+  const [declineModalOpen, setDeclineModalOpen] = useState<string | null>(null)
+  const [declineReason, setDeclineReason] = useState('')
 
   useEffect(() => {
     fetchAssignedJobs()
-
-    // Realtime: notify when artisan accepts job (status → in_progress)
-    const channel = supabase
-      .channel('admin-job-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'job_requests',
-          filter: 'status=eq.in_progress'
-        },
-        (payload) => {
-          const updated = payload.new as Partial<AssignedJob>
-          if (updated.title) {
-            toast.success(
-              `Artisan accepted job: "${updated.title}" is now In Progress / Active`,
-              { duration: 7000, icon: '🔔' }
-            )
-            fetchAssignedJobs() // auto-refresh list
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [statusFilter])
+  }, [])
 
   const fetchAssignedJobs = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      let query = supabase
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('Please sign in')
+        return
+      }
+
+      const { data, error } = await supabase
         .from('job_requests')
         .select(`
           id,
@@ -92,25 +79,20 @@ export default function AdminAssignedJobs() {
           description,
           budget_min,
           budget_max,
+          job_type,
+          duration,
           location,
           preferred_date,
           preferred_time,
-          attachment_url,
           status,
           created_at,
-          updated_at,
-          assigned_artisan_id,
-          completion_photo_urls,
           customer:customer_id (first_name, last_name, phone),
-          artisan:assigned_artisan_id (first_name, last_name, primary_skill)
+          decline_reason,
+          artisan_notified_of_review
         `)
-        .not('assigned_artisan_id', 'is', null)
-
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter)
-      }
-
-      const { data, error } = await query.order('updated_at', { ascending: false, nullsFirst: false })
+        .eq('assigned_artisan_id', user.id)
+        .in('status', ['assigned', 'in_progress', 'completed_pending_review', 'completed'])
+        .order('created_at', { ascending: false })
 
       if (error) throw error
 
@@ -120,392 +102,381 @@ export default function AdminAssignedJobs() {
         description: String(item.description || ''),
         budget_min: item.budget_min != null ? Number(item.budget_min) : null,
         budget_max: item.budget_max != null ? Number(item.budget_max) : null,
-        location: item.location ? String(item.location) : null,
+        job_type: item.job_type ? String(item.job_type) : null,
+        duration: item.duration ? String(item.duration) : null,
+        location: String(item.location || ''),
         preferred_date: item.preferred_date ? String(item.preferred_date) : null,
         preferred_time: item.preferred_time ? String(item.preferred_time) : null,
-        attachment_url: item.attachment_url ? String(item.attachment_url) : null,
-        status: String(item.status || 'unknown'),
+        status: String(item.status || 'assigned'),
         created_at: String(item.created_at || ''),
-        updated_at: item.updated_at ? String(item.updated_at) : null,
-        assigned_artisan_id: String(item.assigned_artisan_id || ''),
-        completion_photo_urls: Array.isArray(item.completion_photo_urls) ? item.completion_photo_urls : null,
         customer: item.customer ? {
           first_name: item.customer.first_name != null ? String(item.customer.first_name) : null,
           last_name: item.customer.last_name != null ? String(item.customer.last_name) : null,
           phone: item.customer.phone != null ? String(item.customer.phone) : null,
         } : null,
-        artisan: item.artisan ? {
-          first_name: item.artisan.first_name != null ? String(item.artisan.first_name) : null,
-          last_name: item.artisan.last_name != null ? String(item.artisan.last_name) : null,
-          primary_skill: item.artisan.primary_skill != null ? String(item.artisan.primary_skill) : null,
-        } : null,
+        decline_reason: item.decline_reason ? String(item.decline_reason) : null,
+        artisan_notified_of_review: item.artisan_notified_of_review ?? false,
       }))
 
       setJobs(typedJobs)
     } catch (err: any) {
       console.error('Fetch error:', err)
-      setError(err.message || 'Failed to load assigned jobs')
+      setError(err.message || 'Failed to load your assigned jobs')
       toast.error('Failed to load jobs')
     } finally {
       setLoading(false)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const base = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium shadow-sm'
-    switch (status) {
-      case 'assigned':
-        return <span className={`${base} bg-blue-100 text-blue-800 border border-blue-200`}>Assigned (Waiting Accept)</span>
-      case 'in_progress':
-        return <span className={`${base} bg-purple-100 text-purple-800 border border-purple-200`}>In Progress / Active</span>
-      case 'completed':
-        return <span className={`${base} bg-green-100 text-green-800 border border-green-200`}>Completed</span>
-      case 'completed_pending_review':
-        return <span className={`${base} bg-yellow-100 text-yellow-800 border border-yellow-200`}>Pending Final Review</span>
-      case 'changes_requested':
-        return <span className={`${base} bg-yellow-100 text-yellow-800 border border-yellow-200`}>Changes Requested</span>
-      case 'cancelled':
-        return <span className={`${base} bg-gray-100 text-gray-800 border border-gray-200`}>Cancelled</span>
-      case 'rejected':
-        return <span className={`${base} bg-red-100 text-red-800 border border-red-200`}>Rejected</span>
-      default:
-        return <span className={`${base} bg-gray-100 text-gray-800 border border-gray-200`}>{status}</span>
+  const handleAccept = async (jobId: string) => {
+    if (!confirm('Accept this job?')) return
+
+    setUpdating(jobId)
+
+    try {
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          status: 'in_progress',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId)
+
+      if (error) throw error
+
+      toast.success('Job accepted successfully!', { duration: 3000 })
+
+      setTimeout(() => {
+        router.push(`/dashboard/artisan/job/${jobId}/active`)
+      }, 1200)
+
+      fetchAssignedJobs()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to accept job')
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const handleDecline = async (jobId: string) => {
+    if (!declineReason.trim()) {
+      toast.error('Please provide a reason for declining')
+      return
+    }
+
+    setUpdating(jobId)
+
+    try {
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          assigned_artisan_id: null,
+          status: 'pending',
+          decline_reason: declineReason.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId)
+
+      if (error) throw error
+
+      toast.success('Job declined and returned to pool')
+      setDeclineModalOpen(null)
+      setDeclineReason('')
+      fetchAssignedJobs()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to decline job')
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const handleNotifyReviewed = async (jobId: string) => {
+    if (notifying === jobId) return
+    setNotifying(jobId)
+
+    try {
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          artisan_notified_of_review: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', jobId)
+
+      if (error) throw error
+
+      toast.success('You have been notified that this job has been reviewed!', { duration: 4000 })
+      fetchAssignedJobs()
+    } catch (err: any) {
+      toast.error('Failed to mark as notified')
+      console.error('Notify error:', err)
+    } finally {
+      setNotifying(null)
     }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header + Filter */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[var(--blue)]">
-              Assigned Jobs
+              My Assigned Jobs
             </h1>
             <p className="mt-2 text-gray-600">
-              Jobs assigned to artisans (waiting for accept → in progress → completion)
+              Jobs waiting for your action or feedback
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)] min-w-[220px]"
-            >
-              <option value="all">All Statuses</option>
-              <option value="assigned">Assigned (Waiting Accept)</option>
-              <option value="in_progress">In Progress / Active</option>
-              <option value="completed">Completed</option>
-              <option value="completed_pending_review">Pending Final Review</option>
-              <option value="changes_requested">Changes Requested</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="rejected">Rejected</option>
-            </select>
-
-            <button
-              onClick={fetchAssignedJobs}
-              disabled={loading}
-              className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50 shadow-md"
-            >
-              <FaRedo className={loading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
-          </div>
+          <button
+            onClick={fetchAssignedJobs}
+            disabled={loading}
+            className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50 shadow-md"
+          >
+            <FaRedo className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
 
         {/* Loading */}
         {loading && (
-          <div className="flex justify-center items-center py-32">
-            <FaSpinner className="animate-spin text-[var(--orange)] text-6xl" />
+          <div className="min-h-[400px] flex items-center justify-center">
+            <div className="relative flex items-center justify-center">
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-lg"></div>
+              <div className="absolute inset-0 flex items-center justify-center animate-pulse">
+                <div className="bg-white rounded-full p-3 shadow-md">
+                  <Image
+                    src="/log.png"
+                    width={56}
+                    height={56}
+                    alt="Loading..."
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-10 text-center">
-            <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
-            <p className="text-red-700 text-lg">{error}</p>
-            <button onClick={fetchAssignedJobs} className="mt-6 px-8 py-3 bg-red-600 text-white rounded-xl">
-              Retry
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <FaExclamationTriangle className="text-red-500 text-5xl mx-auto mb-4" />
+            <p className="text-red-700 font-medium">{error}</p>
+            <button
+              onClick={fetchAssignedJobs}
+              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Try Again
             </button>
           </div>
         )}
 
         {/* Jobs List */}
-        {!loading && !error && jobs.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow p-12 text-center text-gray-500">
-            <FaExclamationTriangle className="text-6xl mx-auto mb-6 opacity-60" />
-            <h3 className="text-2xl font-bold mb-3">No assigned jobs yet</h3>
-            <p>When you assign jobs from pending requests, they appear here.</p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {jobs.map(job => (
-              <div
-                key={job.id}
-                onClick={() => setSelectedJob(job)}
-                className="group bg-white rounded-2xl shadow border border-gray-200 overflow-hidden hover:shadow-xl hover:border-[var(--orange)]/50 transition-all cursor-pointer"
-              >
-                <div className="bg-gradient-to-r from-[var(--blue)] to-blue-800 p-6 text-white">
-                  <h3 className="text-xl font-bold line-clamp-1 group-hover:text-[var(--orange)] transition-colors">
-                    {job.title}
-                  </h3>
-                  <p className="text-sm opacity-90 mt-1">
-                    {new Date(job.updated_at || job.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="p-6">
-                  <div className="mb-4">{getStatusBadge(job.status)}</div>
-
-                  <p className="text-gray-700 line-clamp-3 mb-4 text-sm">
-                    {job.description || 'No description'}
-                  </p>
-
-                  <div className="space-y-3 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <FaDollarSign className="text-[var(--orange)]" />
-                      <span>
-                        {job.budget_min ? `₦${job.budget_min.toLocaleString()}` : '—'}
-                        {job.budget_max ? ` – ₦${job.budget_max.toLocaleString()}` : ''}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <FaMapMarkerAlt className="text-[var(--orange)]" />
-                      <span className="truncate">{job.location || 'Not specified'}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <FaUserTie className="text-[var(--orange)]" />
-                      <span>
-                        Customer: {job.customer?.first_name} {job.customer?.last_name}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <FaUserTie className="text-[var(--orange)]" />
-                      <span>
-                        Artisan: {job.artisan?.first_name} {job.artisan?.last_name}
-                      </span>
-                    </div>
-                  </div>
-
-                  {job.attachment_url && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        <FaImage className="text-[var(--orange)]" />
-                        Customer uploaded file
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="px-6 py-4 bg-gray-50 border-t flex justify-between items-center">
-                  <button className="text-[var(--blue)] hover:text-[var(--orange)] font-medium flex items-center gap-2">
-                    <FaEye /> View Details
-                  </button>
-
-                  <div className="flex items-center gap-4">
-                    {(job.status === 'assigned' || job.status === 'in_progress') && (
-                      <Link 
-                        href={`/dashboard/admin/chat/${job.id}`}
-                        className="text-[var(--orange)] hover:text-orange-700 font-medium flex items-center gap-2"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <FaCommentDots /> Chat
-                      </Link>
-                    )}
-
-                    {job.status === 'completed_pending_review' && (
-                      <Link
-                        href={`/admin-dashboard/jobs/${job.id}/complete`}
-                        onClick={e => e.stopPropagation()}
-                        className="text-green-600 hover:text-green-700 font-medium flex items-center gap-2"
-                      >
-                        <FaCheckCircle /> Finalize Completion
-                      </Link>
-                    )}
-                  </div>
-                </div>
+        {!loading && !error && (
+          <>
+            {jobs.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-500">
+                <FaExclamationTriangle className="text-6xl text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No assigned jobs yet
+                </h3>
+                <p className="mb-6">
+                  When admin assigns a job to you, it will appear here.
+                </p>
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-6">
+                {jobs.map(job => (
+                  <div
+                    key={job.id}
+                    className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
+                          {job.title}
+                        </h3>
 
-        {/* Modal */}
-        {selectedJob && (
-          <div 
-            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-            onClick={() => setSelectedJob(null)}
-          >
-            <div 
-              className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="sticky top-0 bg-gradient-to-r from-[var(--blue)] to-blue-900 text-white px-8 py-6 rounded-t-3xl z-10 flex justify-between items-center">
-                <h2 className="text-2xl font-bold">{selectedJob.title}</h2>
-                <button 
-                  onClick={() => setSelectedJob(null)}
-                  className="text-3xl hover:text-[var(--orange)]"
-                >
-                  ×
-                </button>
-              </div>
+                        <p className="text-gray-700 mb-4 line-clamp-3">
+                          {job.description}
+                        </p>
 
-              <div className="p-8 space-y-8">
-                <div className="grid md:grid-cols-2 gap-8">
-                  <div>
-                    <h3 className="text-xl font-semibold text-[var(--blue)] mb-4">Job Details</h3>
-                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {selectedJob.description || 'No description provided.'}
-                    </p>
-                  </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+                          <div className="flex items-center gap-2">
+                            <FaDollarSign className="text-[var(--orange)]" />
+                            Budget: {job.budget_min ? `₦${job.budget_min.toLocaleString()}` : 'Not specified'}
+                            {job.budget_max ? ` – ₦${job.budget_max.toLocaleString()}` : ''}
+                          </div>
 
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="font-medium flex items-center gap-2 text-gray-800">
-                        <FaDollarSign className="text-[var(--orange)]" /> Budget
-                      </h4>
-                      <p className="text-xl font-bold mt-1">
-                        {selectedJob.budget_min ? `₦${selectedJob.budget_min.toLocaleString()}` : '—'}
-                        {selectedJob.budget_max ? ` – ₦${selectedJob.budget_max.toLocaleString()}` : ''}
-                      </p>
-                    </div>
+                          <div className="flex items-center gap-2">
+                            <FaClock className="text-[var(--orange)]" />
+                            Preferred: {job.preferred_date || 'Anytime'} {job.preferred_time || ''}
+                          </div>
 
-                    <div>
-                      <h4 className="font-medium flex items-center gap-2 text-gray-800">
-                        <FaMapMarkerAlt className="text-[var(--orange)]" /> Location
-                      </h4>
-                      <p className="mt-1">{selectedJob.location || 'Not specified'}</p>
-                    </div>
+                          <div className="flex items-center gap-2">
+                            <FaMapMarkerAlt className="text-[var(--orange)]" />
+                            {job.location}
+                          </div>
 
-                    <div>
-                      <h4 className="font-medium flex items-center gap-2 text-gray-800">
-                        <FaCalendarCheck className="text-[var(--orange)]" /> Preferred Time
-                      </h4>
-                      <p className="mt-1">
-                        {selectedJob.preferred_date || 'Anytime'} {selectedJob.preferred_time || ''}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium flex items-center gap-2 text-gray-800">
-                        <FaUserTie className="text-[var(--orange)]" /> Customer
-                      </h4>
-                      <p className="mt-1">
-                        {selectedJob.customer?.first_name} {selectedJob.customer?.last_name}
-                        {selectedJob.customer?.phone && <span className="block text-sm">{selectedJob.customer.phone}</span>}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium flex items-center gap-2 text-gray-800">
-                        <FaUserTie className="text-[var(--orange)]" /> Assigned Artisan
-                      </h4>
-                      <p className="mt-1">
-                        {selectedJob.artisan?.first_name} {selectedJob.artisan?.last_name}
-                        {selectedJob.artisan?.primary_skill && <span className="block text-sm">{selectedJob.artisan.primary_skill}</span>}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Customer Attachment */}
-                {selectedJob.attachment_url && (
-                  <div className="pt-6 border-t">
-                    <h3 className="text-xl font-semibold text-[var(--blue)] mb-4 flex items-center gap-3">
-                      <FaImage className="text-[var(--orange)]" />
-                      Customer Uploaded Attachment
-                    </h3>
-                    <div className="flex gap-4">
-                      <a
-                        href={selectedJob.attachment_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition text-[var(--blue)] font-medium"
-                      >
-                        <FaDownload /> Download
-                      </a>
-                      <button
-                        onClick={() => window.open(selectedJob.attachment_url!, '_blank')}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--blue)] hover:bg-blue-700 text-white rounded-xl transition font-medium"
-                      >
-                        <FaEye /> Preview
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Completion Photos – Safe null check */}
-                {selectedJob.completion_photo_urls && selectedJob.completion_photo_urls.length > 0 && (
-                  <div className="pt-6 border-t">
-                    <h3 className="text-xl font-semibold text-[var(--blue)] mb-4 flex items-center gap-3">
-                      <FaImage className="text-[var(--orange)]" />
-                      Completion Photos ({selectedJob.completion_photo_urls.length})
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {selectedJob.completion_photo_urls.map((url, idx) => (
-                        <div key={idx} className="relative rounded-xl overflow-hidden shadow-md group">
-                          <Image
-                            src={url}
-                            alt={`Completion photo ${idx + 1}`}
-                            width={300}
-                            height={300}
-                            className="object-cover w-full aspect-square transition-transform group-hover:scale-105"
-                          />
+                          {job.customer && (
+                            <div className="flex items-center gap-2">
+                              <FaUserTie className="text-[var(--orange)]" />
+                              Customer: {job.customer.first_name} {job.customer.last_name}
+                              {job.customer.phone && ` (${job.customer.phone})`}
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {/* Status-specific actions */}
-                <div className="pt-8 flex flex-wrap justify-end gap-4 border-t">
-                  {selectedJob.status === 'assigned' && (
-                    <p className="text-center text-gray-600 w-full mb-4">
-                      Waiting for artisan to accept the job
-                    </p>
-                  )}
+                        {/* Status */}
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium">Status:</span>
+                          <span className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 ${
+                            job.status === 'assigned' ? 'bg-yellow-100 text-yellow-800' :
+                            job.status === 'in_progress' ? 'bg-blue-100 text-blue-800 animate-pulse' :
+                            job.status === 'completed_pending_review' ? 'bg-green-100 text-green-800' :
+                            job.status === 'completed' ? 'bg-green-600 text-white font-bold' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {job.status === 'assigned' ? (
+                              <>Assigned – Action Required</>
+                            ) : job.status === 'in_progress' ? (
+                              <>Active / In Progress</>
+                            ) : job.status === 'completed_pending_review' ? (
+                              <>Waiting for Review</>
+                            ) : job.status === 'completed' ? (
+                              <>
+                                <FaCheckCircle className="text-white" />
+                                Reviewed by Customer
+                              </>
+                            ) : (
+                              job.status
+                            )}
+                          </span>
+                        </div>
+                      </div>
 
-                  {selectedJob.status === 'in_progress' && (
-                    <div className="w-full text-center">
-                      <div className="inline-flex items-center gap-3 px-6 py-3 bg-purple-100 text-purple-800 rounded-full font-medium">
-                        <FaCheckCircle className="text-purple-600" />
-                        Job is Active / In Progress
+                      {/* Actions */}
+                      <div className="flex flex-col gap-3 mt-4 sm:mt-0 min-w-[180px]">
+                        {job.status === 'assigned' && (
+                          <>
+                            <button
+                              onClick={() => handleAccept(job.id)}
+                              disabled={updating === job.id}
+                              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium shadow-sm"
+                            >
+                              {updating === job.id && <FaSpinner className="animate-spin" />}
+                              Accept & Start Job
+                            </button>
+
+                            <button
+                              onClick={() => setDeclineModalOpen(job.id)}
+                              disabled={updating === job.id}
+                              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50 font-medium shadow-sm"
+                            >
+                              Decline Job
+                            </button>
+                          </>
+                        )}
+
+                        {job.status === 'in_progress' && (
+                          <Link
+                            href={`/dashboard/artisan/jobs/${job.id}/active`}
+                            className="px-6 py-3 bg-[var(--blue)] hover:bg-blue-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
+                          >
+                            <FaPlayCircle />
+                            View Active Job
+                          </Link>
+                        )}
+
+                        {job.status === 'completed_pending_review' && (
+                          <div className="px-6 py-3 bg-green-100 text-green-800 rounded-xl text-center font-medium shadow-sm">
+                            Waiting for customer review
+                          </div>
+                        )}
+
+                        {job.status === 'completed' && (
+                          <div className="space-y-3">
+                            <div className="px-6 py-3 bg-green-600 text-white rounded-xl text-center font-medium shadow-sm flex items-center justify-center gap-2">
+                              <FaCheckCircle />
+                              Reviewed by Customer
+                            </div>
+
+                            {!job.artisan_notified_of_review && (
+                              <button
+                                onClick={() => handleNotifyReviewed(job.id)}
+                                disabled={notifying === job.id}
+                                className={`
+                                  px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium shadow-sm w-full
+                                  ${notifying === job.id ? 'opacity-70 cursor-not-allowed' : ''}
+                                `}
+                              >
+                                {notifying === job.id ? <FaSpinner className="animate-spin" /> : <FaBell />}
+                                {notifying === job.id ? 'Notifying...' : 'Notify Me: Reviewed'}
+                              </button>
+                            )}
+
+                            {job.artisan_notified_of_review && (
+                              <div className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl text-center font-medium shadow-sm">
+                                You have been notified
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <Link
+                          href="/dashboard/artisan/messages"
+                          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
+                        >
+                          <FaCommentDots size={16} />
+                          Chat with Admin
+                        </Link>
                       </div>
                     </div>
-                  )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
-                  {selectedJob.status === 'completed_pending_review' && (
-                    <Link
-                      href={`/admin-dashboard/jobs/${selectedJob.id}/complete`}
-                      className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition shadow-md"
-                    >
-                      <FaCheckCircle />
-                      Finalize & Close Job
-                    </Link>
-                  )}
+        {/* Decline Modal */}
+        {declineModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-[var(--blue)] mb-4">
+                Why are you declining this job?
+              </h3>
 
-                  {(selectedJob.status === 'assigned' || selectedJob.status === 'in_progress') && (
-                    <Link
-                      href={`/dashboard/admin/chat/${selectedJob.id}`}
-                      className="px-8 py-3 bg-[var(--orange)] hover:bg-orange-600 text-white font-medium rounded-xl transition flex items-center gap-2 shadow-md"
-                    >
-                      <FaCommentDots />
-                      Chat with Artisan
-                    </Link>
-                  )}
+              <textarea
+                value={declineReason}
+                onChange={e => setDeclineReason(e.target.value)}
+                placeholder="e.g. Too busy, not suitable skillset, location too far, other commitments..."
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] resize-none mb-6"
+                required
+              />
 
-                  <button
-                    onClick={() => setSelectedJob(null)}
-                    className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-xl transition shadow-md"
-                  >
-                    Close
-                  </button>
-                </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setDeclineModalOpen(null)
+                    setDeclineReason('')
+                  }}
+                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl transition font-medium"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={() => handleDecline(declineModalOpen)}
+                  disabled={updating === declineModalOpen || !declineReason.trim()}
+                  className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
+                >
+                  {updating === declineModalOpen && <FaSpinner className="animate-spin" />}
+                  Confirm Decline
+                </button>
               </div>
             </div>
           </div>
@@ -513,26 +484,4 @@ export default function AdminAssignedJobs() {
       </div>
     </div>
   )
-}
-
-function getStatusBadge(status: string) {
-  const base = 'inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm'
-  switch (status) {
-    case 'assigned':
-      return <span className={`${base} bg-blue-100 text-blue-800 border border-blue-200`}>Assigned (Waiting Accept)</span>
-    case 'in_progress':
-      return <span className={`${base} bg-purple-100 text-purple-800 border border-purple-200`}>In Progress / Active</span>
-    case 'completed':
-      return <span className={`${base} bg-green-100 text-green-800 border border-green-200`}>Completed</span>
-    case 'completed_pending_review':
-      return <span className={`${base} bg-yellow-100 text-yellow-800 border border-yellow-200`}>Pending Final Review</span>
-    case 'changes_requested':
-      return <span className={`${base} bg-yellow-100 text-yellow-800 border border-yellow-200`}>Changes Requested</span>
-    case 'cancelled':
-      return <span className={`${base} bg-gray-100 text-gray-800 border border-gray-200`}>Cancelled</span>
-    case 'rejected':
-      return <span className={`${base} bg-red-100 text-red-800 border border-red-200`}>Rejected</span>
-    default:
-      return <span className={`${base} bg-gray-100 text-gray-800 border border-gray-200`}>{status}</span>
-  }
 }

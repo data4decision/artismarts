@@ -141,16 +141,13 @@ export default function ArtisanAssignedJobs() {
 
       toast.success('Job accepted successfully!', { duration: 3000 })
 
-      // Auto-redirect after short delay so toast is visible
       setTimeout(() => {
         router.push(`/dashboard/artisan/job/${jobId}/active`)
       }, 1200)
 
-      // Refresh list immediately
       fetchAssignedJobs()
     } catch (err: any) {
       toast.error(err.message || 'Failed to accept job')
-      console.error(err)
     } finally {
       setUpdating(null)
     }
@@ -198,7 +195,7 @@ export default function ArtisanAssignedJobs() {
               My Assigned Jobs
             </h1>
             <p className="mt-2 text-gray-600">
-              Jobs waiting for your action
+              Jobs waiting for your action or feedback
             </p>
           </div>
 
@@ -302,20 +299,30 @@ export default function ArtisanAssignedJobs() {
                           )}
                         </div>
 
+                        {/* Updated Status Display */}
                         <div className="flex items-center gap-2 text-sm">
                           <span className="font-medium">Status:</span>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          <span className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 ${
                             job.status === 'assigned' ? 'bg-yellow-100 text-yellow-800' :
                             job.status === 'in_progress' ? 'bg-blue-100 text-blue-800 animate-pulse' :
                             job.status === 'completed_pending_review' ? 'bg-green-100 text-green-800' :
-                            job.status === 'completed' ? 'bg-green-200 text-green-900' :
+                            job.status === 'completed' ? 'bg-green-600 text-white font-bold' :
                             'bg-gray-100 text-gray-800'
                           }`}>
-                            {job.status === 'assigned' ? 'Assigned – Action Required' :
-                             job.status === 'in_progress' ? 'Active / In Progress' :
-                             job.status === 'completed_pending_review' ? 'Waiting for Review' :
-                             job.status === 'completed' ? 'Completed' :
-                             job.status}
+                            {job.status === 'assigned' ? (
+                              <>Assigned – Action Required</>
+                            ) : job.status === 'in_progress' ? (
+                              <>Active / In Progress</>
+                            ) : job.status === 'completed_pending_review' ? (
+                              <>Waiting for Review</>
+                            ) : job.status === 'completed' ? (
+                              <>
+                                <FaCheckCircle className="text-white" />
+                                Reviewed
+                              </>
+                            ) : (
+                              job.status
+                            )}
                           </span>
                         </div>
                       </div>
@@ -359,6 +366,13 @@ export default function ArtisanAssignedJobs() {
                           </div>
                         )}
 
+                        {job.status === 'completed' && (
+                          <div className="px-6 py-3 bg-green-600 text-white rounded-xl text-center font-medium shadow-sm flex items-center justify-center gap-2">
+                            <FaCheckCircle />
+                            Reviewed by Customer
+                          </div>
+                        )}
+
                         <Link
                           href="/dashboard/artisan/messages"
                           className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
@@ -398,7 +412,7 @@ export default function ArtisanAssignedJobs() {
                     setDeclineModalOpen(null)
                     setDeclineReason('')
                   }}
-                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-[var(--blue)] rounded-xl transition font-medium"
+                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl transition font-medium"
                 >
                   Cancel
                 </button>

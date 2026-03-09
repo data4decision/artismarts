@@ -2,8 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
   FaUsers,
@@ -12,10 +11,13 @@ import {
   FaCheckCircle,
   FaClock,
   FaExclamationTriangle,
-  FaWallet,        
+  FaWallet,
   FaChartLine,
   FaStar,
+  FaRedo,
+  FaSpinner,
 } from 'react-icons/fa'
+import Image from 'next/image'
 
 interface DashboardStats {
   totalUsers: number
@@ -46,100 +48,90 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetchDashboardStats() {
-      try {
-        setLoading(true)
+  // Fetch all stats (initial + real-time trigger)
+  const fetchDashboardStats = useCallback(async () => {
+    try {
+      setLoading(true)
 
-        // 1. Users & role breakdown
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('role')
+      // 1. Profiles: users, artisans, customers, pending verifications
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('role, verification_status')
 
-        if (profilesError) throw profilesError
+      const totalUsers = profiles?.length || 0
+      const totalArtisans = profiles?.filter(p => p.role === 'artisan').length || 0
+      const totalCustomers = profiles?.filter(p => p.role === 'customer').length || 0
+      const pendingVerifications = profiles?.filter(
+        p => p.role === 'artisan' && p.verification_status === 'not_verified'
+      ).length || 0
 
-        const totalUsers = profiles?.length || 0
-        const totalArtisans = profiles?.filter(p => p.role === 'artisan').length || 0
-        const totalCustomers = profiles?.filter(p => p.role === 'customer').length || 0
+      // 2. Job requests stats (real data from your table)
+      const { data: jobs } = await supabase
+        .from('job_requests')
+        .select('status')
 
-        // 2. Pending artisan verifications
-        const { count: pendingVerif, error: verifError } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'artisan')
-          .eq('verification_status', 'not_verified')
+      const activeJobs = jobs?.filter(j =>
+        ['assigned', 'in_progress', 'ongoing'].includes(j.status)
+      ).length || 0
 
-        if (verifError) throw verifError
+      const completedJobs = jobs?.filter(j => j.status === 'completed').length || 0
 
-        // 3. Job stats (adjust table/column names to match your schema)
-        const { data: jobs, error: jobsError } = await supabase
-          .from('jobs')           // ← change if your table is named differently
-          .select('status')
+      const disputedJobs = jobs?.filter(j =>
+        ['disputed', 'under_review', 'changes_requested', 'completed_pending_review'].includes(j.status)
+      ).length || 0
 
-        if (jobsError) throw jobsError
+      // 3. Other stats (placeholders - add real queries when you have the tables)
+      const totalEarnings = 0 // Replace with real transaction sum
+      const avgRating = '0.0' // Replace with real average calculation
+      const pendingTickets = 0 // Replace with real count from support_tickets
 
-        const activeJobs = jobs?.filter(j => ['active', 'in_progress', 'ongoing'].includes(j.status)).length || 0
-        const completedJobs = jobs?.filter(j => j.status === 'completed' || j.status === 'finished').length || 0
-        const disputedJobs = jobs?.filter(j => ['disputed', 'under_review', 'complaint'].includes(j.status)).length || 0
-
-        // 4. Platform earnings (example – adjust to your actual table)
-        const { data: transactions, error: txError } = await supabase
-          .from('transactions')   // ← change table name if different
-          .select('amount')
-          .eq('status', 'completed')
-          .eq('type', 'platform_fee')
-
-        if (txError) throw txError
-
-        const totalEarnings = transactions?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0
-
-        // 5. Average artisan rating
-        const { data: ratings, error: ratingError } = await supabase
-          .from('profiles')
-          .select('average_rating')
-          .eq('role', 'artisan')
-          .not('average_rating', 'is', null)
-
-        if (ratingError) throw ratingError
-
-        const avgRating =
-          ratings && ratings.length > 0
-            ? (ratings.reduce((sum, r) => sum + (Number(r.average_rating) || 0), 0) / ratings.length).toFixed(1)
-            : '0.0'
-
-        // 6. Pending support tickets (if you have this table)
-        const { count: pendingTickets, error: ticketError } = await supabase
-          .from('support_tickets')  // ← adjust table name if different
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'open')
-
-        if (ticketError) throw ticketError
-
-        setStats({
-          totalUsers,
-          totalArtisans,
-          totalCustomers,
-          pendingVerifications: pendingVerif || 0,
-          activeJobs,
-          completedJobs,
-          disputedJobs,
-          totalPlatformEarnings: totalEarnings,
-          averageRating: avgRating,
-          pendingSupportTickets: pendingTickets || 0,
-        })
-      } catch (error) {
-        console.error('Dashboard stats fetch failed:', error)
-      } finally {
-        setLoading(false)
-      }
+      setStats({
+        totalUsers,
+        totalArtisans,
+        totalCustomers,
+        pendingVerifications,
+        activeJobs,
+        completedJobs,
+        disputedJobs,
+        totalPlatformEarnings: totalEarnings,
+        averageRating: avgRating,
+        pendingSupportTickets: pendingTickets,
+      })
+    } catch (err) {
+      console.error('Dashboard fetch error:', err)
+    } finally {
+      setLoading(false)
     }
+  }, [])
 
+  useEffect(() => {
+    // Initial fetch
     fetchDashboardStats()
 
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchDashboardStats, 60000)
-    return () => clearInterval(interval)
-  }, [])
+    // Real-time: profiles (users/artisans/customers/verifications)
+    const profileChannel = supabase
+      .channel('admin-profiles-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        console.log('PROFILE CHANGE → refreshing stats')
+        fetchDashboardStats()
+      })
+      .subscribe()
+
+    // Real-time: job_requests (all job stats)
+    const jobsChannel = supabase
+      .channel('admin-jobs-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'job_requests' }, () => {
+        console.log('JOB CHANGE → refreshing stats')
+        fetchDashboardStats()
+      })
+      .subscribe()
+
+    // Cleanup
+    return () => {
+      supabase.removeChannel(profileChannel)
+      supabase.removeChannel(jobsChannel)
+    }
+  }, [fetchDashboardStats])
 
   const formatNaira = (amount: number) =>
     new Intl.NumberFormat('en-NG', {
@@ -197,12 +189,40 @@ export default function AdminDashboard() {
     <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            Platform overview • Last updated {new Date().toLocaleTimeString('en-NG')}
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[var(--blue)]">Admin Dashboard</h1>
+            <p className="text-gray-600 mt-1">
+              Platform overview • Live updates • Last updated {new Date().toLocaleTimeString('en-NG')}
+            </p>
+          </div>
+          <button
+            onClick={fetchDashboardStats}
+            disabled={loading}
+            className="px-6 py-3 bg-[var(--orange)] text-[var(--white)] rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50 shadow-md"
+          >
+            <FaRedo className={loading ? 'animate-spin' : ''} />
+            Refresh Now
+          </button>
         </div>
+
+        {/* Loading Overlay */}
+        {loading && (
+          <div className="fixed inset-0 bg-gray-50/80 flex items-center justify-center z-50">
+            <div className="relative flex items-center justify-center">
+              <FaSpinner className="animate-spin text-[var(--orange)] text-7xl" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Image
+                  src="/log.png"
+                  width={56}
+                  height={56}
+                  alt="Loading..."
+                  className="object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -225,7 +245,7 @@ export default function AdminDashboard() {
             loading={loading}
           />
           <StatCard
-            title="Disputed Jobs"
+            title="Disputed / Pending Review"
             value={stats.disputedJobs}
             icon={FaExclamationTriangle}
             color="red"
@@ -254,22 +274,22 @@ export default function AdminDashboard() {
           />
         </div>
 
-        {/* Placeholder for future sections */}
+        {/* Placeholder sections */}
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+          <div className="bg-[var(--white)] rounded-xl shadow p-6">
+            <h3 className="text-lg font-semibold mb-4 text-[var(--blue)]">Recent Activity</h3>
             <p className="text-gray-500 italic">
-              Recent signups, job postings, and verifications will appear here...
+              Recent signups, job postings, verifications, and support tickets will appear here in real-time...
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+          <div className="bg-[var(--white)] rounded-xl shadow p-6">
+            <h3 className="text-lg font-semibold mb-4 text-[var(--blue)]">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-4">
-              <button className="py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              <button className="py-3 px-4 bg-[var(--blue)] text-[var(--white)] rounded-lg hover:bg-blue-700 transition">
                 Review Verifications
               </button>
-              <button className="py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+              <button className="py-3 px-4 bg-[var(--orange)] text-[var(--white)] rounded-lg hover:bg-orange-600 transition">
                 Check Disputes
               </button>
             </div>

@@ -1,4 +1,3 @@
-// app/dashboard/admin/requests/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -82,7 +81,36 @@ export default function AdminRequestsDashboard() {
 
       if (error) throw error
 
-      setRequests(data || [])
+      // Type-safe mapping: ensure nested objects are properly shaped
+      const formattedRequests: JobRequest[] = (data || []).map((item: any) => ({
+        id: item.id || '',
+        customer_id: item.customer_id || '',
+        preferred_artisan_id: item.preferred_artisan_id || null,
+        title: item.title || '',
+        description: item.description || '',
+        budget_min: item.budget_min != null ? Number(item.budget_min) : null,
+        budget_max: item.budget_max != null ? Number(item.budget_max) : null,
+        job_type: item.job_type || null,
+        duration: item.duration || null,
+        location: item.location || '',
+        preferred_date: item.preferred_date || null,
+        preferred_time: item.preferred_time || null,
+        attachment_url: item.attachment_url || null,
+        status: item.status || 'pending',
+        created_at: item.created_at || '',
+        customer: item.customer ? {
+          first_name: item.customer.first_name ?? null,
+          last_name: item.customer.last_name ?? null,
+          phone: item.customer.phone ?? null,
+        } : null,
+        preferred_artisan: item.preferred_artisan ? {
+          first_name: item.preferred_artisan.first_name ?? null,
+          last_name: item.preferred_artisan.last_name ?? null,
+          primary_skill: item.preferred_artisan.primary_skill ?? null,
+        } : null,
+      }))
+
+      setRequests(formattedRequests)
     } catch (err: any) {
       console.error('Fetch error:', err)
       setError(err.message || 'Failed to load pending requests')
@@ -105,7 +133,7 @@ export default function AdminRequestsDashboard() {
 
       const formatted = (data || []).map(a => ({
         id: a.id,
-        name: `${a.first_name || ''} ${a.last_name || ''}`.trim(),
+        name: `${a.first_name || ''} ${a.last_name || ''}`.trim() || 'Unnamed Artisan',
         skill: a.primary_skill || 'General Artisan',
       }))
 
@@ -263,7 +291,7 @@ export default function AdminRequestsDashboard() {
                           <div>
                             <p className="font-medium text-gray-800">Customer</p>
                             <p>
-                              {request.customer?.first_name} {request.customer?.last_name}
+                              {request.customer?.first_name} {request.customer?.last_name || ''}
                               {request.customer?.phone && ` • ${request.customer.phone}`}
                             </p>
                           </div>
@@ -275,7 +303,7 @@ export default function AdminRequestsDashboard() {
                             <div>
                               <p className="font-medium text-gray-800">Preferred Artisan</p>
                               <p>
-                                {request.preferred_artisan.first_name} {request.preferred_artisan.last_name}
+                                {request.preferred_artisan.first_name} {request.preferred_artisan.last_name || ''}
                                 {request.preferred_artisan.primary_skill && ` • ${request.preferred_artisan.primary_skill}`}
                               </p>
                             </div>

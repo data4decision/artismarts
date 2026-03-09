@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { 
   FaStar, FaSpinner, FaCheckCircle, FaTimesCircle, FaArrowLeft, 
   FaExpand, FaChevronLeft, FaChevronRight, FaImage, FaUserTie,
-  FaThumbsUp, FaThumbsDown, FaStickyNote
+  FaThumbsUp, FaThumbsDown, FaStickyNote, FaBell
 } from 'react-icons/fa'
 import Image from 'next/image'
 
@@ -21,6 +21,7 @@ export default function CustomerJobReviewPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [appRating, setAppRating] = useState<number | null>(null)
+  const [notifyingArtisan, setNotifyingArtisan] = useState(false)
 
   // Form states
   const [overallRating, setOverallRating] = useState<number>(0)
@@ -68,7 +69,8 @@ export default function CustomerJobReviewPage() {
           customer_confirmed_at, customer_review_rating, customer_review_comment,
           customer_quality_rating, customer_punctuality_rating,
           customer_communication_rating, customer_cleanliness_rating,
-          customer_would_hire_again
+          customer_would_hire_again,
+          artisan_notified_of_review
         `)
         .eq('id', jobId)
         .eq('customer_id', user.id)
@@ -108,7 +110,7 @@ export default function CustomerJobReviewPage() {
         setComment(draftRow.review_text ?? '')
       }
 
-      if (jobData.status !== 'completed_pending_review') {
+      if (jobData.status !== 'completed_pending_review' && !alreadyReviewed) {
         toast.error('This job is not ready for review')
         router.push('/dashboard/customer/jobs')
       }
@@ -120,7 +122,7 @@ export default function CustomerJobReviewPage() {
     }
   }
 
-  // Draft auto-save (debounced)
+  // Draft auto-save (still uses upsert – safe with your new constraint)
   useEffect(() => {
     if (alreadyReviewed || submitting) return
 
@@ -141,7 +143,7 @@ export default function CustomerJobReviewPage() {
             onConflict: 'job_id, reviewer_id, is_draft'
           })
       } catch {
-        // silent fail
+        // silent fail for drafts
       }
     }, 1500)
 
@@ -158,41 +160,96 @@ export default function CustomerJobReviewPage() {
     setSubmitting(true)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      const { data: { user }, error: authErr } = await supabase.auth.getUser()
+      if (authErr || !user) throw new Error('Authentication failed – please sign in again')
 
-      const { error: reviewErr } = await supabase
+      console.log('[Submit] Starting – user:', user.id, 'job:', jobId)
+
+      // Step 1: Delete any existing draft for this job/customer
+      await supabase
         .from('job_reviews')
-        .upsert({
+        .delete()
+        .eq('job_id', jobId)
+        .eq('reviewer_id', user.id)
+        .eq('is_draft', true)
+
+      // Step 2: Insert the final review (no upsert needed)
+      const { error: insertErr } = await supabase
+        .from('job_reviews')
+        .insert({
           job_id: jobId,
           reviewer_id: user.id,
           rating: overallRating,
           review_text: comment.trim() || null,
           is_draft: false
-        }, {
-          onConflict: 'job_id, reviewer_id'
         })
 
-      if (reviewErr) throw reviewErr
+      if (insertErr) {
+        console.error('[Submit] Insert failed:', insertErr.message, insertErr.details, insertErr.hint)
+        throw new Error(`Review insert failed: ${insertErr.message}`)
+      }
 
-      await supabase
+      console.log('[Submit] Final review inserted successfully')
+
+      // Step 3: Update job_requests
+      const { error: jobErr } = await supabase
         .from('job_requests')
         .update({
           status: 'completed',
           customer_confirmed_at: new Date().toISOString(),
           customer_review_rating: overallRating,
           customer_review_comment: comment.trim() || null,
-          customer_review_created_at: new Date().toISOString()
+          customer_review_created_at: new Date().toISOString(),
+          artisan_notified_of_review: false
         })
         .eq('id', jobId)
+        .eq('customer_id', user.id)
+
+      if (jobErr) {
+        console.error('[Submit] job_requests update failed:', jobErr.message, jobErr.details, jobErr.hint)
+        throw new Error(`Job update failed: ${jobErr.message}`)
+      }
+
+      console.log('[Submit] Job updated successfully')
 
       setSubmitSuccess(true)
       await fetchJobAndReview()
     } catch (err: any) {
-      toast.error('Failed to submit review. Please try again.')
-      console.error('Submit error:', err)
+      console.error('[Submit] Full error:', err)
+      const msg = err.message?.includes('new row violates row-level security policy')
+        ? 'Permission denied – you may not own this job or it is not in review state.'
+        : err.message?.includes('duplicate key value violates unique constraint')
+        ? 'A review already exists for this job – try refreshing the page.'
+        : (err.message || 'Failed to submit review. Please try again.')
+      toast.error(msg, { duration: 8000 })
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleNotifyArtisan = async () => {
+    if (notifyingArtisan) return
+    setNotifyingArtisan(true)
+
+    try {
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          artisan_notified_of_review: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', jobId)
+        .eq('customer_id', (await supabase.auth.getUser()).data.user?.id)
+
+      if (error) throw error
+
+      toast.success('Artisan has been notified that you reviewed their work!', { duration: 5000 })
+      await fetchJobAndReview()
+    } catch (err: any) {
+      toast.error('Failed to notify artisan')
+      console.error('Notify error:', err)
+    } finally {
+      setNotifyingArtisan(false)
     }
   }
 
@@ -208,7 +265,7 @@ export default function CustomerJobReviewPage() {
         .insert({
           user_id: user.id,
           rating,
-          comment: null // can extend later
+          comment: null
         })
 
       toast.success(`Thank you for rating the app ${rating} stars!`)
@@ -220,7 +277,7 @@ export default function CustomerJobReviewPage() {
   }
 
   const handleRequestChanges = async () => {
-    if (!confirm('Request changes? The artisan will be notified.')) return
+    if (!confirm('Request changes? The artisan will be notified to fix.')) return
 
     try {
       await supabase
@@ -305,6 +362,7 @@ export default function CustomerJobReviewPage() {
   }
 
   const artisanName = `${job.artisan?.first_name ?? ''} ${job.artisan?.last_name ?? ''}`.trim() || 'Artisan'
+  const isReviewedAndNotNotified = alreadyReviewed && !job.artisan_notified_of_review
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
@@ -400,15 +458,15 @@ export default function CustomerJobReviewPage() {
           )}
         </div>
 
-        {/* Review Form */}
+        {/* Review Form / Submitted View */}
         {alreadyReviewed ? (
-          <div className="bg-blue-50 border border-[var(--blue)]/30 rounded-2xl p-8 text-center">
-            <FaCheckCircle className="text-[var(--blue)] text-6xl mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-[var(--blue)] mb-3">
+          <div className="bg-blue-50 border border-[var(--blue)]/30 rounded-2xl p-8 text-center space-y-6">
+            <FaCheckCircle className="text-[var(--blue)] text-6xl mx-auto" />
+            <h2 className="text-2xl font-bold text-[var(--blue)]">
               Thank you for your review!
             </h2>
 
-            <div className="flex justify-center gap-1 mb-6">
+            <div className="flex justify-center gap-1">
               {[1,2,3,4,5].map(s => (
                 <FaStar
                   key={s}
@@ -418,7 +476,7 @@ export default function CustomerJobReviewPage() {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-3xl mx-auto mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-3xl mx-auto">
               {[
                 { label: "Quality", val: qualityRating },
                 { label: "Punctuality", val: punctualityRating },
@@ -437,14 +495,35 @@ export default function CustomerJobReviewPage() {
             </div>
 
             {wouldHireAgain !== null && (
-              <p className="text-lg font-medium mb-6 text-[var(--blue)]">
+              <p className="text-lg font-medium text-[var(--blue)]">
                 Would hire again: <strong>{wouldHireAgain ? 'Yes' : 'No'}</strong>
               </p>
             )}
 
             {comment && (
-              <p className="text-gray-700 italic max-w-3xl mx-auto mb-8 px-4 py-3 bg-white rounded-xl border border-gray-200">
+              <p className="text-gray-700 italic max-w-3xl mx-auto px-4 py-3 bg-white rounded-xl border border-gray-200">
                 "{comment}"
+              </p>
+            )}
+
+            {/* Notify Artisan Button */}
+            {isReviewedAndNotNotified && (
+              <button
+                onClick={handleNotifyArtisan}
+                disabled={notifyingArtisan}
+                className={`
+                  mt-6 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl transition shadow-md font-medium text-lg flex items-center justify-center gap-3 mx-auto
+                  ${notifyingArtisan ? 'opacity-70 cursor-not-allowed' : ''}
+                `}
+              >
+                {notifyingArtisan ? <FaSpinner className="animate-spin" /> : <FaBell />}
+                {notifyingArtisan ? 'Notifying...' : 'Notify Artisan: Review Submitted'}
+              </button>
+            )}
+
+            {job?.artisan_notified_of_review && (
+              <p className="text-green-700 font-medium mt-4">
+                Artisan has already been notified of your review.
               </p>
             )}
 
