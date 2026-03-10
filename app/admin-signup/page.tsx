@@ -114,7 +114,7 @@ export default function AdminSignup() {
             <span>Back to Home</span>
           </Link>
 
-          <h1 className="text-4xl font-extrabold text-[var(--white)] tracking-tight">
+          <h1 className="w-[80%] mx-auto mt-6 text-center text-3xl font-extrabold bg-[var(--white)] text-[var(--blue)] border-2 border-[var(--orange)] rounded-2xl p-3">
             ArtiSmart Admin
           </h1>
           <p className="mt-2 text-lg text-[var(--white)] opacity-90">
@@ -277,6 +277,7 @@ export default function AdminSignup() {
                   className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] px-4 py-3 focus:border-[var(--orange)] focus:ring-[var(--orange)]"
                 />
               </div>
+              
             </div>
 
             <button
@@ -286,6 +287,18 @@ export default function AdminSignup() {
             >
               {loading ? 'Creating admin account...' : 'Create Admin Account'}
             </button>
+            {/* Added signup link for convenience */}
+        <div className="text-center text-sm text-[var(--white)] mt-2">
+          <p>
+            Already have an admin account?{' '}
+            <Link
+              href="/admin-login"
+              className="font-medium text-[var(--orange)] hover:text-[var(--orange)]/80 transition"
+            >
+              Sign in here
+            </Link>
+          </p>
+        </div>
 
             {error && (
               <div className="mt-4 p-4 bg-red-900/30 border-l-4 border-red-500 text-red-200 rounded">
@@ -293,6 +306,7 @@ export default function AdminSignup() {
               </div>
             )}
           </form>
+          
         ) : (
           <div className="mt-8 text-center text-[var(--white)] space-y-6">
             <h3 className="text-2xl font-bold">Check Your Email</h3>

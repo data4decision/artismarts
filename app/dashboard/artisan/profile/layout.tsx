@@ -115,7 +115,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
              sm:flex flex-col
             bg-[var(--white)]
             border-l border-[var(--orange)]/30
-            w-full max-w-[340px] m-auto 
+            w-full max-w-[340px]  
             
           "
         >

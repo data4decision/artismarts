@@ -194,7 +194,7 @@ export default function ArtisanAssignedJobs() {
             <h1 className="text-3xl font-bold text-[var(--blue)]">
               My Assigned Jobs
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-[var(--blue)]">
               Jobs waiting for your action or feedback
             </p>
           </div>
@@ -202,7 +202,7 @@ export default function ArtisanAssignedJobs() {
           <button
             onClick={fetchAssignedJobs}
             disabled={loading}
-            className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50 shadow-md"
+            className="px-6 py-3 bg-[var(--orange)] text-[var(--white)] rounded-xl hover:bg-[var(--orange)] transition flex items-center gap-2 disabled:opacity-50 shadow-md"
           >
             <FaRedo className={loading ? 'animate-spin' : ''} />
             Refresh
@@ -215,7 +215,7 @@ export default function ArtisanAssignedJobs() {
             <div className="relative flex items-center justify-center">
               <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-lg"></div>
               <div className="absolute inset-0 flex items-center justify-center animate-pulse">
-                <div className="bg-white rounded-full p-3 shadow-md">
+                <div className="bg-[var(--white)] rounded-full p-3 shadow-md">
                   <Image
                     src="/log.png"
                     width={56}
@@ -247,9 +247,9 @@ export default function ArtisanAssignedJobs() {
         {!loading && !error && (
           <>
             {jobs.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-500">
-                <FaExclamationTriangle className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-[var(--blue)]">
+                <FaExclamationTriangle className="text-6xl text-[var(--blue)] mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
                   No assigned jobs yet
                 </h3>
                 <p className="mb-6">
@@ -261,7 +261,7 @@ export default function ArtisanAssignedJobs() {
                 {jobs.map(job => (
                   <div
                     key={job.id}
-                    className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                    className="bg-[var(--white)] rounded-2xl shadow-md border border-[var(--white)] p-6 hover:shadow-lg transition-shadow"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
                       <div className="flex-1">
@@ -269,11 +269,11 @@ export default function ArtisanAssignedJobs() {
                           {job.title}
                         </h3>
 
-                        <p className="text-gray-700 mb-4 line-clamp-3">
+                        <p className="text-[var(--blue)] mb-4 line-clamp-3">
                           {job.description}
                         </p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-[var(--blue)] mb-4">
                           <div className="flex items-center gap-2">
                             <FaDollarSign className="text-[var(--orange)]" />
                             Budget: {job.budget_min ? `₦${job.budget_min.toLocaleString()}` : 'Not specified'}
@@ -307,7 +307,7 @@ export default function ArtisanAssignedJobs() {
                             job.status === 'in_progress' ? 'bg-blue-100 text-blue-800 animate-pulse' :
                             job.status === 'completed_pending_review' ? 'bg-green-100 text-green-800' :
                             job.status === 'completed' ? 'bg-green-600 text-white font-bold' :
-                            'bg-gray-100 text-gray-800'
+                            'bg-gray-100 text-[var(--blue)]'
                           }`}>
                             {job.status === 'assigned' ? (
                               <>Assigned – Action Required</>
@@ -334,7 +334,7 @@ export default function ArtisanAssignedJobs() {
                             <button
                               onClick={() => handleAccept(job.id)}
                               disabled={updating === job.id}
-                              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium shadow-sm"
+                              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-[var(--white)] rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium shadow-sm"
                             >
                               {updating === job.id && <FaSpinner className="animate-spin" />}
                               Accept & Start Job
@@ -343,7 +343,7 @@ export default function ArtisanAssignedJobs() {
                             <button
                               onClick={() => setDeclineModalOpen(job.id)}
                               disabled={updating === job.id}
-                              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50 font-medium shadow-sm"
+                              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-[var(--white)] rounded-xl transition disabled:opacity-50 font-medium shadow-sm"
                             >
                               Decline Job
                             </button>
@@ -353,7 +353,7 @@ export default function ArtisanAssignedJobs() {
                         {job.status === 'in_progress' && (
                           <Link
                             href={`/dashboard/artisan/jobs/${job.id}/active`}
-                            className="px-6 py-3 bg-[var(--blue)] hover:bg-blue-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
+                            className="px-6 py-3 bg-[var(--blue)] hover:bg-blue-700 text-[var(--white)] rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
                           >
                             <FaPlayCircle />
                             View Active Job
@@ -367,7 +367,7 @@ export default function ArtisanAssignedJobs() {
                         )}
 
                         {job.status === 'completed' && (
-                          <div className="px-6 py-3 bg-green-600 text-white rounded-xl text-center font-medium shadow-sm flex items-center justify-center gap-2">
+                          <div className="px-6 py-3 bg-green-600 text-[var(--white)] rounded-xl text-center font-medium shadow-sm flex items-center justify-center gap-2">
                             <FaCheckCircle />
                             Reviewed by Customer
                           </div>
@@ -375,7 +375,7 @@ export default function ArtisanAssignedJobs() {
 
                         <Link
                           href="/dashboard/artisan/messages"
-                          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
+                          className="px-6 py-3 bg-[var(--orange)] hover:bg-[var(--orange)]/80 text-[var(--white)] rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-sm"
                         >
                           <FaCommentDots size={16} />
                           Chat with Admin
@@ -402,7 +402,7 @@ export default function ArtisanAssignedJobs() {
                 onChange={e => setDeclineReason(e.target.value)}
                 placeholder="e.g. Too busy, not suitable skillset, location too far, other commitments..."
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] resize-none mb-6"
+                className="w-full px-4 py-3 border border-[var(--blue)]/30 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] resize-none mb-6"
                 required
               />
 
@@ -412,7 +412,7 @@ export default function ArtisanAssignedJobs() {
                     setDeclineModalOpen(null)
                     setDeclineReason('')
                   }}
-                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl transition font-medium"
+                  className="flex-1 py-3 px-4 bg-[var(--blue)]/20 hover:bg-[var(--blue)]/30 text-[var(--blue)] rounded-xl transition font-medium"
                 >
                   Cancel
                 </button>

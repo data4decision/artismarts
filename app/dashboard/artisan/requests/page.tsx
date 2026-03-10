@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { FaSearch, FaSpinner, FaExclamationTriangle, FaDollarSign, FaClock, FaMapMarkerAlt } from 'react-icons/fa'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const skillCategories = [
   { title: "Home & Building Services", skills: ["Plumber", "Electrician", "Carpenter", "Mason / Bricklayer", "Painter / Decorator", "Tiler"] },
@@ -89,7 +90,7 @@ export default function FindWorkPage() {
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--blue)] mb-4">
             Find Work Opportunities
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600">
+          <p className="text-lg sm:text-xl text-[var(--blue)]">
             Browse open job requests from customers
           </p>
         </div>
@@ -102,9 +103,9 @@ export default function FindWorkPage() {
               placeholder="Search by skill, title or description..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition shadow-sm"
+              className="w-full pl-12 pr-4 py-4 border border-[var(--blue)]/30 rounded-xl text-lg focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] outline-none transition shadow-sm"
             />
-            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--blue)] text-xl" />
           </div>
         </div>
 
@@ -122,10 +123,20 @@ export default function FindWorkPage() {
 
         {/* Loading / Error */}
         {loading && (
-          <div className="flex justify-center items-center py-20">
-            <FaSpinner className="animate-spin text-[var(--orange)] text-5xl" />
-            <span className="ml-4 text-lg text-gray-600">Loading available jobs...</span>
-          </div>
+          <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+            <div className="relative flex items-center justify-center">
+            {/* Outer spinning ring */}
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+              {/* Inner static logo with subtle pulse */}
+                <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                  <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                    <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
         )}
 
         {error && (
@@ -145,15 +156,15 @@ export default function FindWorkPage() {
         {!loading && !error && (
           <>
             {filteredJobs.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-500">
+              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-[var(--blue)]">
                 <FaSearch className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
                   No open jobs found
                 </h3>
                 <p className="mb-6">
                   {searchQuery
                     ? "Try a different search term"
-                    : "Check back soon — new jobs are posted daily!"}
+                    : "Check back soon - new jobs are posted daily!"}
                 </p>
               </div>
             ) : (
@@ -161,19 +172,19 @@ export default function FindWorkPage() {
                 {filteredJobs.map(job => (
                   <div
                     key={job.id}
-                    className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                    className="bg-[var(--white)] rounded-2xl shadow-md border border-[var(--blue)] p-6 hover:shadow-lg transition-shadow"
                   >
                     <h3 className="text-xl font-semibold text-[var(--blue)] mb-2 line-clamp-2">
                       {job.title}
                     </h3>
 
                     {job.customer && (
-                      <p className="text-sm text-gray-600 mb-3">
+                      <p className="text-sm text-[var(--blue)] mb-3">
                         Posted by {job.customer.first_name} {job.customer.last_name ? job.customer.last_name.charAt(0) + '.' : ''}
                       </p>
                     )}
 
-                    <p className="text-gray-700 mb-4 line-clamp-3">
+                    <p className="text-[var(--blue)] mb-4 line-clamp-3">
                       {job.description}
                     </p>
 
@@ -188,7 +199,7 @@ export default function FindWorkPage() {
                       ))}
                     </div>
 
-                    <div className="flex flex-wrap gap-6 text-sm text-gray-600 mb-4">
+                    <div className="flex flex-wrap gap-6 text-sm text-[var(--blue)] mb-4">
                       {job.budget_min && (
                         <div className="flex items-center gap-1">
                           <FaDollarSign className="text-[var(--orange)]" />
@@ -207,7 +218,7 @@ export default function FindWorkPage() {
 
                     <Link
                       href={`/dashboard/artisan/jobs/${job.id}`}
-                      className="inline-block px-6 py-3 bg-[var(--orange)] hover:bg-orange-600 text-white font-medium rounded-xl transition"
+                      className="inline-block px-6 py-3 bg-[var(--orange)] hover:bg-orange-600 text-[var(--white)] font-medium rounded-xl transition"
                     >
                       View Details & Apply
                     </Link>

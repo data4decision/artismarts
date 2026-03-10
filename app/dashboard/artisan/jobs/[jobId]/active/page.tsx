@@ -213,11 +213,17 @@ export default function ArtisanActiveJob() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
-        <div className="text-center">
-          <FaSpinner className="animate-spin text-[var(--orange)] text-6xl mx-auto mb-4" />
-          <p className="text-[var(--blue)] font-medium">Loading active job...</p>
-        </div>
-      </div>
+              <div className="relative flex items-center justify-center">
+              {/* Outer spinning ring */}
+                <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                {/* Inner static logo with subtle pulse */}
+                  <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                    <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                        <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                      </div>
+                    </div>
+                  </div>
+                </div>
     )
   }
 

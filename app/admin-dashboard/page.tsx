@@ -208,20 +208,18 @@ export default function AdminDashboard() {
 
         {/* Loading Overlay */}
         {loading && (
-          <div className="fixed inset-0 bg-gray-50/80 flex items-center justify-center z-50">
-            <div className="relative flex items-center justify-center">
-              <FaSpinner className="animate-spin text-[var(--orange)] text-7xl" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Image
-                  src="/log.png"
-                  width={56}
-                  height={56}
-                  alt="Loading..."
-                  className="object-contain"
-                />
-              </div>
-            </div>
-          </div>
+          <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+                      <div className="relative flex items-center justify-center">
+                      {/* Outer spinning ring */}
+                        <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                        {/* Inner static logo with subtle pulse */}
+                          <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                            <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                              <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                            </div>
+                          </div>
+                        </div>
+                      </div>
         )}
 
         {/* Main Stats Grid */}

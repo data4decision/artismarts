@@ -22,6 +22,7 @@ import {
   FaStar
 } from 'react-icons/fa'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface CustomerRequest {
   id: string
@@ -218,10 +219,20 @@ export default function MyRequestsPage() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-32">
-            <FaSpinner className="animate-spin text-[var(--orange)] text-6xl mb-6" />
-            <p className="text-xl text-gray-600 font-medium">Loading your requests...</p>
-          </div>
+          <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+            <div className="relative flex items-center justify-center">
+            {/* Outer spinning ring */}
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+              {/* Inner static logo with subtle pulse */}
+                <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                  <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                    <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
         )}
 
         {/* Error */}

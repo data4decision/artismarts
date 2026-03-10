@@ -15,6 +15,7 @@ import {
   FaCommentDots
 } from 'react-icons/fa'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface Message {
   id: string
@@ -318,9 +319,18 @@ export default function ArtisanChatPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <FaSpinner className="animate-spin text-[var(--orange)] text-6xl" />
-      </div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+        <div className="relative flex items-center justify-center">
+        {/* Outer spinning ring */}
+          <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+          {/* Inner static logo with subtle pulse */}
+            <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+              <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                  <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                </div>
+              </div>
+            </div>
+          </div>
     )
   }
 
@@ -329,15 +339,15 @@ export default function ArtisanChatPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="text-center max-w-md">
           <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          <h2 className="text-2xl font-bold text-[var(--blue)] mb-4">
             Job not found
           </h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-[var(--blue)] mb-8">
             This job may not exist or is not assigned to you.
           </p>
           <Link
-            href="/dashboard/artisan/jobs"
-            className="inline-flex items-center px-8 py-4 bg-[var(--blue)] text-white rounded-xl hover:bg-blue-700 transition shadow-md"
+            href="/dashboard/artisan/assigned-jobs"
+            className="inline-flex items-center px-8 py-4 bg-[var(--blue)] text-white rounded-xl hover:bg-[var(--blue)] transition shadow-md"
           >
             <FaArrowLeft className="mr-2" />
             Back to My Jobs
@@ -352,10 +362,10 @@ export default function ArtisanChatPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[var(--blue)] to-blue-900 text-white px-6 py-4 shadow-lg">
+      <div className="bg-gradient-to-r from-[var(--blue)] to-[var(--orange)] text-white px-6 py-4 shadow-lg">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard/artisan/jobs" className="hover:opacity-80 transition">
+            <Link href="/dashboard/artisan/assigned-jobs" className="hover:opacity-80 transition">
               <FaArrowLeft size={24} />
             </Link>
             <div>
@@ -373,8 +383,8 @@ export default function ArtisanChatPage() {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 max-w-5xl mx-auto w-full">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-            <FaCommentDots className="text-6xl text-gray-300 mb-4" />
+          <div className="flex flex-col items-center justify-center h-full text-center text-[var(--blue)]">
+            <FaCommentDots className="text-6xl text-[var(--blue)] mb-4" />
             <p className="text-lg">No messages yet</p>
             <p className="text-sm mt-2">The admin will contact you here regarding this job</p>
           </div>
@@ -388,7 +398,7 @@ export default function ArtisanChatPage() {
                 <div
                   className={`max-w-[75%] rounded-2xl px-4 py-3 ${
                     msg.is_admin
-                      ? 'bg-gray-200 text-gray-900 rounded-bl-none'
+                      ? 'bg-gray-200 text-[var(--blue)] rounded-bl-none'
                       : 'bg-[var(--orange)] text-white rounded-br-none'
                   }`}
                 >
@@ -398,14 +408,14 @@ export default function ArtisanChatPage() {
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {!msg.is_admin && msg.seen_at && isLastSeen(msg, index) && (
-                      <FaCheckDouble className="text-blue-400" />
+                      <FaCheckDouble className="text-blue-600" />
                     )}
                   </div>
                 </div>
               </div>
             ))}
             {otherIsTyping && (
-              <div className="flex items-center text-gray-500 text-sm italic pl-4">
+              <div className="flex items-center text-[var(--orange)] text-sm italic pl-4">
                 Admin is typing...
               </div>
             )}
@@ -426,13 +436,13 @@ export default function ArtisanChatPage() {
             }}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
             placeholder="Type your message to the admin..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
+            className="flex-1 px-4 py-3 border border-[var(--blue)] rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
             disabled={sending}
           />
           <button
             onClick={handleSendMessage}
             disabled={sending || !newMessage.trim()}
-            className="p-3 bg-[var(--orange)] text-white rounded-full hover:bg-orange-600 transition disabled:opacity-50"
+            className="p-3 bg-[var(--blue)] text-white rounded-full hover:bg-[var(--orange)] transition disabled:opacity-50"
           >
             {sending ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
           </button>

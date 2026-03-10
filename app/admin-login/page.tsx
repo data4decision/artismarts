@@ -92,7 +92,7 @@ export default function AdminLogin() {
             </Link>
           </p>
 
-          <h1 className="w-[60%] mx-auto mt-6 text-center text-3xl font-extrabold bg-[var(--white)] text-[var(--blue)] border-2 border-[var(--orange)] rounded-2xl p-3">
+          <h1 className="w-[80%] mx-auto mt-6 text-center text-3xl font-extrabold bg-[var(--white)] text-[var(--blue)] border-2 border-[var(--orange)] rounded-2xl p-3">
             ArtiSmart Admin
           </h1>
 

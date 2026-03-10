@@ -1,4 +1,3 @@
-
 'use client'
 
 export const dynamic = 'force-dynamic'
@@ -7,12 +6,10 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { FaSearch, FaSpinner, FaExclamationTriangle, FaStar, FaMapMarkerAlt, FaUser, FaClock } from 'react-icons/fa'
-
 import Image from 'next/image'
 import Link from 'next/link'
 
-
-// Define skill categories (make sure this is inside the file)
+// Define skill categories
 const skillCategories = [
   { title: "Home & Building Services", skills: ["Plumber", "Electrician", "Carpenter", "Mason / Bricklayer", "Painter / Decorator", "Tiler"] },
   { title: "Mechanical & Technical Services", skills: ["Generator Repair Technician", "AC Technician (Installation & Repairs)", "Refrigerator & Freezer Technician", "Washing Machine Technician"] },
@@ -135,51 +132,49 @@ export default function FindArtisansPage() {
           <button
             onClick={fetchArtisans}
             disabled={loading}
-            className="px-3 py-2 bg-[var(--orange)] text-white font-medium rounded-xl hover:bg-orange-600 transition flex items-center gap-2 disabled:opacity-50"
+            className={`px-8 py-4 rounded-xl font-medium text-lg transition flex items-center justify-center gap-3 shadow-md min-w-[220px]
+              ${loading 
+                ? 'bg-gray-50 cursor-not-allowed text-white' 
+                : 'bg-[var(--orange)] hover:bg-orange-600 text-[var(--white)]'
+              }`}
           >
-            {loading && (
-              <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
-                           <div className="relative flex items-center justify-center">
-                             {/* Outer spinning ring */}
-                             <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
-                         
-                             {/* Inner static logo with subtle pulse */}
-                             <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
-                               <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
-                                 <Image
-                                   src="/log.png"
-                                   width={48}
-                                   height={48}
-                                   priority
-                                   alt="Loading..."
-                                   className="object-contain"
-                                 />
-                               </div>
-                             </div>
-                           </div>
-                         </div>
-            )
-          }
-            Refresh Artisans 
-          
+            {loading ? (
+              <>
+                <FaSpinner className="animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Refresh Artisans'
+            )}
           </button>
         </div>
 
-        {/* Loading / Error States */}
+        {/* Full-screen Loading Overlay */}
         {loading && (
-          <div className="flex justify-center items-center py-20">
-            <FaSpinner className="animate-spin text-[var(--orange)] text-5xl" />
-            <span className="ml-4 text-lg text-gray-600">Loading verified artisans...</span>
-          </div>
+          <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+            <div className="relative flex items-center justify-center">
+            {/* Outer spinning ring */}
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+              {/* Inner static logo with subtle pulse */}
+                <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                  <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                    <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
         )}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <FaExclamationTriangle className="text-red-500 text-4xl mx-auto mb-4" />
-            <p className="text-red-700 font-medium">{error}</p>
+        {/* Error State */}
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-2xl mx-auto">
+            <FaExclamationTriangle className="text-red-500 text-5xl mx-auto mb-4" />
+            <p className="text-red-700 font-medium text-lg">{error}</p>
             <button
               onClick={fetchArtisans}
-              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              className="mt-6 px-8 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition shadow-md"
             >
               Try Again
             </button>
@@ -190,19 +185,19 @@ export default function FindArtisansPage() {
         {!loading && !error && (
           <>
             {filteredArtisans.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-[var(--blue)]">
+              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-[var(--blue)] max-w-3xl mx-auto">
                 <FaSearch className="text-6xl text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
                   No artisans found
                 </h3>
                 <p className="mb-6">
                   {searchQuery
-                    ? "Try a different search term"
+                    ? "Try a different search term or refresh"
                     : "Verified artisans will appear here when available"}
                 </p>
                 <button
                   onClick={fetchArtisans}
-                  className="inline-block px-6 py-3 bg-[var(--blue)] text-white rounded-xl hover:bg-[var(--blue)]/90 transition"
+                  className="inline-block px-8 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition shadow-md"
                 >
                   Refresh List
                 </button>

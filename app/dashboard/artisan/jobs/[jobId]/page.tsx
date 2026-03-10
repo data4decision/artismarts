@@ -237,9 +237,18 @@ export default function ArtisanJobCompletion() {
   // ────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <FaSpinner className="animate-spin text-6xl text-orange-500" />
-      </div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+                    <div className="relative flex items-center justify-center">
+                    {/* Outer spinning ring */}
+                      <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                      {/* Inner static logo with subtle pulse */}
+                        <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                          <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                              <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                            </div>
+                          </div>
+                        </div>
+                      </div>
     )
   }
 
@@ -251,9 +260,9 @@ export default function ArtisanJobCompletion() {
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 sm:p-8">
+        <div className="bg-gradient-to-r from-[var(--blue)]/60 to-[var(--blue)] text-white p-6 sm:p-8">
           <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="p-2 hover:bg-white/20 rounded-full">
+            <button onClick={() => router.back()} className="p-2 hover:bg-[var(--blue)]/20 rounded-full">
               <FaArrowLeft size={24} />
             </button>
             <div>
@@ -267,9 +276,9 @@ export default function ArtisanJobCompletion() {
 
         {/* Status */}
         <div className="p-6 border-b">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--blue)]/10 text-[var(--blue)]/80 text-sm font-medium">
             <FaSpinner className="animate-spin" />
-            In Progress loading
+            In Progress
           </div>
         </div>
 
@@ -279,7 +288,7 @@ export default function ArtisanJobCompletion() {
             <h2 className="text-xl sm:text-2xl font-semibold mb-4">
               Mark Job as Completed
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-[var(--blue)] mb-6">
               Upload up to {MAX_PHOTOS} photos (max {MAX_FILE_SIZE_MB} MB each)
             </p>
 
@@ -311,15 +320,15 @@ export default function ArtisanJobCompletion() {
   />
 
   <label htmlFor="photo-upload" className="cursor-pointer block">
-    <FaUpload className="mx-auto text-5xl sm:text-6xl text-gray-400 mb-6" />
+    <FaUpload className="mx-auto text-5xl sm:text-6xl text-[var(--blue)] mb-6" />
     <p className="text-lg sm:text-xl font-medium mb-2">
       {isDragActive ? 'Drop files here' : 'Click or drag & drop photos'}
     </p>
-    <p className="text-sm text-gray-500">
+    <p className="text-sm text-[var(--blue)]">
       {ALLOWED_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} • max {MAX_FILE_SIZE_MB} MB
     </p>
     {photos.length > 0 && (
-      <p className="mt-3 text-orange-600 font-medium">
+      <p className="mt-3 text-[var(--orange)] font-medium">
         {photos.length} / {MAX_PHOTOS} photos selected
       </p>
     )}
@@ -333,11 +342,11 @@ export default function ArtisanJobCompletion() {
             {/* Progress bars (only while uploading) */}
             {uploading && uploadProgress.length > 0 && (
               <div className="mt-6 space-y-3">
-                <p className="text-sm font-medium text-gray-700">Uploading...</p>
+                <p className="text-sm font-medium text-[var(--blue)]">Uploading...</p>
                 {uploadProgress.map((prog, i) => (
-                  <div key={i} className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div key={i} className="w-full bg-[var(--blue)]/20 rounded-full h-2.5">
                     <div 
-                      className="bg-orange-500 h-2.5 rounded-full transition-all duration-300"
+                      className="bg-[var(--orange)] h-2.5 rounded-full transition-all duration-300"
                       style={{ width: `${prog}%` }}
                     />
                   </div>
@@ -381,7 +390,7 @@ export default function ArtisanJobCompletion() {
               className={`
                 mt-8 w-full py-4 px-6 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition
                 ${submitting || uploading || photos.length === 0
-                  ? 'bg-gray-400 cursor-not-allowed'
+                  ? 'bg-[var(--blue)] cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700'
                 }
               `}

@@ -205,7 +205,7 @@ export default function AdminRequestsDashboard() {
             <h1 className="text-3xl font-bold text-[var(--blue)]">
               Pending Customer Requests
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-[var(--blue)]">
               Review detailed job requests and assign artisans
             </p>
           </div>
@@ -222,15 +222,18 @@ export default function AdminRequestsDashboard() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="relative">
-              <FaSpinner className="animate-spin text-[var(--orange)] text-7xl" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Image src="/log.png" width={40} height={40} alt="Loading..." className="opacity-70" />
-              </div>
-            </div>
-            <p className="mt-6 text-gray-600 font-medium">Loading customer requests...</p>
-          </div>
+          <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+                                <div className="relative flex items-center justify-center">
+                                {/* Outer spinning ring */}
+                                  <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                                  {/* Inner static logo with subtle pulse */}
+                                    <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                                      <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                                        <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
         )}
 
         {/* Error State */}
@@ -253,10 +256,10 @@ export default function AdminRequestsDashboard() {
             {requests.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-sm border p-12 text-center">
                 <FaExclamationTriangle className="text-6xl text-gray-300 mx-auto mb-6" />
-                <h3 className="text-2xl font-semibold text-gray-700 mb-3">
+                <h3 className="text-2xl font-semibold text-[var(--blue)] mb-3">
                   No pending customer requests
                 </h3>
-                <p className="text-gray-500 max-w-xl mx-auto">
+                <p className="text-[var(--blue)] max-w-xl mx-auto">
                   When customers submit new job requests, they will appear here for review and assignment.
                 </p>
               </div>
@@ -268,7 +271,7 @@ export default function AdminRequestsDashboard() {
                     className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300"
                   >
                     {/* Card Header */}
-                    <div className="bg-gradient-to-r from-[var(--blue)] to-blue-800 text-white p-6">
+                    <div className="bg-gradient-to-r from-[var(--blue)] to-[var(--blue)]/80 text-white p-6">
                       <h3 className="text-xl font-bold mb-1">
                         {request.title}
                       </h3>
@@ -280,7 +283,7 @@ export default function AdminRequestsDashboard() {
                     {/* Card Body */}
                     <div className="p-6 space-y-5">
                       {/* Description */}
-                      <p className="text-gray-700 line-clamp-3">
+                      <p className="text-[var(--blue)] line-clamp-3">
                         {request.description}
                       </p>
 
@@ -289,7 +292,7 @@ export default function AdminRequestsDashboard() {
                         <div className="flex items-start gap-3">
                           <FaUserTie className="text-[var(--orange)] mt-1 text-xl" />
                           <div>
-                            <p className="font-medium text-gray-800">Customer</p>
+                            <p className="font-medium text-[var(--blue)]">Customer</p>
                             <p>
                               {request.customer?.first_name} {request.customer?.last_name || ''}
                               {request.customer?.phone && ` • ${request.customer.phone}`}
@@ -301,7 +304,7 @@ export default function AdminRequestsDashboard() {
                           <div className="flex items-start gap-3">
                             <FaUserTie className="text-[var(--orange)] mt-1 text-xl" />
                             <div>
-                              <p className="font-medium text-gray-800">Preferred Artisan</p>
+                              <p className="font-medium text-[var(--blue)]">Preferred Artisan</p>
                               <p>
                                 {request.preferred_artisan.first_name} {request.preferred_artisan.last_name || ''}
                                 {request.preferred_artisan.primary_skill && ` • ${request.preferred_artisan.primary_skill}`}
@@ -313,7 +316,7 @@ export default function AdminRequestsDashboard() {
                         <div className="flex items-start gap-3">
                           <FaDollarSign className="text-[var(--orange)] mt-1 text-xl" />
                           <div>
-                            <p className="font-medium text-gray-800">Budget Range</p>
+                            <p className="font-medium text-[var(--blue)]">Budget Range</p>
                             <p>
                               {request.budget_min ? `₦${request.budget_min.toLocaleString()}` : 'Not specified'}
                               {request.budget_max ? ` – ₦${request.budget_max.toLocaleString()}` : ''}
@@ -324,7 +327,7 @@ export default function AdminRequestsDashboard() {
                         <div className="flex items-start gap-3">
                           <FaClock className="text-[var(--orange)] mt-1 text-xl" />
                           <div>
-                            <p className="font-medium text-gray-800">Preferred Time</p>
+                            <p className="font-medium text-[var(--blue)]">Preferred Time</p>
                             <p>{request.preferred_date || 'Anytime'} {request.preferred_time || ''}</p>
                           </div>
                         </div>
@@ -332,7 +335,7 @@ export default function AdminRequestsDashboard() {
                         <div className="flex items-start gap-3 sm:col-span-2">
                           <FaMapMarkerAlt className="text-[var(--orange)] mt-1 text-xl" />
                           <div>
-                            <p className="font-medium text-gray-800">Location</p>
+                            <p className="font-medium text-[var(--blue)]">Location</p>
                             <p className="break-words">{request.location}</p>
                           </div>
                         </div>
@@ -341,7 +344,7 @@ export default function AdminRequestsDashboard() {
                       {/* Attachment */}
                       {request.attachment_url && (
                         <div className="pt-4 border-t">
-                          <p className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                          <p className="font-medium text-[var(--blue)] mb-2 flex items-center gap-2">
                             {getAttachmentIcon(request.attachment_url)}
                             Attached File
                           </p>
@@ -350,7 +353,7 @@ export default function AdminRequestsDashboard() {
                             target="_blank"
                             rel="noopener noreferrer"
                             download
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-[var(--blue)] text-sm font-medium shadow-sm"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--blue)]/10 hover:bg-[var(--blue)]/20 rounded-lg transition text-[var(--blue)] text-sm font-medium shadow-sm"
                           >
                             <FaDownload />
                             Download / View
@@ -362,7 +365,7 @@ export default function AdminRequestsDashboard() {
                     {/* Actions Footer */}
                     <div className="p-6 bg-gray-50 border-t flex flex-col sm:flex-row gap-4">
                       {assigning === request.id ? (
-                        <div className="flex items-center gap-3 text-gray-600 flex-1">
+                        <div className="flex items-center gap-3 text-[var(--blue)] flex-1">
                           <FaSpinner className="animate-spin text-xl" />
                           Assigning...
                         </div>
@@ -405,5 +408,5 @@ export default function AdminRequestsDashboard() {
 function getAttachmentIcon(url: string | null) {
   if (!url) return null
   if (url.toLowerCase().endsWith('.pdf')) return <FaFilePdf className="text-red-500 text-xl" />
-  return <FaImage className="text-blue-500 text-xl" />
+  return <FaImage className="text-[var(--blue)] text-xl" />
 }

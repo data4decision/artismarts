@@ -64,12 +64,18 @@ export default function ArtisanReviewsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <FaSpinner className="animate-spin text-6xl text-[var(--orange)] mx-auto mb-4" />
-          <p className="text-gray-600">Loading your reviews...</p>
-        </div>
-      </div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+              <div className="relative flex items-center justify-center">
+              {/* Outer spinning ring */}
+                <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                {/* Inner static logo with subtle pulse */}
+                  <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                    <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                        <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                      </div>
+                    </div>
+                  </div>
+                </div>
     )
   }
 
@@ -78,11 +84,11 @@ export default function ArtisanReviewsPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="text-center max-w-md">
           <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Error</h2>
-          <p className="text-gray-600 mb-8">{error}</p>
+          <h2 className="text-2xl font-bold text-[var(--blue)] mb-4">Error</h2>
+          <p className="text-[var(--blue)]/80 mb-8">{error}</p>
           <button 
             onClick={fetchMyReviews}
-            className="px-8 py-4 bg-[var(--blue)] text-white rounded-xl hover:bg-blue-700"
+            className="px-8 py-4 bg-[var(--blue)] text-white rounded-xl hover:bg-[var(--blue)]/70"
           >
             Try Again
           </button>
@@ -99,7 +105,7 @@ export default function ArtisanReviewsPage() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-700 hover:text-[var(--orange)] transition font-medium"
+            className="flex items-center gap-2 text-[var(--blue)]/70 hover:text-[var(--orange)] transition font-medium"
           >
             <FaArrowLeft /> Back
           </button>
@@ -112,10 +118,10 @@ export default function ArtisanReviewsPage() {
         {reviews.length === 0 ? (
           <div className="bg-white rounded-2xl shadow p-12 text-center">
             <FaCheckCircle className="text-[var(--orange)] text-6xl mx-auto mb-6 opacity-50" />
-            <h2 className="text-2xl font-semibold text-gray-800 mb-3">
+            <h2 className="text-2xl font-semibold text-[var(--blue)]/80 mb-3">
               No reviews yet
             </h2>
-            <p className="text-gray-600 max-w-md mx-auto">
+            <p className="text-[var(--blue)] max-w-md mx-auto">
               Once customers complete and review your jobs, their feedback will appear here.
             </p>
           </div>
@@ -124,7 +130,7 @@ export default function ArtisanReviewsPage() {
             {reviews.map((review) => (
               <div
                 key={review.id}
-                className="bg-white rounded-2xl shadow border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-2xl shadow border border-[var(--blue)]/20 p-6 hover:shadow-lg transition-shadow"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
                   {/* Job & Customer Info */}
@@ -136,10 +142,10 @@ export default function ArtisanReviewsPage() {
                           alt={`${review.job.customer.first_name} ${review.job.customer.last_name}`}
                           width={48}
                           height={48}
-                          className="rounded-full object-cover border-2 border-gray-100"
+                          className="rounded-full object-cover border-2 border-[var(--blue)]/10"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                        <div className="w-12 h-12 rounded-full bg-[var(--blue)]/20 flex items-center justify-center text-gray-500">
                           <FaUserTie size={24} />
                         </div>
                       )}
@@ -147,7 +153,7 @@ export default function ArtisanReviewsPage() {
                         <h3 className="font-semibold text-[var(--blue)]">
                           {review.job?.title || 'Job'}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-[var(--blue)]">
                           From {review.job?.customer?.first_name || 'Customer'}{' '}
                           {review.job?.customer?.last_name || ''}
                         </p>
@@ -160,27 +166,27 @@ export default function ArtisanReviewsPage() {
                         <FaStar
                           key={star}
                           size={24}
-                          className={star <= review.rating ? 'text-[var(--orange)]' : 'text-gray-300'}
+                          className={star <= review.rating ? 'text-[var(--orange)]' : 'text-[var(--blue)]/30'}
                         />
                       ))}
-                      <span className="ml-2 text-sm font-medium text-gray-700">
+                      <span className="ml-2 text-sm font-medium text-[var(--blue)]/70">
                         {review.rating}/5
                       </span>
                     </div>
 
                     {/* Review Text */}
                     {review.review_text ? (
-                      <p className="text-gray-700 leading-relaxed">
+                      <p className="text-[var(--blue)] leading-relaxed">
                         "{review.review_text}"
                       </p>
                     ) : (
-                      <p className="text-gray-500 italic">
+                      <p className="text-[var(--blue)] italic">
                         No written comment provided.
                       </p>
                     )}
 
                     {/* Date */}
-                    <p className="text-sm text-gray-500 mt-4">
+                    <p className="text-sm text-[var(--blue)] mt-4">
                       Reviewed on {new Date(review.created_at).toLocaleDateString()}
                     </p>
                   </div>

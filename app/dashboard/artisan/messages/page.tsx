@@ -12,6 +12,7 @@ import {
   FaUserTie, 
   FaClock 
 } from 'react-icons/fa'
+import Image from 'next/image'
 
 interface ChatPreview {
   job_id: string
@@ -181,9 +182,18 @@ export default function ArtisanMessagesOverview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <FaSpinner className="animate-spin text-[var(--orange)] text-6xl" />
-      </div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+            <div className="relative flex items-center justify-center">
+            {/* Outer spinning ring */}
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+              {/* Inner static logo with subtle pulse */}
+                <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                  <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                    <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+                  </div>
+                </div>
+              </div>
+            </div>
     )
   }
 
@@ -192,13 +202,13 @@ export default function ArtisanMessagesOverview() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="text-center max-w-md">
           <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          <h2 className="text-2xl font-bold text-[var(--blue)] mb-4">
             Failed to load messages
           </h2>
-          <p className="text-gray-600 mb-8">{error}</p>
+          <p className="text-[var(--blue)]/60 mb-8">{error}</p>
           <button
             onClick={fetchChatPreviews}
-            className="px-8 py-4 bg-[var(--blue)] text-white rounded-xl hover:bg-blue-700 transition shadow-md"
+            className="px-8 py-4 bg-[var(--blue)] text-white rounded-xl hover:bg-[var(--blue)]/70 transition shadow-md"
           >
             Try Again
           </button>
@@ -215,28 +225,28 @@ export default function ArtisanMessagesOverview() {
           <h1 className="text-3xl font-bold text-[var(--blue)]">
             Messages
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-[var(--blue)]">
             Conversations with admins about your assigned jobs
           </p>
         </div>
 
         {chats.length === 0 ? (
-          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-16 text-center">
+          <div className="bg-white rounded-3xl shadow-lg border border-[var(--blue)]/70 p-16 text-center">
             <FaCommentDots className="text-[var(--orange)] text-8xl mx-auto mb-8 opacity-70" />
             <h3 className="text-3xl font-bold text-[var(--blue)] mb-4">
               No messages yet
             </h3>
-            <p className="text-gray-600 text-xl mb-10 max-w-2xl mx-auto">
+            <p className="text-[var(--blue)] text-xl mb-10 max-w-2xl mx-auto">
               When an admin starts a conversation about one of your jobs, it will appear here.
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-md border border-gray-200 divide-y divide-gray-100">
+          <div className="bg-white rounded-2xl shadow-md border border-[var(--blue)]/50 divide-y divide-[var(--blue)]/10">
             {chats.map((chat) => (
               <Link
                 key={chat.job_id}
                 href={`/dashboard/artisan/chat/${chat.job_id}`}
-                className="block p-6 hover:bg-gray-50 transition-colors group"
+                className="block p-6 hover:bg-[var(--blue)]/20 transition-colors group"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -251,14 +261,14 @@ export default function ArtisanMessagesOverview() {
                       )}
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-1 truncate">
+                    <p className="text-sm text-[var(--blue)] mb-1 truncate">
                       {chat.customer_first_name || chat.customer_last_name
                         ? `${chat.customer_first_name ?? ''} ${chat.customer_last_name ?? ''}`
                         : 'Customer'}
                     </p>
 
                     <p className={`text-sm line-clamp-1 ${
-                      chat.unread_count > 0 ? 'font-medium text-gray-900' : 'text-gray-500'
+                      chat.unread_count > 0 ? 'font-medium text-[var(--blue)]' : 'text-[var(--blue)]/80'
                     }`}>
                       {getMessagePreview(chat)}
                     </p>
@@ -269,7 +279,7 @@ export default function ArtisanMessagesOverview() {
                       <span>{formatTime(chat.last_message_time)}</span>
                     )}
                     {chat.status === 'in_progress' && (
-                      <span className="mt-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px]">
+                      <span className="mt-1 px-2 py-0.5 bg-blue-100 text-[var(--blue)]/80 rounded-full text-[10px]">
                         Active
                       </span>
                     )}
