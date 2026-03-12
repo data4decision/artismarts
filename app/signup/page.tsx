@@ -1,126 +1,80 @@
 'use client'
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';  
-import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
-import { FaEye, FaEyeSlash, FaArrowLeft } from 'react-icons/fa';
 import Link from 'next/link'
+import React, { useState } from 'react'
+import { FaArrowLeft, FaCheck, FaEye, FaEyeSlash } from 'react-icons/fa'
+import toast from 'react-hot-toast'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
-type Step = 'role' | 'form' | 'success';
+type Step = 'role' | 'form'
 
-export default function SignUp() {
-  const router = useRouter();
-  const [step, setStep] = useState<Step>('role');
-  const [selectedRole, setSelectedRole] = useState<'customer' | 'artisan' | null>(null);
+const Page = () => {
+  const router = useRouter()
+  const [step, setStep] = useState<Step>('role')
+  const [selectedRole, setSelectRole] = useState<'customer' | 'artisan' | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)   
 
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
-    phone: '+234',
+    phone: '',
     address: '',
     state: '',
     lga: '',
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
-  const [passwordError, setPasswordError] = useState<string>('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  })
 
   const handleRoleSelect = (role: 'customer' | 'artisan') => {
-    setSelectedRole(role);
-    setStep('form');
-  };
+    setSelectRole(role)
+    setStep('form')
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setFormData((prev) => ({
-      ...prev,
+      ...prev,           // fixed: ..prev → ...prev
       [name]: value,
-    }));
-
-    if (name === 'password') {
-      evaluatePasswordStrength(value);
-    }
-  };
-
-  const evaluatePasswordStrength = (password: string) => {
-    if (!password) {
-      setPasswordStrength(null);
-      setPasswordError('');
-      return;
-    }
-
-    const hasUpper = /[A-Z]/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    const isLongEnough = password.length >= 8;
-
-    const strengthScore = +isLongEnough + +hasUpper + +hasLower + +hasNumber + +hasSpecial;
-
-    if (strengthScore >= 5) {
-      setPasswordStrength('strong');
-      setPasswordError('');
-    } else if (strengthScore >= 3) {
-      setPasswordStrength('medium');
-      setPasswordError('Password is okay, but could be stronger');
-    } else {
-      setPasswordStrength('weak');
-      setPasswordError('Password is too weak');
-    }
-  };
+    }))
+  }
 
   const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) return 'First name is required';
-    if (!formData.lastName.trim()) return 'Last name is required';
+    if (!formData.firstName.trim()) return 'First name is required'
+    if (!formData.lastName.trim()) return 'Last name is required'
 
-    if (!formData.email.trim()) return 'Email is required';
+    if (!formData.email.trim()) return 'Email is required'
     if (!formData.email.includes('@') || !formData.email.includes('.')) {
-      return 'Please enter a valid email address';
+      return 'Please enter a valid email address'    
     }
 
-    if (!formData.password.trim()) return 'Password is required';
+    if (!formData.password.trim()) return 'Password is required'
+    if (!formData.address.trim()) return 'Address is required'
+    if (!formData.state.trim()) return 'State is required'
+    if (!formData.lga.trim()) return 'LGA is required'
 
-    const hasUpper = /[A-Z]/.test(formData.password);
-    const hasLower = /[a-z]/.test(formData.password);
-    const hasNumber = /[0-9]/.test(formData.password);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
-    const isLongEnough = formData.password.length >= 8;
-
-    if (!isLongEnough) return 'Password must be at least 8 characters long';
-    if (!hasUpper) return 'Password must contain at least one uppercase letter';
-    if (!hasLower) return 'Password must contain at least one lowercase letter';
-    if (!hasNumber) return 'Password must contain at least one number';
-    if (!hasSpecial) return 'Password must contain at least one special character';
-
-    if (!formData.address.trim()) return 'Address is required';
-    if (!formData.state.trim()) return 'State is required';
-    if (!formData.lga.trim()) return 'LGA is required';
-
-    return null;
-  };
+    return null
+  }
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const validationError = validateForm();
+    e.preventDefault()
+    const validationError = validateForm()           
     if (validationError) {
-      toast.error(validationError);
-      return;
+      toast.error(validationError)
+      return
     }
 
-    const emailToUse = formData.email.trim().toLowerCase();
+    const emailToUse = formData.email.trim().toLowerCase()   
 
-    setLoading(true);
+    setLoading(true)
+    setError(null)
+    setSuccess(false)
 
     try {
-      // 1. Sign up with Supabase Auth
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: emailToUse,
+        email: emailToUse,                             
         password: formData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/login`,
@@ -128,14 +82,13 @@ export default function SignUp() {
             role: selectedRole,
             first_name: formData.firstName.trim(),
             last_name: formData.lastName.trim(),
-          },
-        },
-      });
+          }
+        }
+      })
 
-      if (signUpError) throw signUpError;
-      if (!signUpData.user) throw new Error('No user returned after signup');
+      if (signUpError) throw signUpError
+      if (!signUpData?.user) throw new Error('No user returned after signup')
 
-      // 2. Insert profile record
       const { error: profileError } = await supabase.from('profiles').insert({
         id: signUpData.user.id,
         role: selectedRole!,
@@ -145,57 +98,55 @@ export default function SignUp() {
         residential_address: formData.address.trim(),
         state: formData.state.trim(),
         lga: formData.lga.trim(),
-      });
+      })
 
       if (profileError) {
-        console.error('Profile creation failed:', profileError);
-        throw new Error('Failed to create user profile. Please contact support.');
+        console.error('Profile creation failed:', profileError)
+        throw new Error('Failed to create user profile. Please contact support.')
       }
 
-      // Success path
-      toast.success('Account created! Check your email to verify.');
+      setSuccess(true)
+      toast.success('Account created! Kindly login.')
 
-      if (signUpData.session) {
-        // Instant login (if email confirmation is disabled in your project)
-        const redirectPath =
-          selectedRole === 'artisan' ? '/dashboard/artisan' : '/dashboard/customer';
-        router.push(redirectPath);
-      } else {
-        // Email confirmation required (most common setting)
-        setStep('success');
-      }
+      setTimeout(() => {
+        router.push('/login')
+      }, 2800)
+
     } catch (err: unknown) {
-      const message = (err as Error)?.message || 'Failed to create account';
-      setError(message);
-      toast.error(message);
-      console.error('Signup error:', err);
+      const message = (err as Error)?.message || 'Failed to create account'
+      setError(message)
+      toast.error(message)
+      console.error('Signup error:', err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="font-roboto min-h-screen flex items-center justify-center bg-[var(--blue)]/10 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-[var(--blue)] px-4 py-8 rounded-lg">
-        <div>
-          <p className=""><Link href="/" className="text-[var(--white)] flex items-center gap-2 text-sm"><FaArrowLeft size={20} className='text-[var(--white)]'/>
-                  <span>Back</span></Link></p>
-          <h1 className="w-[50%] mx-auto mt-6 text-center text-3xl font-extrabold bg-[var(--white)] text-[var(--blue)] border-2 border-[var(--orange)] rounded-2xl p-2">
+        <div className="flex gap-10 items-center">
+          <p>
+            <Link href="/" className="text-[var(--white)] flex items-center gap-2 px-2 py-3 text-sm">
+              <FaArrowLeft size={20} className="text-[var(--white)]" />
+              <span className="text-[var(--white)] text-sm">Back</span>
+            </Link>
+          </p>
+          <h1 className="w-[46%] bg-[var(--white)] text-[var(--blue)] border-4 border-[var(--orange)] rounded-lg pl-4 py-1 text-2xl sm:text-3xl md:text-3xl font-bold">
             Artismart
           </h1>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-[var(--white)]">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-[var(--white)] opacity-80">
-            Join our community today
-          </p>
         </div>
+
+        <h2 className="mt-5 text-[var(--white)] text-xl text-center md:text-2xl lg:text-2xl font-semibold">
+          Create Your Account
+        </h2>
+        <p className="mt-4 text-center text-[var(--white)] text-sm md:text-xl lg:text-xl">
+          Join Our Community
+        </p>
 
         {step === 'role' ? (
           <div className="space-y-6">
-            <p className="text-center text-lg font-medium text-[var(--orange)]">
-              I want to sign up as:
-            </p>
+            <p className="text-[var(--white)] text-xl font-semibold">I want to Sign up as:</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <button
@@ -204,222 +155,216 @@ export default function SignUp() {
                 className="bg-[var(--white)] border-2 border-[var(--orange)] rounded-lg p-6 hover:border-[var(--blue)] transition-all text-center"
               >
                 <div className="text-2xl font-bold text-[var(--blue)] mb-2">Customer</div>
-                <p className="text-sm text-[var(--blue)] opacity-90">
-                  Looking for skilled artisans and services
-                </p>
+                <p className="text-sm text-[var(--blue)]">Looking for artisans and services</p>
               </button>
-
               <button
                 type="button"
                 onClick={() => handleRoleSelect('artisan')}
                 className="bg-[var(--white)] border-2 border-[var(--orange)] rounded-lg p-6 hover:border-[var(--blue)] transition-all text-center"
               >
                 <div className="text-2xl font-bold text-[var(--blue)] mb-2">Artisan</div>
-                <p className="text-sm text-[var(--blue)] opacity-90">
-                  Offering professional services and skills
-                </p>
+                <p className="text-sm text-[var(--blue)]">Offering professional services and skills</p>
               </button>
             </div>
           </div>
-        ) : step === 'form' ? (
-          <form onSubmit={handleSignUp} className="mt-8 space-y-6">
+        ) : (
+          <form onSubmit={handleSignUp} className="mt-6 space-y-6">
             <div className="text-center mb-4">
-              <span className="inline-flex items-center px-4 py-2 rounded-full bg-[var(--orange)]/10 text-[var(--orange)] text-sm font-medium">
-                Signing up as {selectedRole}
+              <span className="inline-flex items-center px-4 py-2 rounded-full bg-[var(--orange)] text-sm font-medium">
+                Sign in as {selectedRole}
               </span>
             </div>
 
-            {/* Names */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-[var(--white)]">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  required
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
-                />
+            {success ? (
+              <div className="text-center py-10 space-y-4">
+                <div className="mx-auto w-20 h-20 flex items-center justify-center rounded-full bg-green-500">
+                  <FaCheck size={50} className="text-white bg-green-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-[var(--green)]">Successfully Signup</h3>
+                <p className="text-[var(--white)]">Redirecting to login...</p>
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-[var(--white)]">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      id="firstName"
+                      name="firstName"
+                      required
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
+                    />
+                  </div>
 
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-[var(--white)]">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  required
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
-                />
-              </div>
-            </div>
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-[var(--white)]">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      id="lastName"
+                      name="lastName"                    // fixed: lasttName → lastName
+                      required
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
+                    />
+                  </div>
+                </div>
 
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[var(--white)]">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@gmail.com"
-                className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
-              />
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-[var(--white)]">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="you@gmail.com"
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
+                    />
+                  </div>
 
-            {/* Password */}
-            <div className="relative">
-              <label htmlFor="password" className="block text-sm font-medium text-[var(--white)]">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--blue)] px-3 py-2 pr-10"
-                />
+                  <div className="relative">
+                    <label htmlFor="password" className="block text-sm font-medium text-[var(--white)]">
+                      Password
+                    </label>
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Choose any password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--white)]"
+                    >
+                      {showPassword ? <FaEye /> : <FaEyeSlash />}
+                    </button>
+                    <p className="mt-1 text-xs text-[var(--white)] opacity-70">
+                      Use something easy to remember
+                    </p>
+                  </div>
+                </div>
+
+                {/* Phone + Address */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-[var(--white)]">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      required
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="address" className="block text-sm font-medium text-[var(--white)]">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      required
+                      value={formData.address}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                {/* State + LGA */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-[var(--white)]">
+                      State
+                    </label>
+                    <input
+                      type="text"
+                      id="state"
+                      name="state"
+                      required
+                      value={formData.state}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="lga" className="block text-sm font-medium text-[var(--white)]">
+                      LGA
+                    </label>
+                    <input
+                      type="text"
+                      id="lga"
+                      name="lga"
+                      required
+                      value={formData.lga}
+                      onChange={handleChange}
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--orange)] hover:bg-[var(--orange)]/90 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Creating account...' : 'Sign Up'}
+                </button>
+
+                {error && (
+                  <p className="text-center text-red-300 mt-2">
+                    {error}
+                  </p>
+                )}
+              </>
+            )}
+
+            {!success && (
+              <div className="text-center text-sm">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => {
+                    setStep('role')
+                    setSelectRole(null)
+                  }}
+                  className="text-[var(--white)] hover:text-[var(--orange)] font-medium"
                 >
-                  {showPassword ? <FaEye/> : <FaEyeSlash/>}
+                  <p className="flex items-center gap-3 text-[var(--white)] justify-center">
+                    <FaArrowLeft />
+                    <span>Change Role</span>
+                  </p>
                 </button>
               </div>
-
-              {formData.password && (
-                <div className="mt-1 text-sm">
-                  {passwordStrength === 'strong' && <p className="text-green-400">Strong ✓</p>}
-                  {passwordStrength === 'medium' && <p className="text-yellow-400">Okay, but can improve</p>}
-                  {passwordStrength === 'weak' && <p className="text-red-400">Too weak</p>}
-                  {passwordError && <p className="text-red-400">{passwordError}</p>}
-                </div>
-              )}
-            </div>
-
-            {/* Phone + Address line */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-[var(--white)]">
-                  Phone Number
-                </label>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+2348012345678"
-                  className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--blue)] px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="address" className="block text-sm font-medium text-[var(--white)]">
-                  Residential Address
-                </label>
-                <input
-                  id="address"
-                  name="address"
-                  type="text"
-                  required
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--blue)] px-3 py-2"
-                />
-              </div>
-            </div>
-
-            {/* State + LGA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="state" className="block text-sm font-medium text-[var(--white)]">
-                  State
-                </label>
-                <input
-                  id="state"
-                  name="state"
-                  type="text"
-                  required
-                  value={formData.state}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--blue)] px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="lga" className="block text-sm font-medium text-[var(--white)]">
-                  LGA
-                </label>
-                <input
-                  id="lga"
-                  name="lga"
-                  type="text"
-                  required
-                  value={formData.lga}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--blue)] px-3 py-2"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--orange)] hover:bg-[var(--orange)]/90 disabled:opacity-50 transition-colors"
-            >
-              {loading ? 'Creating account...' : 'Sign Up'}
-            </button>
-
-            <div className="text-center text-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('role');
-                  setSelectedRole(null);
-                }}
-                className="text-[var(--white)] hover:text-[var(--orange)] font-medium"
-              >
-                ← Change role
-              </button>
-            </div>
+            )}
           </form>
-        ) : (
-          <div className="mt-8 space-y-6 text-center text-[var(--white)]">
-            <h3 className="text-xl font-semibold">Verify your email</h3>
-            <p className='text-[var(--white)]'>
-              We sent a confirmation link to <strong>{formData.email}</strong>
-            </p>
-            <p className="text-sm opacity-80 text-[var(--white)]">
-              Please check your inbox (and spam/junk folder) and click the link to verify your account.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setStep('form')}
-              className="mt-4 px-4 py-2 rounded-md text-[var(--blue)] bg-[var(--white)] hover:bg-bg-[var(--white)]/20"
-            >
-              Back to form
-            </button>
-          </div>
         )}
       </div>
     </div>
-  );
+  )
 }
+
+export default Page
