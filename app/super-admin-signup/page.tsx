@@ -87,7 +87,7 @@ export default function SuperAdminSignup() {
       if (signUpError) throw signUpError
       if (!signUpData.user) throw new Error('No user returned after signup')
 
-      // Insert into super_admin_profiles (assuming this is your table name)
+      // Insert into super_admin_profiles
       const { error: profileError } = await supabase.from('super_admin_profiles').insert({
         id: signUpData.user.id,
         secret_code: formData.secretCode.trim(),
@@ -108,8 +108,8 @@ export default function SuperAdminSignup() {
 
       toast.success('Super Admin account created successfully!')
 
-      // Redirect to super-admin dashboard or login
-      router.push('/super-admin')
+      // Redirect to login page (as requested)
+      router.push('/super-admin-login')
 
     } catch (err: any) {
       const message = err?.message?.includes('duplicate key')
@@ -351,9 +351,9 @@ export default function SuperAdminSignup() {
           </form>
         ) : (
           <div className="mt-8 text-center text-[var(--white)] space-y-4">
-            <h3 className="text-2xl font-bold">Success!</h3>
-            <p>Your Super Admin account has been created.</p>
-            <p className="text-sm opacity-80">Redirecting...</p>
+            <h3 className="text-2xl font-bold">Account Created!</h3>
+            <p>Super Admin account has been created successfully.</p>
+            <p className="text-sm opacity-80">Redirecting to login...</p>
           </div>
         )}
       </div>

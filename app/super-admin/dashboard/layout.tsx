@@ -58,14 +58,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       if (authError || !user) {
         console.warn('No authenticated user found')
-        router.replace('/login')
+        router.replace('/super-admin-login')
         return
       }
 
       const email = user.email ?? 'No email'
 
       const { data: profileRow, error: profileError } = await supabase
-        .from('profiles')
+        .from('super_admin_profiles')
         .select('first_name, last_name, role, phone, residential_address, state, lga, profile_image')
         .eq('id', user.id)
         .maybeSingle()

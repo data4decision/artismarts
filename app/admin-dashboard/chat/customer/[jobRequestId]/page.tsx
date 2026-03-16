@@ -15,8 +15,7 @@ import Image from 'next/image'
 
 interface Message {
   id: string
-  job_id?: string                 // artisan table
-  job_request_id?: string         // customer table
+  job_request_id: string
   sender_id: string
   receiver_id: string | null
   content: string
@@ -25,33 +24,30 @@ interface Message {
   is_edited?: boolean
   edited_at?: string | null
   deleted_at?: string | null
-  is_admin: boolean
   reply_to_id?: string | null
   reply_to_content?: string | null
   reply_to_sender?: string | null
+  is_admin: boolean         
 }
 
-interface Job {
+interface Customer {
+  first_name: string | null
+  last_name: string | null
+}
+
+interface JobRequest {
   id: string
   title: string
   status: string
-  assigned_artisan_id?: string | null
-  customer_id?: string | null
-  artisan?: {
-    first_name: string | null
-    last_name: string | null
-  } | null
-  customer?: {
-    first_name: string | null
-    last_name: string | null
-  } | null
+  customer_id: string | null
+  customer?: Customer | null
 }
 
-export default function AdminChatPage() {
-  const { jobId } = useParams<{ jobId: string }>()
+export default function AdminCustomerChatPage() {
+  const { jobRequestId } = useParams<{ jobRequestId: string }>()
   const router = useRouter()
 
-  const [job, setJob] = useState<Job | null>(null)
+  const [job, setJob] = useState<JobRequest | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -59,7 +55,7 @@ export default function AdminChatPage() {
   const [otherIsTyping, setOtherIsTyping] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
-  // Editing state
+  // Editing
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
 
@@ -73,12 +69,12 @@ export default function AdminChatPage() {
   const isPageVisibleRef = useRef(true)
 
   // ──────────────────────────────────────────────
-  // Initialization & Realtime
+  // Init + Realtime
   // ──────────────────────────────────────────────
 
   useEffect(() => {
-    if (!jobId || typeof jobId !== 'string') {
-      toast.error('Invalid job ID')
+    if (!jobRequestId || typeof jobRequestId !== 'string') {
+      toast.error('Invalid job request ID')
       router.replace('/admin-dashboard/messages')
       return
     }
@@ -94,23 +90,19 @@ export default function AdminChatPage() {
       await fetchJobAndMessages()
     }
     init()
-  }, [jobId, router])
+  }, [jobRequestId, router])
 
   useEffect(() => {
     if (!job || !currentUserId) return
 
-    const isArtisanChat = !!job.assigned_artisan_id
-    const table = isArtisanChat ? 'admin_artisan_messages' : 'admin_customer_messages'
-    const idColumn = isArtisanChat ? 'job_id' : 'job_request_id'
-
-    // Realtime messages
+    // Realtime messages — only admin_customer_messages
     const messageChannel = supabase
-      .channel(`admin-chat:${jobId}`)
+      .channel(`admin-customer-chat:${jobRequestId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table,
-        filter: `${idColumn}=eq.${jobId}`
+        table: 'admin_customer_messages',
+        filter: `job_request_id=eq.${jobRequestId}`
       }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const msg = payload.new as Message
@@ -121,7 +113,7 @@ export default function AdminChatPage() {
           scrollToBottom()
 
           if (msg.sender_id !== currentUserId) {
-            toast(`New message from ${isArtisanChat ? 'artisan' : 'customer'}`, {
+            toast('New message from customer', {
               icon: '💬',
               duration: 4000,
               position: 'top-right'
@@ -143,9 +135,9 @@ export default function AdminChatPage() {
       })
       .subscribe()
 
-    // Typing indicator
+    // Typing from customer
     const typingChannel = supabase
-      .channel(`typing:${jobId}`)
+      .channel(`typing:${jobRequestId}`)
       .on('broadcast', { event: 'typing' }, (payload) => {
         const { is_typing, user_id } = payload.payload
         if (user_id !== currentUserId) setOtherIsTyping(is_typing)
@@ -156,36 +148,34 @@ export default function AdminChatPage() {
       supabase.removeChannel(messageChannel)
       supabase.removeChannel(typingChannel)
     }
-  }, [job, currentUserId, jobId])
+  }, [job, currentUserId, jobRequestId])
 
-  // Mark messages as seen
+  // Mark customer messages as seen by admin
   useEffect(() => {
-    if (!jobId || loading || !currentUserId || !job) return
-
-    const isArtisanChat = !!job.assigned_artisan_id
-    const table = isArtisanChat ? 'admin_artisan_messages' : 'admin_customer_messages'
+    if (!jobRequestId || loading || !currentUserId) return
 
     const markAsSeen = async () => {
-      const unseen = messages.filter(m => !m.seen_at && !m.is_admin && !m.deleted_at)
+      const unseenFromCustomer = messages.filter(
+        m => !m.seen_at && !m.is_admin && !m.deleted_at
+      )
 
-      if (unseen.length === 0) return
+      if (unseenFromCustomer.length === 0) return
 
       const now = new Date().toISOString()
 
       await supabase
-        .from(table)
+        .from('admin_customer_messages')
         .update({ seen_at: now })
-        .in('id', unseen.map(m => m.id))
+        .in('id', unseenFromCustomer.map(m => m.id))
 
       setMessages(prev =>
         prev.map(m => (m.seen_at || m.is_admin) ? m : { ...m, seen_at: now })
       )
-      await supabase
+     await supabase
   .from('user_job_read_status')
   .upsert({
     user_id: currentUserId,
-    job_id: isArtisanChat ? jobId : null,
-    job_request_id: !isArtisanChat ? jobId : null,
+    job_request_id: jobRequestId,
     last_read_at: now
   })
     }
@@ -193,7 +183,7 @@ export default function AdminChatPage() {
     markAsSeen()
     window.addEventListener('focus', markAsSeen)
     return () => window.removeEventListener('focus', markAsSeen)
-  }, [jobId, loading, messages, currentUserId, job])
+  }, [jobRequestId, loading, messages, currentUserId])
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -206,14 +196,14 @@ export default function AdminChatPage() {
   const handleTyping = () => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
 
-    supabase.channel(`typing:${jobId}`).send({
+    supabase.channel(`typing:${jobRequestId}`).send({
       type: 'broadcast',
       event: 'typing',
       payload: { is_typing: true, user_id: currentUserId }
     })
 
     typingTimeoutRef.current = setTimeout(() => {
-      supabase.channel(`typing:${jobId}`).send({
+      supabase.channel(`typing:${jobRequestId}`).send({
         type: 'broadcast',
         event: 'typing',
         payload: { is_typing: false, user_id: currentUserId }
@@ -237,40 +227,29 @@ export default function AdminChatPage() {
           id,
           title,
           status,
-          assigned_artisan_id,
           customer_id,
-          artisan:assigned_artisan_id (first_name, last_name),
           customer:customer_id (first_name, last_name)
         `)
-        .eq('id', jobId)
+        .eq('id', jobRequestId)
         .single()
 
-      if (jobError || !rawJob) throw jobError || new Error('Job not found')
+      if (jobError || !rawJob) throw jobError || new Error('Job request not found')
 
       setJob({
         id: rawJob.id || '',
         title: rawJob.title || '',
         status: rawJob.status || 'unknown',
-        assigned_artisan_id: rawJob.assigned_artisan_id,
         customer_id: rawJob.customer_id,
-        artisan: rawJob.artisan ? {
-          first_name: (rawJob.artisan as any)?.first_name ?? null,
-          last_name: (rawJob.artisan as any)?.last_name ?? null
-        } : null,
         customer: rawJob.customer ? {
           first_name: (rawJob.customer as any)?.first_name ?? null,
           last_name: (rawJob.customer as any)?.last_name ?? null
         } : null
       })
 
-      const isArtisanChat = !!rawJob.assigned_artisan_id
-      const table = isArtisanChat ? 'admin_artisan_messages' : 'admin_customer_messages'
-      const idColumn = isArtisanChat ? 'job_id' : 'job_request_id'
-
       const { data: msgData, error: msgError } = await supabase
-        .from(table)
+        .from('admin_customer_messages')
         .select('*')
-        .eq(idColumn, jobId)
+        .eq('job_request_id', jobRequestId)
         .order('created_at', { ascending: true })
 
       if (msgError) throw msgError
@@ -285,7 +264,7 @@ export default function AdminChatPage() {
       scrollToBottom()
     } catch (err: any) {
       console.error('Chat load failed:', err)
-      toast.error(err.message || 'Failed to load chat')
+      toast.error(err.message || 'Failed to load customer chat')
       router.replace('/admin-dashboard/messages')
     } finally {
       setLoading(false)
@@ -293,7 +272,7 @@ export default function AdminChatPage() {
   }
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || sending || !currentUserId || !jobId || !job) return
+    if (!newMessage.trim() || sending || !currentUserId || !jobRequestId || !job) return
 
     setSending(true)
 
@@ -301,17 +280,12 @@ export default function AdminChatPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const isArtisanChat = !!job.assigned_artisan_id
-      const table = isArtisanChat ? 'admin_artisan_messages' : 'admin_customer_messages'
-      const idColumn = isArtisanChat ? 'job_id' : 'job_request_id'
-      const receiverId = isArtisanChat ? job.assigned_artisan_id : job.customer_id
-
       const { error } = await supabase
-        .from(table)
+        .from('admin_customer_messages')
         .insert({
-          [idColumn]: jobId,
+          job_request_id: jobRequestId,
           sender_id: user.id,
-          receiver_id: receiverId || null,
+          receiver_id: job.customer_id || null,
           content: newMessage.trim(),
           seen_at: null,
           reply_to_id: replyTo?.id || null
@@ -329,10 +303,6 @@ export default function AdminChatPage() {
       setSending(false)
     }
   }
-
-  // ──────────────────────────────────────────────
-  // Context Menu & Message Actions
-  // ──────────────────────────────────────────────
 
   const showContextMenu = (e: React.MouseEvent, msg: Message) => {
     e.preventDefault()
@@ -366,7 +336,10 @@ export default function AdminChatPage() {
   }
 
   const saveEdit = async () => {
-    if (!editingMessageId || !editText.trim() || !job) return
+    if (!editingMessageId || !editText.trim()) {
+      cancelEdit()
+      return
+    }
 
     const original = messages.find(m => m.id === editingMessageId)?.content || ''
 
@@ -379,11 +352,8 @@ export default function AdminChatPage() {
     )
 
     try {
-      const isArtisanChat = !!job.assigned_artisan_id
-      const table = isArtisanChat ? 'admin_artisan_messages' : 'admin_customer_messages'
-
       const { error } = await supabase
-        .from(table)
+        .from('admin_customer_messages')
         .update({
           content: editText.trim(),
           is_edited: true,
@@ -409,11 +379,8 @@ export default function AdminChatPage() {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, deleted_at: new Date().toISOString() } : m))
 
     try {
-      const isArtisanChat = !!job?.assigned_artisan_id
-      const table = isArtisanChat ? 'admin_artisan_messages' : 'admin_customer_messages'
-
       const { error } = await supabase
-        .from(table)
+        .from('admin_customer_messages')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', id)
         .eq('sender_id', currentUserId!)
@@ -430,8 +397,17 @@ export default function AdminChatPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <FaSpinner className="animate-spin text-[var(--orange)] text-6xl" />
+      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+      <div className="relative flex items-center justify-center">
+      {/* Outer spinning ring */}
+        <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+        {/* Inner static logo with subtle pulse */}
+          <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+            <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -441,11 +417,11 @@ export default function AdminChatPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="text-center max-w-md">
           <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Job not found
+          <h2 className="text-2xl font-bold text-[var(--blue)] mb-4">
+            Job request not found
           </h2>
-          <p className="text-gray-600 mb-8">
-            This job may not exist or has no assigned user.
+          <p className="text-[var(--blue)] mb-8">
+            This request may not exist or has no customer associated.
           </p>
           <Link
             href="/admin-dashboard/messages"
@@ -459,94 +435,92 @@ export default function AdminChatPage() {
     )
   }
 
-  const isArtisanChat = !!job.assigned_artisan_id
-  const recipient = isArtisanChat ? job.artisan : job.customer
-  const recipientName = recipient 
-    ? `${recipient.first_name ?? ''} ${recipient.last_name ?? ''}`.trim() || (isArtisanChat ? 'Artisan' : 'Customer')
-    : (isArtisanChat ? 'Artisan' : 'Customer')
-
-  const recipientType = isArtisanChat ? 'Artisan' : 'Customer'
+  const customerName = job.customer 
+    ? `${job.customer.first_name ?? ''} ${job.customer.last_name ?? ''}`.trim() || 'Customer'
+    : 'Customer'
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col relative">
       {/* Header */}
-      <header className="bg-gradient-to-r from-[var(--blue)] to-[var(--orange)] text-white px-6 py-4 shadow-lg fixed top-0 left-0 right-0 w-full z-20">
+      <header className="bg-gradient-to-r from-[var(--orange)] to-[var(--blue)] mt-15 text-white px-6 py-4 shadow-lg fixed top-0 left-0 right-0 z-20">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 sm:ml-15">
             <button onClick={() => router.back()} className="hover:opacity-80">
               <FaArrowLeft size={24} />
             </button>
             <div>
               <h1 className="text-xl md:text-2xl font-bold">
-                Chat with {recipientType} - {job.title}
+                Chat with Customer - {job.title}
               </h1>
               <p className="text-sm opacity-90 mt-1">
-                {recipientName}
+                {customerName}
               </p>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Messages Area */}
+      {/* Messages */}
       <main className="flex-1 overflow-y-auto pt-28 pb-32 px-4 md:px-6 max-w-5xl mx-auto w-full bg-gray-50">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-            <FaCommentDots className="text-6xl text-gray-300 mb-4" />
-            <p className="text-lg">No messages yet</p>
-            <p className="text-sm mt-2">Start the conversation</p>
+            <FaCommentDots className="text-6xl text-[var(--orange)] mb-4" />
+            <p className="text-lg font-medium">No messages yet</p>
+            <p className="text-sm mt-2">Start the conversation with the customer</p>
           </div>
         ) : (
-          <div className="space-y-4 pb-20">
-            {messages.map((msg, index) => (
-              <div
-                key={msg.id}
-                className={`group relative flex flex-col ${msg.is_admin ? 'items-end' : 'items-start'}`}
-                onContextMenu={(e) => showContextMenu(e, msg)}
-              >
+          <div className="space-y-4">
+            {messages.map((msg) => {
+              const isOwn = currentUserId && msg.sender_id === currentUserId
+              return (
                 <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                    msg.is_admin
-                      ? 'bg-[var(--orange)] text-white rounded-br-none'
-                      : 'bg-gray-200 text-gray-900 rounded-bl-none'
-                  } ${msg.deleted_at ? 'opacity-60' : ''}`}
+                  key={msg.id}
+                  className={`group relative flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
+                  onContextMenu={(e) => showContextMenu(e, msg)}
                 >
-                  {msg.reply_to_id && msg.reply_to_content && (
-                    <div className="mb-2 pl-3 border-l-4 border-[var(--orange)] text-xs opacity-80">
-                      <p className="font-medium">
-                        Replying to {msg.reply_to_sender}:
-                      </p>
-                      <p className="line-clamp-1">{msg.reply_to_content}</p>
-                    </div>
-                  )}
-
-                  {msg.deleted_at ? (
-                    <p className="text-sm italic text-gray-600">Message deleted</p>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                  )}
-
-                  <div className="flex items-center justify-end gap-1 text-xs opacity-70 mt-1">
-                    <span>
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    {msg.is_admin && msg.seen_at && <FaCheckDouble className="text-blue-400" />}
-                  </div>
-                </div>
-
-                {msg.is_admin && !msg.deleted_at && (
-                  <button
-                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-white shadow-sm hover:bg-gray-100"
-                    onClick={() => setOpenMessageId(openMessageId === msg.id ? null : msg.id)}
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      isOwn
+                        ? 'bg-[var(--orange)] text-white rounded-br-none'
+                        : 'bg-white text-gray-900 rounded-bl-none border border-gray-200'
+                    } ${msg.deleted_at ? 'opacity-60' : ''}`}
                   >
-                    <FaArrowDown className="w-4 h-4 text-gray-600" />
-                  </button>
-                )}
-              </div>
-            ))}
+                    {msg.reply_to_id && msg.reply_to_content && (
+                      <div className="mb-2 pl-3 border-l-4 border-[var(--orange)] text-xs opacity-80">
+                        <p className="font-medium">
+                          Replying to {msg.reply_to_sender}:
+                        </p>
+                        <p className="line-clamp-1">{msg.reply_to_content}</p>
+                      </div>
+                    )}
+
+                    {msg.deleted_at ? (
+                      <p className="text-sm italic text-gray-600">Message deleted</p>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    )}
+
+                    <div className="flex items-center justify-end gap-2 text-xs opacity-70 mt-1">
+                      {msg.is_edited && <span className="italic">edited</span>}
+                      <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {isOwn && msg.seen_at && <FaCheckDouble className="text-blue-600" />}
+                    </div>
+                  </div>
+
+                  {isOwn && !msg.deleted_at && (
+                    <button
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-white shadow-sm hover:bg-gray-100"
+                      onClick={() => setOpenMessageId(openMessageId === msg.id ? null : msg.id)}
+                    >
+                      <FaArrowDown className="w-4 h-4 text-gray-600" />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
             {otherIsTyping && (
-              <div className="flex items-center text-gray-500 text-sm italic pl-4">
-                {recipientType} is typing...
+              <div className="flex items-center text-[var(--orange)] text-sm italic pl-4">
+                Customer is typing...
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -554,7 +528,7 @@ export default function AdminChatPage() {
         )}
       </main>
 
-      {/* Message Input */}
+      {/* Input Bar */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 shadow-lg z-10">
         <div className="max-w-5xl mx-auto flex flex-col gap-2">
           {replyTo && (
@@ -579,7 +553,7 @@ export default function AdminChatPage() {
                 handleTyping()
               }}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-              placeholder={`Type your message to ${recipientType.toLowerCase()}...`}
+              placeholder="Type your message to the customer..."
               className="flex-1 px-5 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
               disabled={sending || !!editingMessageId}
             />
