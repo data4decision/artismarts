@@ -1,7 +1,7 @@
 // app/dashboard/customer/payment/success/page.tsx
 'use client'
 
-export const revalidate = 0 
+export const dynamic = 'force-dynamic'   // ← this prevents the prerender/build error
 
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -135,7 +135,7 @@ export default function PaymentSuccess() {
                 View Job Details
               </button>
               <button
-                onClick={() => router.push('/dashboard/customer/payment')}
+                onClick={() => router.push('/dashboard/customer/payments')}
                 className="inline-flex items-center px-8 py-4 bg-[var(--orange)] text-[var(--white)] rounded-xl hover:bg-orange-600 transition"
               >
                 View My Payments
@@ -157,7 +157,7 @@ export default function PaymentSuccess() {
                 Go Back
               </button>
               <button
-                onClick={() => router.push('/dashboard/customer/payment')}
+                onClick={() => router.push('/dashboard/customer/payments')}
                 className="px-8 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition"
               >
                 View Payments
