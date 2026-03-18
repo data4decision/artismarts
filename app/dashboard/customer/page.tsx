@@ -132,7 +132,7 @@ export default function CustomerDashboard() {
             title="Payments"
             description="Manage transactions"
             icon="💳"
-            href="/dashboard/customer/payments"
+            href="/dashboard/customer/payment"
           />
         </div>
 

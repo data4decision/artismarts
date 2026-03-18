@@ -106,7 +106,7 @@ export default function CustomerJobRequestPage() {
       if (error) throw error
 
       toast.success('Job request sent! Admin will review and assign an artisan.')
-      router.push('/dashboard/customer/my-requests')
+      router.push('/dashboard/customer/requests')
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit request')
     } finally {
@@ -194,7 +194,7 @@ export default function CustomerJobRequestPage() {
             </div>
 
             {/* Budget */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--blue)] mb-2">
                   Budget Min (₦)
@@ -219,7 +219,7 @@ export default function CustomerJobRequestPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--orange)]"
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* Date & Time */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

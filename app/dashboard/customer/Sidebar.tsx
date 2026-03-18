@@ -33,7 +33,7 @@ const nav = [
   { label: 'My Bookings', href: '/dashboard/customer/bookings', icon: FaClipboardList },
   { label: 'Booking Requests', href: '/dashboard/customer/requests', icon: FaBriefcase },
   { label: 'Messages', href: '/dashboard/customer/messages', icon: FaComments },
-  { label: 'Payments', href: '/dashboard/customer/payments', icon: FaCreditCard },
+  { label: 'Payments', href: '/dashboard/customer/payment', icon: FaCreditCard },
   { label: 'Reviews', href: '/dashboard/customer/reviews', icon: FaStar },
   { label: 'Notifications', href: '/dashboard/customer/notifications', icon: FaBell },
   { label: 'Support', href: '/dashboard/customer/support', icon: FaLifeRing },
