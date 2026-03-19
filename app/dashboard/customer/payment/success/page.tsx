@@ -1,6 +1,8 @@
 // app/dashboard/customer/payment/success/page.tsx
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -18,7 +20,6 @@ export default function PaymentSuccess() {
   const jobId = searchParams.get('jobId')
 
   useEffect(() => {
-    // Log for debugging
     console.log('[SUCCESS] Params:', { reference, jobId, url: window.location.href })
 
     if (!reference) {
@@ -42,7 +43,6 @@ export default function PaymentSuccess() {
         const data = await res.json()
 
         if (data.status === true && data.data?.status === 'success') {
-          // Try to save to Supabase (non-blocking)
           try {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
