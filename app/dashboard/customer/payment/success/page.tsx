@@ -14,6 +14,7 @@ import {
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import Image from 'next/image'
 
 // Expected shape from Supabase query
 type PaymentWithJob = {
@@ -190,11 +191,15 @@ export default function PaymentsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
-        <div className="text-center">
-          <FaSpinner className="animate-spin text-6xl text-[var(--orange)] mx-auto mb-4" />
-          <p className="text-lg text-gray-600">Loading your payment history...</p>
+        <div className="relative flex items-center justify-center">
+        <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+        <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+            <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+            <Image src="/log.png" width={48} height={48} priority alt="Loading..." className="object-contain" />
+            </div>
         </div>
-      </div>
+        </div>
+    </div>
     )
   }
 

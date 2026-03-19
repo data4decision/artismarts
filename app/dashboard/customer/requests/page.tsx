@@ -483,7 +483,7 @@ export default function MyRequestsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-gray-50 p-5 rounded-2xl">
+                  {/* <div className="bg-gray-50 p-5 rounded-2xl">
                     <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
                       <FaDollarSign className="text-[var(--orange)]" />
                       Budget
@@ -492,7 +492,7 @@ export default function MyRequestsPage() {
                       {selectedRequest.budget_min ? `₦${selectedRequest.budget_min.toLocaleString()}` : '—'}
                       {selectedRequest.budget_max ? ` – ₦${selectedRequest.budget_max.toLocaleString()}` : ''}
                     </p>
-                  </div>
+                  </div> */}
 
                   <div className="bg-gray-50 p-5 rounded-2xl">
                     <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">

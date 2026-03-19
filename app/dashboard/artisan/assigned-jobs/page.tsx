@@ -142,7 +142,7 @@ export default function ArtisanAssignedJobs() {
       toast.success('Job accepted successfully!', { duration: 3000 })
 
       setTimeout(() => {
-        router.push(`/dashboard/artisan/job/${jobId}/active`)
+        router.push(`/dashboard/artisan/jobs/${jobId}/active`)
       }, 1200)
 
       fetchAssignedJobs()
