@@ -44,7 +44,7 @@ const nav = [
   { label: 'Completed Jobs', href: '/admin-dashboard/jobs/completed', icon: FaCheckCircle },
   { label: 'Disputed Jobs', href: '/admin-dashboard/jobs/disputes', icon: FaTimesCircle },
   { label: 'Reviews & Ratings', href: '/admin-dashboard/reviews', icon: FaStar },
-  { label: 'Messages / Support Tickets', href: '/admin-dashboard/messages', icon: FaComments },
+  { label: 'Messages ', href: '/admin-dashboard/messages', icon: FaComments },
   { label: 'Earnings & Payouts', href: '/admin-dashboard/earnings', icon: FaWallet },
   { label: 'Analytics', href: '/admin-dashboard/analytics', icon: FaChartLine },
   { label: 'Notifications', href: '/admin-dashboard/notifications', icon: FaBell },

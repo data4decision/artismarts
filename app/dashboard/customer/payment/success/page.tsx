@@ -1,411 +1,165 @@
-// app/dashboard/customer/payments/page.tsx
+// app/dashboard/customer/payment/success/page.tsx
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { 
-  FaSpinner, FaMoneyBillWave, FaCheckCircle, 
-  FaCalendarAlt, FaUserTie, FaArrowLeft, 
-  FaExclamationTriangle, FaReceipt, FaDownload, 
-  FaFilePdf, FaImage
-} from 'react-icons/fa'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
-import Image from 'next/image'
+import { FaSpinner, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa'
+import { supabase } from '@/lib/supabase'
 
-// Expected shape from Supabase query
-type PaymentWithJob = {
-  id: string
-  job_id: string
-  reference: string
-  amount: number
-  currency: string
-  status: string
-  channel?: string | null
-  paid_at: string
-  job_requests: {
-    title: string
-    assigned_artisan_id: {
-      first_name: string | null
-      last_name: string | null
-    } | null
-  } | null
-}
-
-interface Payment {
-  id: string
-  job_id: string
-  reference: string
-  amount: number
-  currency: string
-  status: string
-  channel?: string
-  paid_at: string
-  job_title?: string
-  artisan_name?: string
-}
-
-export default function PaymentsPage() {
+export default function PaymentSuccess() {
+  const searchParams = useSearchParams()
   const router = useRouter()
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
-  const receiptRef = useRef<HTMLDivElement>(null)
+  const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading')
+  const [message, setMessage] = useState('Verifying your payment...')
+
+  const reference = searchParams.get('reference')   // Paystack uses "reference"
+  const jobId = searchParams.get('jobId')
 
   useEffect(() => {
-    fetchPayments()
-  }, [])
+    console.log('[SUCCESS PAGE] Loaded with params:', {
+      reference,
+      jobId,
+      fullUrl: window.location.href
+    })
 
-  const fetchPayments = async () => {
-    setLoading(true)
-    setError(null)
+    if (!reference) {
+      console.warn('[SUCCESS PAGE] No reference found in URL')
+      setStatus('failed')
+      setMessage('Missing payment reference in URL. Payment may have succeeded but could not be verified.')
+      toast.error('Missing reference – payment may still have gone through')
+      return
+    }
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        toast.error('Please sign in')
-        router.replace('/login')
-        return
+    const verifyPayment = async () => {
+      try {
+        console.log('[SUCCESS PAGE] Starting verification for reference:', reference)
+
+        const res = await fetch(`/api/paystack/verify-payment?reference=${reference}`, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        })
+
+        console.log('[SUCCESS PAGE] Verify endpoint status:', res.status)
+
+        if (!res.ok) {
+          const errText = await res.text()
+          throw new Error(`Verify endpoint failed: ${res.status} - ${errText}`)
+        }
+
+        const data = await res.json()
+        console.log('[SUCCESS PAGE] Full Paystack verify response:', JSON.stringify(data, null, 2))
+
+        if (data.status === true && data.data?.status === 'success') {
+          console.log('[SUCCESS PAGE] Payment verified SUCCESSFULLY')
+
+          // Save payment record to Supabase (non-blocking)
+          const savePayment = async () => {
+            try {
+              const { data: { user } } = await supabase.auth.getUser()
+              if (!user) throw new Error('User not authenticated')
+
+              const { error } = await supabase
+                .from('payments')
+                .insert({
+                  job_id: jobId,
+                  user_id: user.id,
+                  reference: reference,
+                  amount: data.data.amount / 100, // kobo → Naira
+                  currency: data.data.currency || 'NGN',
+                  status: data.data.status,
+                  channel: data.data.channel,
+                  paid_at: data.data.paid_at
+                })
+
+              if (error) {
+                console.error('Failed to save payment record:', error.message, error.details, error.hint)
+                toast.error('Payment verified, but could not save record – contact support')
+              } else {
+                console.log('Payment record saved successfully')
+              }
+            } catch (saveErr: any) {
+              console.error('Save payment error:', saveErr)
+              toast.error('Payment verified, but save failed – check console')
+            }
+          }
+
+          await savePayment()
+
+          setStatus('success')
+          setMessage('Payment successful! Thank you for your payment.')
+          toast.success('Payment confirmed')
+        } else {
+          console.warn('[SUCCESS PAGE] Payment NOT successful according to Paystack:', data)
+          setStatus('failed')
+          setMessage(data.message || data.data?.gateway_response || 'Payment verification returned non-success status.')
+          toast.error('Payment could not be verified – but check your Paystack dashboard')
+        }
+      } catch (err: any) {
+        console.error('[SUCCESS PAGE] Verification error:', err)
+        setStatus('failed')
+        setMessage(err.message || 'Could not verify payment right now.')
+        toast.error('Verification failed – please check Paystack dashboard and contact support if needed')
       }
-
-      const { data, error } = await supabase
-        .from('payments')
-        .select(`
-          id,
-          job_id,
-          reference,
-          amount,
-          currency,
-          status,
-          channel,
-          paid_at,
-          job_requests!inner (
-            title,
-            assigned_artisan_id (first_name, last_name)
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('paid_at', { ascending: false })
-        .returns<PaymentWithJob[]>()
-
-      if (error) throw error
-
-      const formatted: Payment[] = (data || []).map(p => ({
-        id: p.id,
-        job_id: p.job_id,
-        reference: p.reference,
-        amount: p.amount,
-        currency: p.currency,
-        status: p.status,
-        channel: p.channel ?? undefined,
-        paid_at: p.paid_at,
-        job_title: p.job_requests?.title || 'Unknown Job',
-        artisan_name: p.job_requests?.assigned_artisan_id
-          ? `${p.job_requests.assigned_artisan_id.first_name || ''} ${p.job_requests.assigned_artisan_id.last_name || ''}`.trim() || 'Unknown Artisan'
-          : undefined
-      }))
-
-      setPayments(formatted)
-    } catch (err: any) {
-      console.error('Fetch payments error:', err)
-      setError(err.message || 'Failed to load payment history')
-      toast.error('Could not load your payments')
-    } finally {
-      setLoading(false)
     }
-  }
 
-  const downloadReceiptAsPNG = async () => {
-    if (!receiptRef.current || !selectedPayment) return
-
-    try {
-      const canvas = await html2canvas(receiptRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      })
-
-      const link = document.createElement('a')
-      link.download = `receipt_${selectedPayment.reference}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-
-      toast.success('Receipt downloaded as PNG')
-    } catch (err) {
-      console.error('PNG download failed:', err)
-      toast.error('Failed to download receipt')
-    }
-  }
-
-  const downloadReceiptAsPDF = async () => {
-    if (!selectedPayment) return
-
-    try {
-      const doc = new jsPDF()
-
-      // Header
-      doc.setFontSize(20)
-      doc.setTextColor(37, 99, 235) // --blue
-      doc.text('Payment Receipt', 105, 20, { align: 'center' })
-
-      doc.setFontSize(12)
-      doc.setTextColor(0)
-      doc.text(`Date: ${new Date(selectedPayment.paid_at).toLocaleString()}`, 20, 40)
-      doc.text(`Reference: ${selectedPayment.reference}`, 20, 50)
-
-      // Table content
-      autoTable(doc, {
-        startY: 60,
-        head: [['Field', 'Details']],
-        body: [
-          ['Job', selectedPayment.job_title || 'Unknown Job'],
-          ['Artisan', selectedPayment.artisan_name || '—'],
-          ['Amount Paid', `₦${selectedPayment.amount.toLocaleString()}`],
-          ['Method', selectedPayment.channel?.toUpperCase() || 'Unknown'],
-          ['Status', selectedPayment.status.toUpperCase()],
-          ['Currency', selectedPayment.currency]
-        ],
-        theme: 'grid',
-        headStyles: { fillColor: [249, 115, 22] }, // --orange
-        styles: { fontSize: 10, cellPadding: 4 }
-      })
-
-      // Footer
-      const finalY = (doc as any).lastAutoTable?.finalY || 150
-      doc.setFontSize(10)
-      doc.setTextColor(100)
-      doc.text('Thank you for your payment • Secured by Paystack • ArtisMarts', 105, finalY + 20, { align: 'center' })
-
-      doc.save(`receipt_${selectedPayment.reference}.pdf`)
-      toast.success('Receipt downloaded as PDF')
-    } catch (err) {
-      console.error('PDF download failed:', err)
-      toast.error('Failed to generate PDF')
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
-        <div className="relative flex items-center justify-center">
-        <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
-        <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
-            <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
-            <Image src="/log.png" width={48} height={48} priority alt="Loading..." className="object-contain" />
-            </div>
-        </div>
-        </div>
-    </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--white)] p-6">
-        <div className="text-center max-w-md">
-          <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Oops!</h2>
-          <p className="text-gray-600 mb-8">{error}</p>
-          <button
-            onClick={fetchPayments}
-            className="inline-flex items-center px-8 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
-  }
+    verifyPayment()
+  }, [reference, jobId, router])
 
   return (
-    <div className="min-h-screen bg-[var(--white)] py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-10 flex items-center justify-between">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--white)] p-6">
+      <div className="max-w-md w-full text-center">
+        {status === 'loading' && (
           <div>
-            <button
-              onClick={() => router.back()}
-              className="mb-4 flex items-center text-[var(--blue)] hover:text-blue-800 transition"
-            >
-              <FaArrowLeft className="mr-2" />
-              Back to Dashboard
-            </button>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-              My Payments
-            </h1>
-            <p className="mt-3 text-lg text-gray-600">
-              View all your successful payments and receipts
-            </p>
-          </div>
-          <button
-            onClick={fetchPayments}
-            className="px-6 py-3 bg-[var(--orange)] hover:bg-orange-600 text-[var(--white)] rounded-xl transition"
-          >
-            Refresh
-          </button>
-        </div>
-
-        {payments.length === 0 ? (
-          <div className="bg-[var(--white)] rounded-2xl shadow-lg p-12 text-center border border-gray-200">
-            <FaMoneyBillWave className="text-[var(--orange)] text-8xl mx-auto mb-6 opacity-70" />
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">
-              No payments yet
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              When you complete a payment for a job, it will appear here with full details.
-            </p>
-            <button
-              onClick={() => router.push('/dashboard/customer/requests')}
-              className="inline-flex items-center px-10 py-5 bg-[var(--blue)] text-[var(--white)] text-lg font-medium rounded-xl hover:bg-blue-700 transition shadow-md"
-            >
-              View My Jobs
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {payments.map(payment => (
-              <div
-                key={payment.id}
-                className="bg-[var(--white)] rounded-2xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow"
-              >
-                <div className="bg-gradient-to-r from-[var(--blue)] to-[var(--orange)] px-6 py-5 text-[var(--white)]">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-xl">
-                      {payment.job_title || 'Job Payment'}
-                    </h3>
-                    <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-                      {new Date(payment.paid_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <p className="text-sm text-gray-500">Reference</p>
-                      <p className="font-medium text-gray-900 break-all">{payment.reference}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Amount</p>
-                      <p className="text-2xl font-bold text-[var(--orange)]">
-                        ₦{payment.amount.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Method</p>
-                      <p className="font-medium capitalize">{payment.channel || 'Unknown'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Artisan</p>
-                      <p className="font-medium">{payment.artisan_name || '—'}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setSelectedPayment(payment)}
-                      className="flex items-center gap-2 px-6 py-3 bg-[var(--blue)] hover:bg-blue-700 text-[var(--white)] rounded-xl transition"
-                    >
-                      <FaReceipt />
-                      View Receipt
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <FaSpinner className="animate-spin text-6xl text-[var(--orange)] mx-auto mb-6" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Verifying Payment</h2>
+            <p className="text-gray-600">{message}</p>
           </div>
         )}
 
-        {/* Receipt Modal */}
-        {selectedPayment && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-            <div className="bg-[var(--white)] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              {/* Modal Header */}
-              <div className="sticky top-0 bg-gradient-to-r from-[var(--blue)] to-[var(--orange)] text-[var(--white)] px-8 py-6 rounded-t-2xl z-10 flex items-center justify-between">
-                <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <FaReceipt />
-                  Payment Receipt
-                </h2>
-                <button
-                  onClick={() => setSelectedPayment(null)}
-                  className="text-[var(--white)] hover:text-gray-200 text-3xl leading-none"
-                >
-                  ×
-                </button>
-              </div>
+        {status === 'success' && (
+          <div>
+            <FaCheckCircle className="text-green-500 text-7xl mx-auto mb-6" />
+            <h2 className="text-3xl font-bold text-green-600 mb-4">Payment Successful!</h2>
+            <p className="text-lg text-gray-700 mb-8">
+              Your payment has been confirmed. Thank you!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => router.push('/dashboard/customer/requests')}
+                className="inline-flex items-center px-8 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition"
+              >
+                View Job Details
+              </button>
+              <button
+                onClick={() => router.push('/dashboard/customer/payment')}
+                className="inline-flex items-center px-8 py-4 bg-[var(--orange)] text-[var(--white)] rounded-xl hover:bg-orange-600 transition"
+              >
+                View My Payments
+              </button>
+            </div>
+          </div>
+        )}
 
-              {/* Receipt Content */}
-              <div ref={receiptRef} className="p-8 bg-[var(--white)]">
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-[var(--blue)]">ArtisMarts Payment</h3>
-                  <p className="text-gray-600 mt-1">Official Receipt</p>
-                </div>
-
-                <div className="border border-gray-200 rounded-xl p-6 mb-8 bg-gray-50">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-sm text-gray-500">Reference</p>
-                      <p className="font-medium break-all">{selectedPayment.reference}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Date Paid</p>
-                      <p className="font-medium">
-                        {new Date(selectedPayment.paid_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Job</p>
-                      <p className="font-medium">{selectedPayment.job_title || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Artisan</p>
-                      <p className="font-medium">{selectedPayment.artisan_name || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Amount</p>
-                      <p className="text-2xl font-bold text-[var(--orange)]">
-                        ₦{selectedPayment.amount.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Method</p>
-                      <p className="font-medium capitalize">{selectedPayment.channel || 'Unknown'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-center text-sm text-gray-500 border-t pt-6">
-                  Thank you for your payment • Secured by Paystack • ArtisMarts
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="sticky bottom-0 bg-[var(--white)] border-t px-8 py-6 flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={downloadReceiptAsPNG}
-                  className="flex-1 py-4 px-6 bg-[var(--orange)] hover:bg-orange-600 text-[var(--white)] rounded-xl transition flex items-center justify-center gap-2 font-medium"
-                >
-                  <FaImage />
-                  Download PNG
-                </button>
-                <button
-                  onClick={downloadReceiptAsPDF}
-                  className="flex-1 py-4 px-6 bg-[var(--blue)] hover:bg-blue-700 text-[var(--white)] rounded-xl transition flex items-center justify-center gap-2 font-medium"
-                >
-                  <FaFilePdf />
-                  Download PDF
-                </button>
-                <button
-                  onClick={() => setSelectedPayment(null)}
-                  className="flex-1 py-4 px-6 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl transition font-medium"
-                >
-                  Close
-                </button>
-              </div>
+        {status === 'failed' && (
+          <div>
+            <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
+            <h2 className="text-3xl font-bold text-red-600 mb-4">Payment Issue</h2>
+            <p className="text-lg text-gray-700 mb-8">{message}</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => router.back()}
+                className="px-8 py-4 bg-gray-600 text-[var(--white)] rounded-xl hover:bg-gray-700 transition"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={() => router.push('/dashboard/customer/payment')}
+                className="px-8 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition"
+              >
+                View Payments
+              </button>
             </div>
           </div>
         )}
