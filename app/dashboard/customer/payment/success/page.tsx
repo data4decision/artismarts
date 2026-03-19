@@ -1,8 +1,6 @@
 // app/dashboard/customer/payment/success/page.tsx
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -12,41 +10,36 @@ import { supabase } from '@/lib/supabase'
 export default function PaymentSuccess() {
   const searchParams = useSearchParams()
   const router = useRouter()
-
   const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading')
-  const [message, setMessage] = useState('Verifying your payment...')
+  const [message, setMessage] = useState('Verifying payment...')
 
   const reference = searchParams.get('reference')
   const jobId = searchParams.get('jobId')
 
   useEffect(() => {
-    console.log('[SUCCESS] Params:', { reference, jobId, url: window.location.href })
-
     if (!reference) {
       setStatus('failed')
       setMessage('No payment reference found. Payment may still have succeeded.')
-      toast.error('Missing payment reference')
+      toast.error('Missing reference')
       return
     }
 
-    const verifyPayment = async () => {
+    const verify = async () => {
       try {
         const res = await fetch(`/api/paystack/verify-payment?reference=${reference}`, {
           cache: 'no-store'
         })
 
-        if (!res.ok) {
-          const text = await res.text()
-          throw new Error(`Verification failed: ${res.status} - ${text}`)
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
         const data = await res.json()
 
         if (data.status === true && data.data?.status === 'success') {
+          // Optional: save to Supabase (fire-and-forget)
           try {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-              const { error } = await supabase.from('payments').insert({
+              await supabase.from('payments').insert({
                 job_id: jobId,
                 user_id: user.id,
                 reference,
@@ -56,14 +49,9 @@ export default function PaymentSuccess() {
                 channel: data.data.channel,
                 paid_at: data.data.paid_at
               })
-
-              if (error) {
-                console.warn('Save failed but payment is valid:', error.message)
-                toast('Payment successful – record save failed')
-              }
             }
           } catch (saveErr) {
-            console.warn('Save attempt failed:', saveErr)
+            // console.warn('Save failed (non-critical):', saveErr.message)
           }
 
           setStatus('success')
@@ -71,56 +59,54 @@ export default function PaymentSuccess() {
           toast.success('Payment confirmed')
         } else {
           setStatus('failed')
-          setMessage(data.message || 'Payment status not successful')
-          toast.error('Payment could not be verified')
+          setMessage(data.message || 'Payment not successful')
+          toast.error('Verification issue – check Paystack dashboard')
         }
       } catch (err: any) {
-        console.error('[SUCCESS] Error:', err)
+        console.error('Verification failed:', err)
         setStatus('failed')
-        setMessage(err.message || 'Verification failed')
-        toast.error('Could not verify payment – check Paystack dashboard')
+        setMessage('Could not verify payment')
+        toast.error('Verification failed')
       }
     }
 
-    verifyPayment()
+    verify()
   }, [reference, jobId, router])
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
-        <div className="text-center">
-          <FaSpinner className="animate-spin text-6xl text-[var(--orange)] mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Verifying Payment</h2>
-          <p className="text-gray-600">{message}</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--white)] p-6">
       <div className="max-w-md w-full text-center">
-        {status === 'success' ? (
+        {status === 'loading' && (
+          <>
+            <FaSpinner className="animate-spin text-6xl text-[var(--orange)] mx-auto mb-6" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Verifying Payment</h2>
+            <p className="text-gray-600">{message}</p>
+          </>
+        )}
+
+        {status === 'success' && (
           <>
             <FaCheckCircle className="text-green-500 text-7xl mx-auto mb-6" />
             <h2 className="text-3xl font-bold text-green-600 mb-4">Payment Successful!</h2>
             <p className="text-lg text-gray-700 mb-8">{message}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => router.push('/dashboard/customer/requests')}
+                onClick={() => router.push(jobId ? `/dashboard/customer/jobs/${jobId}` : '/dashboard')}
                 className="px-8 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition"
               >
                 View Job Details
               </button>
               <button
-                onClick={() => router.push('/dashboard/customer/payment')}
+                onClick={() => router.push('/dashboard/customer/payments')}
                 className="px-8 py-4 bg-[var(--orange)] text-[var(--white)] rounded-xl hover:bg-orange-600 transition"
               >
                 View My Payments
               </button>
             </div>
           </>
-        ) : (
+        )}
+
+        {status === 'failed' && (
           <>
             <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
             <h2 className="text-3xl font-bold text-red-600 mb-4">Payment Issue</h2>
@@ -133,7 +119,7 @@ export default function PaymentSuccess() {
                 Go Back
               </button>
               <button
-                onClick={() => router.push('/dashboard/customer/payment')}
+                onClick={() => router.push('/dashboard/customer/payments')}
                 className="px-8 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition"
               >
                 View Payments
