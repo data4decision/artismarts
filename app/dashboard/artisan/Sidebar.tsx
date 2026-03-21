@@ -37,6 +37,7 @@ const nav = [
   { label: 'Job Requests', href: '/dashboard/artisan/requests', icon: FaBriefcase },
   { label: 'Assigned Jobs', href: '/dashboard/artisan/assigned-jobs', icon: FaBriefcase },
   { label: 'Active Jobs', href: '/dashboard/artisan/jobs', icon: FaTasks },
+  { label: 'Completed Jobs', href: '/dashboard/artisan/completed-jobs', icon: FaTasks },
   { label: 'Messages', href: '/dashboard/artisan/messages', icon: FaComments },
   { label: 'Earnings', href: '/dashboard/artisan/earnings', icon: FaWallet },
   { label: 'Reviews', href: '/dashboard/artisan/reviews', icon: FaStar },

@@ -289,7 +289,7 @@ export default function CustomerJobReviewPage() {
         .eq('id', jobId)
 
       toast.success('Changes requested. Artisan notified.')
-      router.push('/dashboard/customer/jobs')
+      router.push('dashboard/customer/requests')
     } catch (err: any) {
       toast.error('Failed to request changes')
     }
@@ -528,8 +528,8 @@ export default function CustomerJobReviewPage() {
             )}
 
             <button
-              onClick={() => router.push('/dashboard/customer/jobs?tab=completed')}
-              className="px-8 py-4 bg-[var(--blue)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition shadow-md font-medium"
+              onClick={() => router.push('/dashboard/customer/requests')}
+              className="px-8 py-4 bg-[var(--orange)] text-[var(--white)] rounded-xl hover:bg-blue-700 transition shadow-md font-medium"
             >
               Back to My Jobs
             </button>
