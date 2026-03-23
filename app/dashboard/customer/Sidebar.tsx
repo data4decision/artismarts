@@ -18,6 +18,7 @@ import {
   FaSignOutAlt,
   FaBars,
   FaTimes,
+  FaCheckCircle,
 } from 'react-icons/fa'
 
 // Logout handler
@@ -32,12 +33,15 @@ const nav = [
   { label: 'Browse Artisans', href: '/dashboard/customer/artisans', icon: FaSearch },
   { label: 'My Bookings', href: '/dashboard/customer/bookings', icon: FaClipboardList },
   { label: 'Booking Requests', href: '/dashboard/customer/requests', icon: FaBriefcase },
+  { label: 'Completed Jobs', href: '/dashboard/customer/completed-jobs', icon: FaCheckCircle },
   { label: 'Messages', href: '/dashboard/customer/messages', icon: FaComments },
   { label: 'Payments', href: '/dashboard/customer/payment', icon: FaCreditCard },
   { label: 'Reviews', href: '/dashboard/customer/reviews', icon: FaStar },
   { label: 'Notifications', href: '/dashboard/customer/notifications', icon: FaBell },
   { label: 'Support', href: '/dashboard/customer/support', icon: FaLifeRing },
 ]
+
+
 
 export default function Sidebar() {
   const pathname = usePathname()

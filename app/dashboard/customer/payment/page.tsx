@@ -122,73 +122,86 @@ export default function PaymentsPage() {
   }
 
   const downloadReceiptAsPNG = async () => {
-    if (!receiptRef.current || !selectedPayment) return
-
-    try {
-      const canvas = await html2canvas(receiptRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      })
-
-      const link = document.createElement('a')
-      link.download = `receipt_${selectedPayment.reference}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-
-      toast.success('Receipt downloaded as PNG')
-    } catch (err) {
-      console.error('PNG download failed:', err)
-      toast.error('Failed to download receipt')
-    }
+  if (!receiptRef.current || !selectedPayment) {
+    toast.error('Receipt not ready')
+    return
   }
 
-  const downloadReceiptAsPDF = async () => {
-    if (!selectedPayment) return
+  try {
+    // Small delay helps with rendering completion
+    await new Promise(r => setTimeout(r, 300))
 
-    try {
-      const doc = new jsPDF()
+    const canvas = await html2canvas(receiptRef.current, {
+      scale: 2,                        // higher quality
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      windowWidth: receiptRef.current.scrollWidth,
+      windowHeight: receiptRef.current.scrollHeight,
+      // Important flags for better capture
+      allowTaint: true,
+      foreignObjectRendering: true,
+      removeContainer: true,
+    })
 
-      // Header
-      doc.setFontSize(20)
-      doc.setTextColor(37, 99, 235) // --blue
-      doc.text('Payment Receipt', 105, 20, { align: 'center' })
+    const link = document.createElement('a')
+    link.download = `receipt_${selectedPayment.reference}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
 
-      doc.setFontSize(12)
-      doc.setTextColor(0)
-      doc.text(`Date: ${new Date(selectedPayment.paid_at).toLocaleString()}`, 20, 40)
-      doc.text(`Reference: ${selectedPayment.reference}`, 20, 50)
-
-      // Table-like content
-      doc.autoTable({
-        startY: 60,
-        head: [['Field', 'Details']],
-        body: [
-          ['Job', selectedPayment.job_title || 'Unknown Job'],
-          ['Artisan', selectedPayment.artisan_name || '—'],
-          ['Amount Paid', `₦${selectedPayment.amount.toLocaleString()}`],
-          ['Method', selectedPayment.channel?.toUpperCase() || 'Unknown'],
-          ['Status', selectedPayment.status.toUpperCase()],
-          ['Currency', selectedPayment.currency]
-        ],
-        theme: 'grid',
-        headStyles: { fillColor: [249, 115, 22] }, // --orange
-        styles: { fontSize: 10, cellPadding: 4 }
-      })
-
-      // Footer
-      const finalY = (doc as any).lastAutoTable.finalY || 150
-      doc.setFontSize(10)
-      doc.setTextColor(100)
-      doc.text('Thank you for your payment • Powered by ArtisMarts', 105, finalY + 20, { align: 'center' })
-
-      doc.save(`receipt_${selectedPayment.reference}.pdf`)
-      toast.success('Receipt downloaded as PDF')
-    } catch (err) {
-      console.error('PDF download failed:', err)
-      toast.error('Failed to generate PDF')
-    }
+    toast.success('Receipt downloaded as PNG')
+  } catch (err) {
+    console.error('PNG download failed:', err)
+    toast.error('Failed to capture receipt. Try browser screenshot instead.')
   }
+}
+
+const downloadReceiptAsPDF = async () => {
+  if (!receiptRef.current || !selectedPayment) {
+    toast.error('Receipt not ready')
+    return
+  }
+
+  try {
+    await new Promise(r => setTimeout(r, 300))
+
+    const canvas = await html2canvas(receiptRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+    })
+
+    const imgData = canvas.toDataURL('image/png')
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'px',
+      format: 'a4',
+      putOnlyUsedFonts: true,
+      floatPrecision: 16,
+    })
+
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+
+    const imgWidth = pageWidth - 40 // margins
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+    pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight)
+
+    // Optional footer
+    pdf.setFontSize(10)
+    pdf.setTextColor(100)
+    pdf.text('Thank you for your payment • ArtisMarts', pageWidth / 2, pageHeight - 15, { align: 'center' })
+
+    pdf.save(`receipt_${selectedPayment.reference}.pdf`)
+    toast.success('Receipt downloaded as PDF')
+  } catch (err) {
+    console.error('PDF download failed:', err)
+    toast.error('Failed to generate PDF. Try PNG or browser print.')
+  }
+}
+      
 
   if (loading) {
     return (
