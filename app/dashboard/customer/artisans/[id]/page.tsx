@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import { FaStar, FaMapMarkerAlt, FaClock, FaUser, FaPhone, FaSpinner, FaExclamationTriangle, FaBriefcase, FaTools } from 'react-icons/fa'
 import Image from 'next/image'
 import Link from 'next/link'
+import { profile } from 'console'
 
 
 
@@ -29,6 +30,7 @@ interface ArtisanProfile {
   portfolio_items: Array<{ url: string; name?: string; type?: string }> | null
   phone: string | null
   verification_status: string
+  active_jobs_count?: number
 }
 
 export default function ArtisanProfilePage() {
@@ -47,7 +49,7 @@ export default function ArtisanProfilePage() {
     setError(null)
 
     try {
-      const { data, error } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select(`
           id,
@@ -71,10 +73,24 @@ export default function ArtisanProfilePage() {
         .eq('verification_status', 'approved')
         .single()
 
-      if (error) throw error
-      if (!data) throw new Error('Artisan not found or not verified')
+      if (profileError) throw profileError
+      if (!profileData) throw new Error('Artisan not found or not verified')
 
-      setArtisan(data)
+    const {data: jobsData, error: jobsError} = await supabase
+       .from('job_requests')
+       .select('id')
+       .eq('assigned_artisan_id', id)
+       .in('status', ['assigned', 'in_progress'])
+
+       if (jobsError) throw jobsError
+       const active_jobs_count = jobsData ? jobsData.length : 0
+
+       const fullProfile: ArtisanProfile ={
+        ...profileData,
+        active_jobs_count: active_jobs_count
+       }
+
+      setArtisan(fullProfile)
     } catch (err: any) {
       console.error('Fetch error:', err)
       setError(err.message || 'Failed to load artisan profile')
@@ -118,6 +134,8 @@ export default function ArtisanProfilePage() {
       </div>
     )
   }
+
+  const activeJobs = artisan.active_jobs_count || 0
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -190,6 +208,15 @@ export default function ArtisanProfilePage() {
                     <span>{artisan.years_of_experience} years experience</span>
                   </div>
                 )}
+                <div className="flex items-center gap-2 mb-6">
+                  <div className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border
+                    ${activeJobs > 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                      <FaBriefcase className={activeJobs > 0 ? 'text-green-600' : 'text-gray-400'}/>
+                        <span>
+                          {activeJobs} active job{activeJobs !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </div>
 
                 {/* Bio */}
                 {artisan.bio && (

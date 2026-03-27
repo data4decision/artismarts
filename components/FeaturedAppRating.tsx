@@ -9,66 +9,125 @@ export default function FeaturedAppRating() {
   const [featured, setFeatured] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchFeaturedRating()
-  }, [])
-
   const fetchFeaturedRating = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('site_settings')
         .select('value')
         .eq('key', 'featured_app_rating')
         .single()
 
-      if (data?.value) {
-        setFeatured(data.value)
+      // If no row exists or value is empty → clear the featured review
+      if (error || !data || !data.value || Object.keys(data.value).length === 0) {
+        setFeatured(null)
+        return
       }
+
+      setFeatured(data.value)
     } catch (err) {
-      console.log('No featured rating yet')
+      console.log('No featured rating found')
+      setFeatured(null)
     } finally {
       setLoading(false)
     }
   }
 
+  useEffect(() => {
+    fetchFeaturedRating()
+  }, [])
+
+  // Real-time listener - clears when admin removes the row
+  useEffect(() => {
+    const channel = supabase
+      .channel('featured_review_changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'site_settings',
+          filter: 'key=eq.featured_app_rating'
+        },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            setFeatured(null)        // Immediately clear when deleted
+          } else {
+            fetchFeaturedRating()    // Refresh on update/insert
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
   if (loading || !featured) return null
 
   return (
-    <div className="bg-white py-16 border-t border-b">
-      <div className="max-w-4xl mx-auto px-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-[var(--orange)]/10 text-[var(--orange)] px-5 py-2 rounded-full mb-6">
-          <FaStar className="text-xl" /> Featured Customer Review
+    <div className="bg-[var(--white)] py-20">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <p className="text-[var(--orange)] font-medium tracking-widest text-sm mb-3">
+            WHAT OUR CUSTOMERS SAY
+          </p>
+          <h2 className="text-5xl font-bold text-[var(--blue)]">
+            Testimonials
+          </h2>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-          {featured.profile_image && (
-            <div className="flex-shrink-0">
-              <Image
-                src={featured.profile_image}
-                alt={featured.user_name}
-                width={120}
-                height={120}
-                className="rounded-3xl object-cover shadow-lg"
-              />
-            </div>
-          )}
+        {/* Single Featured Card */}
+        <div className="max-w-2xl mx-auto">
+          <div className="group bg-white border-2 border-[var(--blue)] hover:border-[var(--orange)] 
+                          rounded-3xl shadow-md hover:shadow-2xl p-10 transition-all duration-300">
+            
+            {/* Profile */}
+            <div className="flex items-center gap-5 mb-8">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white shadow-md flex-shrink-0">
+                {featured.profile_image ? (
+                  <Image
+                    src={featured.profile_image}
+                    alt={featured.user_name || 'Customer'}
+                    width={80}
+                    height={80}
+                    className="object-cover"
+                    unoptimized
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/default-avatar.png'
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center text-5xl">
+                    👤
+                  </div>
+                )}
+              </div>
 
-          <div className="max-w-lg">
-            <div className="flex justify-center md:justify-start gap-1 mb-4">
-              {[1,2,3,4,5].map((s) => (
+              <div>
+                <p className="font-semibold text-2xl text-[var(--blue)] group-hover:text-[var(--orange)] transition-colors">
+                  {featured.user_name || 'Happy Customer'}
+                </p>
+                <p className="text-gray-500">Customer</p>
+              </div>
+            </div>
+
+            {/* Stars */}
+            <div className="flex gap-1 mb-6">
+              {[1, 2, 3, 4, 5].map((s) => (
                 <FaStar
                   key={s}
-                  className={`text-4xl ${s <= featured.rating ? 'text-[var(--orange)]' : 'text-gray-200'}`}
+                  className={`text-3xl transition-colors ${
+                    s <= (featured.rating || 0) ? 'text-[var(--orange)]' : 'text-gray-200'
+                  }`}
                 />
               ))}
             </div>
 
-            <p className="text-2xl italic text-gray-700 leading-relaxed">
+            {/* Review Text */}
+            <p className="text-gray-700 italic text-[17px] leading-relaxed">
               “{featured.comment}”
-            </p>
-
-            <p className="mt-8 font-semibold text-[var(--blue)]">
-              — {featured.user_name}
             </p>
           </div>
         </div>

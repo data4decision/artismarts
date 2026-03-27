@@ -18,7 +18,6 @@ import {
   FaDollarSign
 } from 'react-icons/fa'
 
-// Shared type for cards
 interface StepItem {
   name: string
   description: string
@@ -26,7 +25,6 @@ interface StepItem {
 }
 
 function HowItWork() {
-  // Single shared slider settings state
   const [sliderSettings, setSliderSettings] = useState({
     dots: true,
     infinite: true,
@@ -34,59 +32,35 @@ function HowItWork() {
     autoplay: true,
     autoplaySpeed: 4000,
     pauseOnHover: true,
-    pauseOnFocus: true,
-    pauseOnDotsHover: true,
     slidesToShow: 4,
     slidesToScroll: 1,
-    initialSlide: 0,
     arrows: true,
-    swipeToSlide: true
-  })
-
-  // Dynamic responsive adjustment (runs on mount + resize)
-  useEffect(() => {
-    const adjustSlider = () => {
-      const width = window.innerWidth
-
-      if (width <= 768) {
-        // Mobile / tablet portrait → 1 slide
-        setSliderSettings({
-          ...sliderSettings,
-          slidesToShow: 1,
+    swipeToSlide: true,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 3,
           slidesToScroll: 1,
-          dots: true,
-          arrows: false
-        })
-      } else if (width <= 1024) {
-        // Tablet / small laptop → 2 slides
-        setSliderSettings({
-          ...sliderSettings,
+        }
+      },
+      {
+        breakpoint: 768,
+        settings: {
           slidesToShow: 2,
           slidesToScroll: 1,
-          dots: true,
-          arrows: true
-        })
-      } else {
-        // Desktop → 4 slides
-        setSliderSettings({
-          ...sliderSettings,
-          slidesToShow: 4,
+        }
+      },
+      {
+        breakpoint: 640,
+        settings: {
+          slidesToShow: 1,
           slidesToScroll: 1,
-          dots: false,
-          arrows: true
-        })
+          arrows: false,
+        }
       }
-    }
-
-    // Run immediately on mount
-    adjustSlider()
-
-    // Listen for window resize
-    window.addEventListener('resize', adjustSlider)
-
-    // Cleanup
-    return () => window.removeEventListener('resize', adjustSlider)
-  }, []) // empty deps → only run once + cleanup
+    ]
+  })
 
   const steps: StepItem[] = [
     {
@@ -144,17 +118,25 @@ function HowItWork() {
     }
   ]
 
-  // Reusable typed card renderer
   const renderCard = (item: StepItem, index: number) => (
-    <div key={index} className="px-3 sm:px-4">
-      <div className="flex flex-col items-center text-center bg-white border border-[var(--blue)]/30 rounded-2xl p-6 sm:p-8 shadow-md hover:shadow-xl hover:border-[var(--orange)] transition-all duration-300 min-h-[280px] sm:min-h-[320px]">
-        <div className="mb-5 sm:mb-6 text-5xl sm:text-6xl bg-[var(--blue)] text-white rounded-full p-5 sm:p-6 border-4 border-[var(--orange)] shadow-inner">
+    <div key={index} className="px-3">
+      <div className="h-full bg-white border border-[var(--blue)]/30 hover:border-[var(--orange)] 
+                      rounded-3xl p-8 shadow-md hover:shadow-xl transition-all duration-300 
+                      flex flex-col items-center text-center min-h-[340px]">
+        
+        {/* Icon */}
+        <div className="mb-6 text-5xl text-[var(--blue)] bg-[var(--blue)]/5 w-20 h-20 
+                        flex items-center justify-center rounded-2xl border border-[var(--orange)]/20">
           {item.icon}
         </div>
-        <h3 className="text-lg sm:text-xl font-bold text-[var(--blue)] mb-3 sm:mb-4">
+
+        {/* Title */}
+        <h3 className="text-xl font-bold text-[var(--blue)] mb-4 leading-tight">
           {item.name}
         </h3>
-        <p className="text-sm sm:text-base text-[var(--blue)] leading-relaxed">
+
+        {/* Description */}
+        <p className="text-[var(--blue)]/80 text-[15px] leading-relaxed flex-1">
           {item.description}
         </p>
       </div>
@@ -162,52 +144,54 @@ function HowItWork() {
   )
 
   return (
-    <div className="py-12 sm:py-16 md:py-20 bg-[var(--orange)]/5 font-roboto">
+    <div className="py-16 md:py-20 bg-[var(--orange)]/5">
       {/* Customers Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10 sm:mb-14">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[var(--blue)] mb-3 sm:mb-4">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-[var(--blue)] mb-4">
             How it Works for Customers
           </h2>
-          <p className="text-base sm:text-lg md:text-xl text-[var(--blue)]/90 max-w-3xl mx-auto">
+          <p className="text-lg text-[var(--blue)]/80 max-w-2xl mx-auto">
             Get quality service with ArtiSmart in just a few easy steps
           </p>
         </div>
 
-        <div className="slider-container pb-8 sm:pb-12">
+        <div className="slider-container">
           <Slider {...sliderSettings}>
             {steps.map(renderCard)}
           </Slider>
         </div>
-        <div className="flex justify-center mt-8 sm:mt-12">
+
+        <div className="flex justify-center mt-12">
           <Link
             href="/signup"
-            className="inline-flex items-center px-8 sm:px-10 py-4 sm:py-5 bg-[var(--blue)] hover:bg-[var(--blue)]/90 text-white font-semibold text-base sm:text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
+            className="inline-flex items-center px-10 py-4 bg-[var(--blue)] hover:bg-[var(--blue)]/90 
+                       text-white font-semibold text-lg rounded-2xl shadow-lg transition-all duration-300"
           >
             Join as a Customer →
           </Link>
         </div>
-        
       </div>
 
       {/* Artisans Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 sm:mt-16 md:mt-20">
-        <div className="text-center mb-10 sm:mb-14">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[var(--blue)] mb-3 sm:mb-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-20">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-[var(--blue)] mb-4">
             How it Works for Artisans
           </h2>
         </div>
 
-        <div className="slider-container pb-8 sm:pb-12">
+        <div className="slider-container">
           <Slider {...sliderSettings}>
             {artisans.map(renderCard)}
           </Slider>
         </div>
 
-        <div className="flex justify-center mt-8 sm:mt-12">
+        <div className="flex justify-center mt-12">
           <Link
             href="/signup"
-            className="inline-flex items-center px-8 sm:px-10 py-4 sm:py-5 bg-[var(--blue)] hover:bg-[var(--blue)]/90 text-white font-semibold text-base sm:text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
+            className="inline-flex items-center px-10 py-4 bg-[var(--blue)] hover:bg-[var(--blue)]/90 
+                       text-white font-semibold text-lg rounded-2xl shadow-lg transition-all duration-300"
           >
             Join as an Artisan →
           </Link>
