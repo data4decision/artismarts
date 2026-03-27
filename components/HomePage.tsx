@@ -6,6 +6,7 @@ import React from 'react'
 import OurMission from './OurMission'
 import Faq from './Faq'
 import Navbar from './Navbar'
+import FeaturedAppRating from './FeaturedAppRating'
 
 
 
@@ -19,6 +20,7 @@ const HomePage = () => {
       <OurMission/>
       <HowItWork/>
       <Faq/>
+      <FeaturedAppRating/>
   
       {/* <FeaturesAndBenefit/> */}
       
