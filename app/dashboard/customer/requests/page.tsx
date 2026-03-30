@@ -31,6 +31,7 @@ interface CustomerRequest {
   budget_min: number | null
   budget_max: number | null
   location: string
+  area: string
   preferred_date: string | null
   preferred_time: string | null
   status: string
@@ -76,6 +77,7 @@ export default function MyRequestsPage() {
           budget_min,
           budget_max,
           location,
+          area,
           preferred_date,
           preferred_time,
           status,
@@ -95,6 +97,7 @@ export default function MyRequestsPage() {
         budget_min: item.budget_min ?? null,
         budget_max: item.budget_max ?? null,
         location: item.location || '',
+        area: item.area || '',
         preferred_date: item.preferred_date ?? null,
         preferred_time: item.preferred_time ?? null,
         status: item.status || 'pending',
@@ -297,22 +300,27 @@ export default function MyRequestsPage() {
 
                       <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
                         <div className="flex items-center gap-2">
-                          <FaDollarSign className="text-[var(--orange)] text-lg" />
-                          <span className="font-medium">
+                          {/* <FaDollarSign className="text-[var(--orange)] text-lg" /> */}
+                          {/* <span className="font-medium">
                             {req.budget_min ? `₦${req.budget_min.toLocaleString()}` : '—'}
                             {req.budget_max ? ` – ₦${req.budget_max.toLocaleString()}` : ''}
-                          </span>
+                          </span> */}
+                          <FaMapMarkerAlt className="text-[var(--orange)] text-lg" />
+                          <span className="truncate font-medium">Area: {req.area || 'Not specified'}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
                           <FaMapMarkerAlt className="text-[var(--orange)] text-lg" />
-                          <span className="truncate font-medium">{req.location || 'Not specified'}</span>
+                          <span className="truncate font-medium">LGA: {req.location || 'Not specified'}</span>
                         </div>
 
                         <div className="flex items-center gap-2 col-span-2">
                           <FaClock className="text-[var(--orange)] text-lg" />
                           <span className="font-medium">
-                            {req.preferred_date || 'Flexible'} {req.preferred_time ? `• ${req.preferred_time}` : ''}
+                            Preferred Date: {req.preferred_date || 'Flexible'} 
+                          </span>
+                          <span className="font-medium">
+                            Preferred Time: {req.preferred_time ? `${req.preferred_time}` : ''}
                           </span>
                         </div>
                       </div>

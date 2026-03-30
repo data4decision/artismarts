@@ -1,75 +1,114 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Slider from 'react-slick'
+import 'slick-carousel/slick/slick.css'
+import 'slick-carousel/slick/slick-theme.css'
 import { supabase } from '@/lib/supabase'
 import { FaStar } from 'react-icons/fa'
 import Image from 'next/image'
 
-export default function FeaturedAppRating() {
-  const [featured, setFeatured] = useState<any>(null)
+export default function Testimonials() {
+  const [testimonials, setTestimonials] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchFeaturedRating = async () => {
+  useEffect(() => {
+    fetchTestimonials()
+  }, [])
+
+  const fetchTestimonials = async () => {
     try {
       const { data, error } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'featured_app_rating')
-        .single()
+        .from('app_ratings')
+        .select(`
+          id,
+          rating,
+          comment,
+          created_at,
+          profiles (
+            first_name,
+            last_name,
+            profile_image
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10)   // Max 10 as requested
 
-      // If no row exists or value is empty → clear the featured review
-      if (error || !data || !data.value || Object.keys(data.value).length === 0) {
-        setFeatured(null)
-        return
-      }
+      if (error) throw error
 
-      setFeatured(data.value)
+      const formatted = (data || []).map((r: any) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment || '',
+        user_name: r.profiles 
+          ? `${r.profiles.first_name || ''} ${r.profiles.last_name || ''}`.trim() || 'Happy Customer'
+          : 'Happy Customer',
+        profile_image: r.profiles?.profile_image || null,
+        role: 'Customer'
+      }))
+
+      setTestimonials(formatted)
     } catch (err) {
-      console.log('No featured rating found')
-      setFeatured(null)
+      console.error('Failed to fetch testimonials:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchFeaturedRating()
-  }, [])
-
-  // Real-time listener - clears when admin removes the row
-  useEffect(() => {
-    const channel = supabase
-      .channel('featured_review_changes')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'site_settings',
-          filter: 'key=eq.featured_app_rating'
-        },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            setFeatured(null)        // Immediately clear when deleted
-          } else {
-            fetchFeaturedRating()    // Refresh on update/insert
-          }
+  const settings = {
+    dots: true,
+    infinite: testimonials.length > 4,
+    speed: 600,
+    slidesToShow: 4,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 5000,
+    pauseOnHover: true,
+    arrows: true,
+    responsive: [
+      {
+        breakpoint: 1280,
+        settings: {
+          slidesToShow: 3,
+          slidesToScroll: 1,
         }
-      )
-      .subscribe()
+      },
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 3,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 768,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 640,
+        settings: {
+          slidesToShow: 1,
+          slidesToScroll: 1,
+          arrows: false,
+        }
+      }
+    ]
+  }
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
+  if (loading) {
+    return <div className="py-20 text-center text-gray-500">Loading testimonials...</div>
+  }
 
-  if (loading || !featured) return null
+  if (testimonials.length === 0) return null
 
   return (
     <div className="bg-[var(--white)] py-20">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-16">
           <p className="text-[var(--orange)] font-medium tracking-widest text-sm mb-3">
             WHAT OUR CUSTOMERS SAY
           </p>
@@ -78,58 +117,63 @@ export default function FeaturedAppRating() {
           </h2>
         </div>
 
-        {/* Single Featured Card */}
-        <div className="max-w-2xl mx-auto">
-          <div className="group bg-white border-2 border-[var(--blue)] hover:border-[var(--orange)] 
-                          rounded-3xl shadow-md hover:shadow-2xl p-10 transition-all duration-300">
-            
-            {/* Profile */}
-            <div className="flex items-center gap-5 mb-8">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white shadow-md flex-shrink-0">
-                {featured.profile_image ? (
-                  <Image
-                    src={featured.profile_image}
-                    alt={featured.user_name || 'Customer'}
-                    width={80}
-                    height={80}
-                    className="object-cover"
-                    unoptimized
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/default-avatar.png'
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-100 flex items-center justify-center text-5xl">
-                    👤
+        <div className="slider-container">
+          <Slider {...settings}>
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.id} className="px-3">
+                <div className="bg-white border-2 border-[var(--blue)] hover:border-[var(--orange)] 
+                                rounded-3xl shadow-md hover:shadow-2xl p-8 h-[280px] w- flex flex-col 
+                                transition-all duration-300">
+                  
+                  {/* Profile */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gray-100 flex-shrink-0">
+                      {testimonial.profile_image ? (
+                        <Image
+                          src={testimonial.profile_image}
+                          alt={testimonial.user_name}
+                          width={64}
+                          height={64}
+                          className="object-cover"
+                          unoptimized
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/default-avatar.png'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-4xl">
+                          👤
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[var(--blue)] text-lg">
+                        {testimonial.user_name}
+                      </p>
+                      <p className="text-sm text-gray-500">{testimonial.role}</p>
+                    </div>
                   </div>
-                )}
+
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-5">
+                    {[1,2,3,4,5].map((s) => (
+                      <FaStar
+                        key={s}
+                        className={`text-2xl ${
+                          s <= testimonial.rating ? 'text-[var(--orange)]' : 'text-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Comment */}
+                  <p className="text-gray-700 italic leading-relaxed flex-1 text-[15.5px]">
+                    “{testimonial.comment}”
+                  </p>
+                </div>
               </div>
-
-              <div>
-                <p className="font-semibold text-2xl text-[var(--blue)] group-hover:text-[var(--orange)] transition-colors">
-                  {featured.user_name || 'Happy Customer'}
-                </p>
-                <p className="text-gray-500">Customer</p>
-              </div>
-            </div>
-
-            {/* Stars */}
-            <div className="flex gap-1 mb-6">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <FaStar
-                  key={s}
-                  className={`text-3xl transition-colors ${
-                    s <= (featured.rating || 0) ? 'text-[var(--orange)]' : 'text-gray-200'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Review Text */}
-            <p className="text-gray-700 italic text-[17px] leading-relaxed">
-              “{featured.comment}”
-            </p>
-          </div>
+            ))}
+          </Slider>
         </div>
       </div>
     </div>

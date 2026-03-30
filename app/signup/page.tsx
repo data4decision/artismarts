@@ -17,6 +17,12 @@ const Page = () => {
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)   
 
+  const KWARA_LGAS = [
+  'Asa','Baruten','Edu','Ekiti','Ifelodun','Ilorin East',
+  'Ilorin South','Ilorin West','Irepodun','Isin',
+  'Kaiama','Moro','Offa','Oke Ero','Oyun','Pategi'
+]
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -24,7 +30,7 @@ const Page = () => {
     password: '',
     phone: '',
     address: '',
-    state: '',
+    state: 'Kwara State',
     lga: '',
   })
 
@@ -305,7 +311,8 @@ const Page = () => {
                       id="state"
                       name="state"
                       required
-                      value={formData.state}
+                      value='Kwara State'
+                      readOnly
                       onChange={handleChange}
                       className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
                     />
@@ -315,15 +322,17 @@ const Page = () => {
                     <label htmlFor="lga" className="block text-sm font-medium text-[var(--white)]">
                       LGA
                     </label>
-                    <input
-                      type="text"
-                      id="lga"
-                      name="lga"
-                      required
-                      value={formData.lga}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
-                    />
+                    <select name="lga" id="lga" required value={formData.lga}
+                    onChange={(e) => setFormData((prev) => ({...prev,
+                      lga: e.target.value,
+                    }))}
+                    className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--white)] text-[var(--blue)] shadow-sm focus:border-[var(--orange)] px-3 py-2"
+                    >
+                      <option value="">Select LGA</option>
+                      {KWARA_LGAS.map((lga)=> (
+                        <option key={lga} value={lga}>{lga}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

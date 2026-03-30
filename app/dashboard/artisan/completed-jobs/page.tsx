@@ -26,6 +26,7 @@ interface CompletedJob {
   title: string
   description: string
   location: string
+  area: string
   status: string
   completed_at: string | null
   completion_note: string | null
@@ -66,6 +67,7 @@ export default function ArtisanCompletedJobs() {
           title,
           description,
           location,
+          area,
           status,
           completed_at,
           completion_note,
@@ -82,6 +84,7 @@ export default function ArtisanCompletedJobs() {
         title: String(item.title || 'Untitled Job'),
         description: String(item.description || ''),
         location: String(item.location || 'Not specified'),
+        area: String(item.area || 'Not specified'),
         status: String(item.status || ''),
         completed_at: item.completed_at || null,
         completion_note: item.completion_note || null,
@@ -214,7 +217,11 @@ export default function ArtisanCompletedJobs() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
                           <div className="flex items-center gap-2">
                             <FaMapMarkerAlt className="text-[var(--orange)]" />
-                            {job.location}
+                            LGA: {job.location}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <FaMapMarkerAlt className="text-[var(--orange)]" />
+                            Area: {job.area}
                           </div>
 
                           {job.customer && (

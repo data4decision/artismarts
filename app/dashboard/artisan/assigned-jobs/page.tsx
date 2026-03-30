@@ -32,6 +32,7 @@ interface AssignedJob {
   job_type: string | null
   duration: string | null
   location: string
+  area: string
   preferred_date: string | null
   preferred_time: string | null
   status: string
@@ -79,6 +80,7 @@ export default function ArtisanAssignedJobs() {
           job_type,
           duration,
           location,
+          area,
           preferred_date,
           preferred_time,
           status,
@@ -101,6 +103,7 @@ export default function ArtisanAssignedJobs() {
         job_type: item.job_type ? String(item.job_type) : null,
         duration: item.duration ? String(item.duration) : null,
         location: String(item.location || ''),
+        area: String(item.area || ''),
         preferred_date: item.preferred_date ? String(item.preferred_date) : null,
         preferred_time: item.preferred_time ? String(item.preferred_time) : null,
         status: String(item.status || 'assigned'),
@@ -274,27 +277,35 @@ export default function ArtisanAssignedJobs() {
                         </p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-[var(--blue)] mb-4">
-                          <div className="flex items-center gap-2">
+                          {/* <div className="flex items-center gap-2">
                             <FaDollarSign className="text-[var(--orange)]" />
                             Budget: {job.budget_min ? `₦${job.budget_min.toLocaleString()}` : 'Not specified'}
                             {job.budget_max ? ` – ₦${job.budget_max.toLocaleString()}` : ''}
-                          </div>
+                          </div> */}
 
                           <div className="flex items-center gap-2">
                             <FaClock className="text-[var(--orange)]" />
-                            Preferred: {job.preferred_date || 'Anytime'} {job.preferred_time || ''}
+                            Preferred Date: {job.preferred_date || 'Anytime'} 
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <FaClock className="text-[var(--orange)]" />
+                            Preferred Time:  {job.preferred_time || ''}
                           </div>
 
                           <div className="flex items-center gap-2">
                             <FaMapMarkerAlt className="text-[var(--orange)]" />
-                            {job.location}
+                           LGA: {job.location}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <FaMapMarkerAlt className="text-[var(--orange)]" />
+                            Area: {job.area}
                           </div>
 
                           {job.customer && (
                             <div className="flex items-center gap-2">
                               <FaUserTie className="text-[var(--orange)]" />
                               Customer: {job.customer.first_name} {job.customer.last_name}
-                              {job.customer.phone && ` (${job.customer.phone})`}
+                              {/* {job.customer.phone && ` (${job.customer.phone})`} */}
                             </div>
                           )}
                         </div>

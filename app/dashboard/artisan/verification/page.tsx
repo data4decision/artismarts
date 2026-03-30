@@ -262,7 +262,7 @@ export default function ArtisanVerificationPage() {
 
       toast.dismiss(toastId)
       toast.success('Verification submitted successfully!')
-      router.push('/dashboard/artisans')
+      router.push('/dashboard/artisan')
     } catch (err: any) {
       console.error('Submission error:', err)
       toast.dismiss(toastId)
@@ -321,17 +321,17 @@ export default function ArtisanVerificationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1">First Name *</label>
-                    <input {...register('first_name')} className="input" />
+                    <input {...register('first_name')} className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" />
                     {errors.first_name && <p className="text-[var(--orange)] text-sm mt-1">{errors.first_name.message}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1">Last Name *</label>
-                    <input {...register('last_name')} className="input" />
+                    <input {...register('last_name')} className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" />
                     {errors.last_name && <p className="text-[var(--orange)] text-sm mt-1">{errors.last_name.message}</p>}
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1">Phone Number *</label>
-                    <input {...register('phone')} className="input" placeholder="+234..." />
+                    <input {...register('phone')} className="mt-1 block rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)] w-[50%]" placeholder="+234..." />
                     {errors.phone && <p className="text-[var(--orange)] text-sm mt-1">{errors.phone.message}</p>}
                   </div>
                 </div>
@@ -345,13 +345,13 @@ export default function ArtisanVerificationPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Business / Shop Name *</label>
-                    <input {...register('business_name')} className="input" placeholder="e.g. Ade's Plumbing Works" />
+                    <input {...register('business_name')} className="mt-1 block w-[50%] rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" placeholder="e.g. Ade's Plumbing Works" />
                     {errors.business_name && <p className="text-[var(--orange)] text-sm mt-1.5">{errors.business_name.message}</p>}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">ID Type *</label>
-                    <select {...register('business_id_type')} className="input">
+                    <select {...register('business_id_type')} className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]">
                       <option value="">Select...</option>
                       <option value="nin">NIN</option>
                       <option value="voters_card">Voter's Card</option>
@@ -364,31 +364,31 @@ export default function ArtisanVerificationPage() {
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">
                       {idType === 'nin' ? 'NIN (11 digits)' : 'ID Number'} *
                     </label>
-                    <input {...register('business_id_number')} className="input" />
+                    <input {...register('business_id_number')} className="mt-1 block w-[50%] rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" />
                     {errors.business_id_number && <p className="text-[var(--orange)] text-sm mt-1.5">{errors.business_id_number.message}</p>}
                   </div>
 
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Residential Address *</label>
-                    <input {...register('residential_address')} className="input" placeholder="House number, Street, Area, City" />
+                    <input {...register('residential_address')} className="mt-1 block w-[50%] rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" placeholder="House number, Street, Area, City" />
                     {errors.residential_address && <p className="text-[var(--orange)] text-sm mt-1.5">{errors.residential_address.message}</p>}
                   </div>
 
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Shop / Workshop Address *</label>
-                    <input {...register('shop_address')} className="input" placeholder="Market, Street, Area, City" />
+                    <input {...register('shop_address')} className="mt-1 block w-[50%] rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" placeholder="Market, Street, Area, City" />
                     {errors.shop_address && <p className="text-[var(--orange)] text-sm mt-1.5">{errors.shop_address.message}</p>}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Association Name *</label>
-                    <input {...register('association_name')} className="input" />
+                    <input {...register('association_name')} className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" />
                     {errors.association_name && <p className="text-[var(--orange)] text-sm mt-1.5">{errors.association_name.message}</p>}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Association Address *</label>
-                    <input {...register('association_address')} className="input" />
+                    <input {...register('association_address')} className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" />
                     {errors.association_address && <p className="text-[var(--orange)] text-sm mt-1.5">{errors.association_address.message}</p>}
                   </div>
                 </div>
@@ -402,14 +402,15 @@ export default function ArtisanVerificationPage() {
                 <p className="text-[var(--blue)]">Upload all four files</p>
 
                 {[
-                  { key: 'passport', label: 'Passport Photograph', accept: 'image/*' },
-                  { key: 'government_id', label: 'Government ID', accept: 'image/*,application/pdf' },
-                  { key: 'trade_certificate', label: 'Trade Certificate', accept: 'image/*,application/pdf' },
-                  { key: 'reference_letter', label: 'Reference Letter', accept: 'image/*,application/pdf' },
+                  { key: 'passport', label: 'Passport Photograph', accept: 'image/*', des: 'Your Passport Picture' },
+                  { key: 'government_id', label: 'Government ID', accept: 'image/*,application/pdf', des: 'Your Government Issued ID, e.g., Drivers Licence, voters Cord, or NIN slip' },
+                  { key: 'trade_certificate', label: 'Trade Certificate', accept: 'image/*,application/pdf', des: 'Your Trade Certificate or training qualification from the place where you learned the skill' },
+                  { key: 'reference_letter', label: 'Reference Letter', accept: 'image/*,application/pdf', des: 'A letter from a previous client, employer, or association' },
                 ].map(item => (
                   <div key={item.key} className="border-2 border-dashed border-[var(--blue)] border-opacity-40 rounded-xl p-6 text-center">
                     <Upload className="w-10 h-10 text-[var(--blue)] mx-auto mb-3 opacity-60" />
                     <p className="font-medium text-[var(--blue)]">{item.label} *</p>
+                    <p className="text-sm text-gray-500">{item.des}</p>
 
                     <input
                       type="file"

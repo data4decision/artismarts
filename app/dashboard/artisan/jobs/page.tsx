@@ -30,6 +30,7 @@ interface ActiveJob {
   budget_min: number | null
   budget_max: number | null
   location: string
+  area: string
   status: string
   created_at: string
   customer: {
@@ -70,6 +71,7 @@ export default function ActiveJobsPage() {
           budget_min,
           budget_max,
           location,
+          area,
           status,
           created_at,
           customer:customer_id (first_name, last_name, phone)
@@ -87,6 +89,7 @@ export default function ActiveJobsPage() {
         budget_min: item.budget_min != null ? Number(item.budget_min) : null,
         budget_max: item.budget_max != null ? Number(item.budget_max) : null,
         location: String(item.location || ''),
+        area: String(item.area || ''),
         status: String(item.status || 'in_progress'),
         created_at: String(item.created_at || ''),
         customer: item.customer ? {
@@ -174,7 +177,7 @@ export default function ActiveJobsPage() {
                   No active jobs right now
                 </h3>
                 <p className="mb-6">
-                  Accept an assigned job to start working — it will appear here.
+                  Accept an assigned job to start working - it will appear here.
                 </p>
                 <Link
                   href="/dashboard/artisan/assigned-jobs"
@@ -211,14 +214,16 @@ export default function ActiveJobsPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
                           <div className="flex items-center gap-2">
-                            <FaDollarSign className="text-[var(--orange)]" />
+                            {/* <FaDollarSign className="text-[var(--orange)]" />
                             Budget: {job.budget_min ? `₦${job.budget_min.toLocaleString()}` : '—'}
-                            {job.budget_max ? ` – ₦${job.budget_max.toLocaleString()}` : ''}
+                            {job.budget_max ? ` – ₦${job.budget_max.toLocaleString()}` : ''} */}
+                            <FaMapMarkerAlt className="text-[var(--orange)]" />
+                           Area: {job.area}
                           </div>
 
                           <div className="flex items-center gap-2">
                             <FaMapMarkerAlt className="text-[var(--orange)]" />
-                            {job.location}
+                           LGA: {job.location}
                           </div>
 
                           {job.customer && (

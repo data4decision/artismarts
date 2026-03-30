@@ -24,6 +24,7 @@ interface JobRequest {
   preferred_date: string | null
   preferred_time: string | null
   attachment_url: string | null
+  area: string | null
   status: string
   created_at: string
   customer: {
@@ -72,6 +73,7 @@ export default function AdminRequestsDashboard() {
           preferred_time,
           attachment_url,
           status,
+          area,
           created_at,
           customer:customer_id (first_name, last_name, phone),
           preferred_artisan:preferred_artisan_id (first_name, last_name, primary_skill)
@@ -94,6 +96,7 @@ export default function AdminRequestsDashboard() {
         duration: item.duration || null,
         location: item.location || '',
         preferred_date: item.preferred_date || null,
+        area: item.area || null,
         preferred_time: item.preferred_time || null,
         attachment_url: item.attachment_url || null,
         status: item.status || 'pending',
@@ -326,9 +329,17 @@ export default function AdminRequestsDashboard() {
 
                         <div className="flex items-start gap-3">
                           <FaClock className="text-[var(--orange)] mt-1 text-xl" />
-                          <div>
+                          <div className="flex flex-col gap-2">
+                            <div>
                             <p className="font-medium text-[var(--blue)]">Preferred Time</p>
-                            <p>{request.preferred_date || 'Anytime'} {request.preferred_time || ''}</p>
+                            <p>{request.preferred_time || 'Anytime'} </p>
+                           
+                          </div>
+                          <div>
+                            <p className="font-medium text-[var(--blue)]">Preferred Date</p>
+                           
+                            <p>{request.preferred_date || 'Anytime'} </p>
+                          </div>
                           </div>
                         </div>
 
@@ -337,6 +348,7 @@ export default function AdminRequestsDashboard() {
                           <div>
                             <p className="font-medium text-[var(--blue)]">Location</p>
                             <p className="break-words">{request.location}</p>
+                            <p className="break-words">{request.area}</p>
                           </div>
                         </div>
                       </div>
