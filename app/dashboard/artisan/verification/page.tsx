@@ -467,15 +467,15 @@ export default function ArtisanVerificationPage() {
                   <input
                     type="number"
                     {...register('years_of_experience', { valueAsNumber: true })}
-                    className="input"
                     min="0"
                     max="60"
+                    className="mt-1 block w-[30%] rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-[var(--blue)] mb-1">Preferred Work Location *</label>
-                  <input {...register('work_location')} className="input" />
+                  <input {...register('work_location')} className="mt-1 block w-[40%] rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]" />
                   {errors.work_location && <p className="text-[var(--orange)] text-sm mt-1">{errors.work_location.message}</p>}
                 </div>
               </div>
