@@ -404,7 +404,7 @@ export default function ArtisanVerificationPage() {
                 {[
                   { key: 'passport', label: 'Passport Photograph', accept: 'image/*', des: 'Your Passport Picture' },
                   { key: 'government_id', label: 'Government ID', accept: 'image/*,application/pdf', des: 'Your Government Issued ID, e.g., Drivers Licence, voters Cord, or NIN slip' },
-                  { key: 'trade_certificate', label: 'Trade Certificate', accept: 'image/*,application/pdf', des: 'Your Trade Certificate or training qualification from the place where you learned the skill' },
+                  { key: 'trade_certificate', label: 'Trade Certificate', accept: 'image/*,application/pdf', des: 'Trade Certificate from your apprenticeship or training' },
                   { key: 'reference_letter', label: 'Reference Letter', accept: 'image/*,application/pdf', des: 'A letter from a previous client, employer, or association' },
                 ].map(item => (
                   <div key={item.key} className="border-2 border-dashed border-[var(--blue)] border-opacity-40 rounded-xl p-6 text-center">
