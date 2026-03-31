@@ -36,6 +36,7 @@ interface Job {
   id: string
   title: string
   status: string
+  customer_id: string | null
   customer: {
     first_name: string | null
     last_name: string | null
@@ -149,13 +150,6 @@ export default function ArtisanChatPage() {
       setMessages(prev =>
         prev.map(m => (m.seen_at || !m.is_admin) ? m : { ...m, seen_at: now })
       )
-      await supabase
-  .from('user_job_read_status')
-  .upsert({
-    user_id: currentUserId,
-    job_id: jobId,
-    last_read_at: now
-  })
     }
 
     markAsSeen()
@@ -257,6 +251,7 @@ export default function ArtisanChatPage() {
           id,
           title,
           status,
+          customer_id,
           customer:customer_id (first_name, last_name)
         `)
         .eq('id', jobId)
@@ -274,6 +269,7 @@ export default function ArtisanChatPage() {
         id: rawJob.id || '',
         title: rawJob.title || '',
         status: rawJob.status || 'unknown',
+        customer_id: rawJob.customer_id,
         customer: customerData ? {
           first_name: customerData.first_name ?? null,
           last_name: customerData.last_name ?? null,
@@ -304,7 +300,7 @@ export default function ArtisanChatPage() {
   }
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || sending || !jobId || !currentUserId) return
+    if (!newMessage.trim() || sending || !jobId || !currentUserId || !job?.customer_id) return
 
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
@@ -312,7 +308,7 @@ export default function ArtisanChatPage() {
       id: tempId,
       job_id: jobId as string,
       sender_id: currentUserId,
-      receiver_id: '',
+      receiver_id: job.customer_id,
       content: newMessage.trim(),
       created_at: new Date().toISOString(),
       seen_at: null,
@@ -334,28 +330,18 @@ export default function ArtisanChatPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { data: jobData, error: jobError } = await supabase
-        .from('job_requests')
-        .select('customer_id')
-        .eq('id', jobId)
-        .single()
-
-      if (jobError) throw jobError
-      if (!jobData?.customer_id) throw new Error('No customer found for this job')
-
       const { error: insertError } = await supabase
         .from('admin_artisan_messages')
         .insert({
           job_id: jobId,
           sender_id: currentUserId,
-          receiver_id: jobData.customer_id,
+          receiver_id: job.customer_id,
           content: newMessage.trim(),
           seen_at: null,
         })
 
       if (insertError) throw insertError
 
-      // Real-time will bring the real message eventually
     } catch (err: any) {
       console.error('Send failed:', err)
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id))
@@ -384,7 +370,6 @@ export default function ArtisanChatPage() {
 
     const originalContent = messages.find(m => m.id === editingMessageId)?.content || ''
 
-    // Optimistic update
     setMessages(prev =>
       prev.map(m =>
         m.id === editingMessageId
@@ -410,7 +395,6 @@ export default function ArtisanChatPage() {
       cancelEdit()
     } catch (err: any) {
       console.error('Edit failed:', err)
-      // Rollback
       setMessages(prev =>
         prev.map(m =>
           m.id === editingMessageId ? { ...m, content: originalContent, is_edited: false, edited_at: null } : m
@@ -423,7 +407,6 @@ export default function ArtisanChatPage() {
   const handleDeleteMessage = async (messageId: string) => {
     if (!confirm('Delete this message? This cannot be undone.')) return
 
-    // Optimistic delete
     setMessages(prev =>
       prev.map(m =>
         m.id === messageId ? { ...m, deleted_at: new Date().toISOString() } : m
@@ -442,7 +425,6 @@ export default function ArtisanChatPage() {
       toast.success('Message deleted')
     } catch (err: any) {
       console.error('Delete failed:', err)
-      // Rollback
       setMessages(prev =>
         prev.map(m =>
           m.id === messageId ? { ...m, deleted_at: null } : m
