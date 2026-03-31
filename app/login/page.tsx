@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 export default function Login() {
   const router = useRouter();
@@ -17,6 +17,7 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials((prev) => ({
@@ -112,14 +113,14 @@ export default function Login() {
           </div>
 
           {/* Password */}
-          <div>
+          <div className='relative'>
             <label htmlFor="password" className="block text-sm font-medium text-[var(--white)]">
               Password
             </label>
             <input
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               required
               value={credentials.password}
@@ -127,7 +128,15 @@ export default function Login() {
               placeholder="••••••••"
               className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm focus:border-[var(--blue)] focus:ring-[var(--orange)] sm:text-sm px-3 py-2"
             />
+            <button type='button' 
+            onClick={()=> 
+            setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 top-5 pr-3 flex  items-center text-[var(--blue)]"
+            >
+              {showPassword ? <FaEye/> : <FaEyeSlash/>}
+            </button>
           </div>
+          
 
           <div className="flex items-center justify-between">
             <div className="text-sm">

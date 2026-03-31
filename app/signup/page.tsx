@@ -257,7 +257,7 @@ const Page = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--white)]"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--blue)]"
                     >
                       {showPassword ? <FaEye /> : <FaEyeSlash />}
                     </button>
