@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -6,9 +5,18 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { 
-  FaSpinner, FaArrowLeft, FaPaperPlane, FaExclamationTriangle,
-  FaCheckDouble, FaCommentDots, FaEdit, FaTrash, FaArrowDown,
-  FaReply, FaCopy, FaTimes
+  FaSpinner, 
+  FaArrowLeft, 
+  FaPaperPlane, 
+  FaExclamationTriangle,
+  FaCheckDouble, 
+  FaCommentDots, 
+  FaEdit, 
+  FaTrash, 
+  FaArrowDown,
+  FaReply, 
+  FaCopy, 
+  FaTimes 
 } from 'react-icons/fa'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -17,7 +25,7 @@ interface Message {
   id: string
   job_request_id: string
   sender_id: string
-  receiver_id: string | null
+  receiver_id: string
   content: string
   created_at: string
   seen_at: string | null
@@ -26,28 +34,25 @@ interface Message {
   deleted_at?: string | null
   reply_to_id?: string | null
   reply_to_content?: string | null
-  reply_to_sender?: string | null
-  is_admin: boolean         
+  is_admin: boolean
 }
 
-interface Customer {
-  first_name: string | null
-  last_name: string | null
-}
-
-interface JobRequest {
+interface Job {
   id: string
   title: string
   status: string
-  customer_id: string | null
-  customer?: Customer | null
+  customer_id?: string | null
+  customer?: {
+    first_name: string | null
+    last_name: string | null
+  } | null
 }
 
 export default function AdminCustomerChatPage() {
   const { jobRequestId } = useParams<{ jobRequestId: string }>()
   const router = useRouter()
 
-  const [job, setJob] = useState<JobRequest | null>(null)
+  const [job, setJob] = useState<Job | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -59,7 +64,7 @@ export default function AdminCustomerChatPage() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
 
-  // Context menu + reply
+  // Context menu + Reply
   const [openMessageId, setOpenMessageId] = useState<string | null>(null)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
 
@@ -68,14 +73,11 @@ export default function AdminCustomerChatPage() {
   const prevMessagesLengthRef = useRef(0)
   const isPageVisibleRef = useRef(true)
 
-  // ──────────────────────────────────────────────
-  // Init + Realtime
-  // ──────────────────────────────────────────────
-
+  // Initialize + Realtime (ensures instant updates)
   useEffect(() => {
     if (!jobRequestId || typeof jobRequestId !== 'string') {
-      toast.error('Invalid job request ID')
-      router.replace('/admin-dashboard/messages')
+      toast.error('Invalid job ID')
+      router.replace('/dashboard/admin/jobs')
       return
     }
 
@@ -87,59 +89,68 @@ export default function AdminCustomerChatPage() {
         return
       }
       setCurrentUserId(user.id)
-      await fetchJobAndMessages()
+      await fetchJobAndMessages(user.id)
     }
+
     init()
-  }, [jobRequestId, router])
 
-  useEffect(() => {
-    if (!job || !currentUserId) return
-
-    // Realtime messages — only admin_customer_messages
+    // Realtime - This ensures new messages appear instantly without refresh
     const messageChannel = supabase
       .channel(`admin-customer-chat:${jobRequestId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'admin_customer_messages',
-        filter: `job_request_id=eq.${jobRequestId}`
-      }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          const msg = payload.new as Message
-          setMessages(prev => [...prev, {
-            ...msg,
-            is_admin: msg.sender_id === currentUserId
-          }])
-          scrollToBottom()
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'admin_customer_messages',
+          filter: `job_request_id=eq.${jobRequestId}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newMsg = payload.new as any
 
-          if (msg.sender_id !== currentUserId) {
-            toast('New message from customer', {
-              icon: '💬',
-              duration: 4000,
-              position: 'top-right'
-            })
-
-            if (!isPageVisibleRef.current) {
-              if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
-              try {
-                const audio = new Audio('/notification.mp3')
-                audio.volume = 0.5
-                audio.play().catch(() => {})
-              } catch {}
+            const processedMsg: Message = {
+              ...newMsg,
+              is_admin: newMsg.sender_id === currentUserId
             }
+
+            setMessages(prev => [...prev, processedMsg])
+            scrollToBottom()
+
+            if (newMsg.sender_id !== currentUserId && !newMsg.deleted_at) {
+              toast('New message from customer', {
+                icon: '💬',
+                duration: 4000,
+                position: 'top-right',
+                style: { background: '#0b0b5c', color: '#ffffff', border: '1px solid #f47b20' }
+              })
+
+              if (!isPageVisibleRef.current) {
+                if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
+                try {
+                  new Audio('/notification.mp3').play().catch(() => {})
+                } catch {}
+              }
+            }
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as any
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === updated.id
+                  ? { ...updated, is_admin: updated.sender_id === currentUserId }
+                  : m
+              )
+            )
           }
-        } else if (payload.eventType === 'UPDATE') {
-          const updated = payload.new as Message
-          setMessages(prev => prev.map(m => m.id === updated.id ? updated : m))
         }
-      })
+      )
       .subscribe()
 
-    // Typing from customer
     const typingChannel = supabase
       .channel(`typing:${jobRequestId}`)
       .on('broadcast', { event: 'typing' }, (payload) => {
-        const { is_typing, user_id } = payload.payload
+        const { is_typing, user_id } = payload.payload as { is_typing: boolean; user_id: string }
         if (user_id !== currentUserId) setOtherIsTyping(is_typing)
       })
       .subscribe()
@@ -148,47 +159,35 @@ export default function AdminCustomerChatPage() {
       supabase.removeChannel(messageChannel)
       supabase.removeChannel(typingChannel)
     }
-  }, [job, currentUserId, jobRequestId])
+  }, [jobRequestId, router])
 
-  // Mark customer messages as seen by admin
+  // Mark messages as seen
   useEffect(() => {
     if (!jobRequestId || loading || !currentUserId) return
 
     const markAsSeen = async () => {
-      const unseenFromCustomer = messages.filter(
-        m => !m.seen_at && !m.is_admin && !m.deleted_at
-      )
-
-      if (unseenFromCustomer.length === 0) return
+      const unseen = messages.filter(m => !m.seen_at && !m.is_admin && !m.deleted_at)
+      if (unseen.length === 0) return
 
       const now = new Date().toISOString()
 
       await supabase
         .from('admin_customer_messages')
         .update({ seen_at: now })
-        .in('id', unseenFromCustomer.map(m => m.id))
+        .in('id', unseen.map(m => m.id))
 
       setMessages(prev =>
-        prev.map(m => (m.seen_at || m.is_admin) ? m : { ...m, seen_at: now })
+        prev.map(m => unseen.some(u => u.id === m.id) ? { ...m, seen_at: now } : m)
       )
-     await supabase
-  .from('user_job_read_status')
-  .upsert({
-    user_id: currentUserId,
-    job_request_id: jobRequestId,
-    last_read_at: now
-  })
     }
 
     markAsSeen()
     window.addEventListener('focus', markAsSeen)
     return () => window.removeEventListener('focus', markAsSeen)
-  }, [jobRequestId, loading, messages, currentUserId])
+  }, [messages, jobRequestId, loading, currentUserId])
 
   useEffect(() => {
-    const handleVisibility = () => {
-      isPageVisibleRef.current = document.visibilityState === 'visible'
-    }
+    const handleVisibility = () => isPageVisibleRef.current = document.visibilityState === 'visible'
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
@@ -212,117 +211,100 @@ export default function AdminCustomerChatPage() {
   }
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
   }
 
-  const fetchJobAndMessages = async () => {
-    setLoading(true)
+  const fetchJobAndMessages = async (userId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const { data: rawJob, error: jobError } = await supabase
+      const { data: rawJob } = await supabase
         .from('job_requests')
         .select(`
-          id,
-          title,
-          status,
-          customer_id,
+          id, title, status, customer_id,
           customer:customer_id (first_name, last_name)
         `)
         .eq('id', jobRequestId)
         .single()
 
-      if (jobError || !rawJob) throw jobError || new Error('Job request not found')
+      if (!rawJob) throw new Error('Job not found')
 
       setJob({
-        id: rawJob.id || '',
+        id: rawJob.id,
         title: rawJob.title || '',
-        status: rawJob.status || 'unknown',
+        status: rawJob.status || '',
         customer_id: rawJob.customer_id,
         customer: rawJob.customer ? {
           first_name: (rawJob.customer as any)?.first_name ?? null,
-          last_name: (rawJob.customer as any)?.last_name ?? null
+          last_name: (rawJob.customer as any)?.last_name ?? null,
         } : null
       })
 
-      const { data: msgData, error: msgError } = await supabase
+      const { data: msgData } = await supabase
         .from('admin_customer_messages')
         .select('*')
         .eq('job_request_id', jobRequestId)
         .order('created_at', { ascending: true })
 
-      if (msgError) throw msgError
-
-      setMessages(
-        (msgData || []).map(msg => ({
-          ...msg,
-          is_admin: msg.sender_id === user.id
-        }))
-      )
+      setMessages((msgData || []).map(msg => ({
+        ...msg,
+        is_admin: msg.sender_id === userId
+      })))
 
       scrollToBottom()
     } catch (err: any) {
-      console.error('Chat load failed:', err)
-      toast.error(err.message || 'Failed to load customer chat')
-      router.replace('/admin-dashboard/messages')
+      toast.error(err.message || 'Failed to load chat')
+      router.replace('/dashboard/admin/jobs')
     } finally {
       setLoading(false)
     }
   }
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || sending || !currentUserId || !jobRequestId || !job) return
+    const trimmed = newMessage.trim()
+    if (!trimmed || sending || !currentUserId || !jobRequestId) return
 
+    const tempId = `temp-${Date.now()}`
+
+    const optimisticMsg: Message = {
+      id: tempId,
+      job_request_id: jobRequestId,
+      sender_id: currentUserId,
+      receiver_id: job?.customer_id || '',
+      content: trimmed,
+      created_at: new Date().toISOString(),
+      seen_at: null,
+      is_edited: false,
+      edited_at: null,
+      deleted_at: null,
+      reply_to_id: replyTo?.id || null,
+      reply_to_content: replyTo?.content || null,
+      is_admin: true
+    }
+
+    setMessages(prev => [...prev, optimisticMsg])
+    setNewMessage('')
     setSending(true)
+    scrollToBottom()
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const { error } = await supabase
-        .from('admin_customer_messages')
-        .insert({
-          job_request_id: jobRequestId,
-          sender_id: user.id,
-          receiver_id: job.customer_id || null,
-          content: newMessage.trim(),
-          seen_at: null,
-          reply_to_id: replyTo?.id || null
-        })
+      const { error } = await supabase.from('admin_customer_messages').insert({
+        job_request_id: jobRequestId,
+        sender_id: currentUserId,
+        receiver_id: job?.customer_id || '',
+        content: trimmed,
+        reply_to_id: replyTo?.id || null,
+      })
 
       if (error) throw error
-
-      setNewMessage('')
       setReplyTo(null)
-      scrollToBottom()
     } catch (err: any) {
+      setMessages(prev => prev.filter(m => m.id !== tempId))
       toast.error('Failed to send message')
-      console.error(err)
     } finally {
       setSending(false)
     }
   }
 
-  const showContextMenu = (e: React.MouseEvent, msg: Message) => {
-    e.preventDefault()
-    if (msg.sender_id !== currentUserId || msg.deleted_at) return
-    setOpenMessageId(msg.id)
-  }
-
-  const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content)
-    toast.success('Copied')
-    setOpenMessageId(null)
-  }
-
-  const handleReply = (msg: Message) => {
-    setReplyTo(msg)
-    setOpenMessageId(null)
-  }
-
-  const cancelReply = () => setReplyTo(null)
-
+  // ==================== EDITING ====================
   const startEdit = (msg: Message) => {
     if (msg.sender_id !== currentUserId || msg.deleted_at) return
     setEditingMessageId(msg.id)
@@ -341,8 +323,9 @@ export default function AdminCustomerChatPage() {
       return
     }
 
-    const original = messages.find(m => m.id === editingMessageId)?.content || ''
+    const originalContent = messages.find(m => m.id === editingMessageId)?.content || ''
 
+    // Optimistic update
     setMessages(prev =>
       prev.map(m =>
         m.id === editingMessageId
@@ -364,48 +347,64 @@ export default function AdminCustomerChatPage() {
 
       if (error) throw error
 
-      toast.success('Message updated')
+      toast.success('Message updated successfully')
       cancelEdit()
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      toast.error('Update failed')
-      setMessages(prev => prev.map(m => m.id === editingMessageId ? { ...m, content: original } : m))
+      // Revert optimistic update
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === editingMessageId ? { ...m, content: originalContent, is_edited: false, edited_at: null } : m
+        )
+      )
+      toast.error('Failed to update message')
     }
   }
 
-  const handleDeleteMessage = async (id: string) => {
-    if (!confirm('Delete this message?')) return
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm('Delete this message? This cannot be undone.')) return
 
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, deleted_at: new Date().toISOString() } : m))
+    setMessages(prev =>
+      prev.map(m => m.id === messageId ? { ...m, deleted_at: new Date().toISOString() } : m)
+    )
 
     try {
       const { error } = await supabase
         .from('admin_customer_messages')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id)
+        .eq('id', messageId)
         .eq('sender_id', currentUserId!)
 
       if (error) throw error
-
-      toast.success('Deleted')
+      toast.success('Message deleted')
     } catch (err) {
-      console.error(err)
-      toast.error('Delete failed')
-      setMessages(prev => prev.map(m => m.id === id ? { ...m, deleted_at: null } : m))
+      setMessages(prev =>
+        prev.map(m => m.id === messageId ? { ...m, deleted_at: null } : m)
+      )
+      toast.error('Failed to delete message')
     }
   }
 
+  const showContextMenu = (e: React.MouseEvent, msg: Message) => {
+    e.preventDefault()
+    if (msg.sender_id !== currentUserId || msg.deleted_at) return
+    setOpenMessageId(msg.id)
+  }
+
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content)
+    toast.success('Copied to clipboard')
+    setOpenMessageId(null)
+  }
+
+  // ==================== RENDER ====================
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
-      <div className="relative flex items-center justify-center">
-      {/* Outer spinning ring */}
-        <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
-        {/* Inner static logo with subtle pulse */}
-          <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
-            <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
-                <Image src="/log.png" width={48} height={48}  priority alt="Loading..." className="object-contain"  />  
-            </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="relative flex items-center justify-center">
+          <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)]" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Image src="/log.png" width={48} height={48} alt="Loading" />
           </div>
         </div>
       </div>
@@ -417,61 +416,47 @@ export default function AdminCustomerChatPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="text-center max-w-md">
           <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-[var(--blue)] mb-4">
-            Job request not found
-          </h2>
-          <p className="text-[var(--blue)] mb-8">
-            This request may not exist or has no customer associated.
-          </p>
-          <Link
-            href="/admin-dashboard/messages"
-            className="inline-flex items-center px-8 py-4 bg-[var(--blue)] text-white rounded-xl hover:bg-blue-700 transition shadow-md"
-          >
-            <FaArrowLeft className="mr-2" />
-            Back to Messages
+          <h2 className="text-2xl font-bold text-[var(--blue)] mb-4">Job not found</h2>
+          <Link href="/dashboard/admin/jobs" className="inline-flex items-center px-8 py-4 bg-[var(--blue)] text-white rounded-xl hover:bg-blue-700">
+            <FaArrowLeft className="mr-2" /> Back to Jobs
           </Link>
         </div>
       </div>
     )
   }
 
-  const customerName = job.customer 
-    ? `${job.customer.first_name ?? ''} ${job.customer.last_name ?? ''}`.trim() || 'Customer'
-    : 'Customer'
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col relative">
       {/* Header */}
-      <header className="bg-gradient-to-r from-[var(--orange)] to-[var(--blue)] mt-15 text-white px-6 py-4 shadow-lg fixed top-0 left-0 right-0 z-20">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4 sm:ml-15">
-            <button onClick={() => router.back()} className="hover:opacity-80">
-              <FaArrowLeft size={24} />
-            </button>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold">
-                Chat with Customer - {job.title}
-              </h1>
-              <p className="text-sm opacity-90 mt-1">
-                {customerName}
-              </p>
-            </div>
+      <header className="bg-gradient-to-r from-[var(--blue)] to-[var(--orange)] mt-16 text-white px-6 py-4 shadow-lg fixed top-0 left-0 right-0 z-20">
+        <div className="max-w-5xl mx-auto flex items-center gap-4">
+          <button onClick={() => router.back()}>
+            <FaArrowLeft size={24} />
+          </button>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold">Chat with Customer - {job.title}</h1>
+            <p className="text-sm opacity-90">
+              {job.customer 
+                ? `${job.customer.first_name || ''} ${job.customer.last_name || ''}`.trim() 
+                : 'Customer'}
+            </p>
           </div>
         </div>
       </header>
 
-      {/* Messages */}
-      <main className="flex-1 overflow-y-auto pt-28 pb-32 px-4 md:px-6 max-w-5xl mx-auto w-full bg-gray-50">
+      {/* Messages Area */}
+      <main className="flex-1 overflow-y-auto pt-28 pb-32 px-4 md:px-6 max-w-5xl mx-auto w-full">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center text-gray-500">
             <FaCommentDots className="text-6xl text-[var(--orange)] mb-4" />
             <p className="text-lg font-medium">No messages yet</p>
-            <p className="text-sm mt-2">Start the conversation with the customer</p>
+            <p className="text-sm mt-2">Start the conversation</p>
           </div>
         ) : (
           <div className="space-y-4">
             {messages.map((msg) => {
-              const isOwn = currentUserId && msg.sender_id === currentUserId
+              const isOwn = msg.is_admin
+
               return (
                 <div
                   key={msg.id}
@@ -479,37 +464,63 @@ export default function AdminCustomerChatPage() {
                   onContextMenu={(e) => showContextMenu(e, msg)}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
                       isOwn
                         ? 'bg-[var(--orange)] text-white rounded-br-none'
                         : 'bg-white text-gray-900 rounded-bl-none border border-gray-200'
                     } ${msg.deleted_at ? 'opacity-60' : ''}`}
                   >
-                    {msg.reply_to_id && msg.reply_to_content && (
+                    {msg.reply_to_content && (
                       <div className="mb-2 pl-3 border-l-4 border-[var(--orange)] text-xs opacity-80">
-                        <p className="font-medium">
-                          Replying to {msg.reply_to_sender}:
-                        </p>
+                        <p className="font-medium">Replying to:</p>
                         <p className="line-clamp-1">{msg.reply_to_content}</p>
                       </div>
                     )}
 
                     {msg.deleted_at ? (
-                      <p className="text-sm italic text-gray-600">Message deleted</p>
+                      <p className="text-sm italic text-gray-600">This message was deleted</p>
+                    ) : editingMessageId === msg.id ? (
+                      // ==================== EDIT MODE ====================
+                      <div className="flex flex-col gap-2">
+                        <textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--orange)] text-sm"
+                          rows={3}
+                          autoFocus
+                        />
+                        <div className="flex gap-3 justify-end text-sm">
+                          <button 
+                            onClick={cancelEdit}
+                            className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={saveEdit}
+                            disabled={!editText.trim()}
+                            className="px-5 py-2 bg-[var(--orange)] text-white rounded-lg hover:bg-orange-600 font-medium disabled:opacity-50 flex items-center gap-2"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
                     ) : (
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                     )}
 
-                    <div className="flex items-center justify-end gap-2 text-xs opacity-70 mt-1">
-                      {msg.is_edited && <span className="italic">edited</span>}
-                      <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      {isOwn && msg.seen_at && <FaCheckDouble className="text-blue-600" />}
-                    </div>
+                    {!msg.deleted_at && !editingMessageId && (
+                      <div className="flex items-center justify-end gap-2 text-xs opacity-70 mt-1">
+                        {msg.is_edited && <span className="italic">edited</span>}
+                        <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        {isOwn && msg.seen_at && <FaCheckDouble className="text-blue-600" />}
+                      </div>
+                    )}
                   </div>
 
-                  {isOwn && !msg.deleted_at && (
+                  {isOwn && !msg.deleted_at && editingMessageId !== msg.id && (
                     <button
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-white shadow-sm hover:bg-gray-100"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded-full bg-white shadow-sm hover:bg-gray-100"
                       onClick={() => setOpenMessageId(openMessageId === msg.id ? null : msg.id)}
                     >
                       <FaArrowDown className="w-4 h-4 text-gray-600" />
@@ -518,27 +529,23 @@ export default function AdminCustomerChatPage() {
                 </div>
               )
             })}
-            {otherIsTyping && (
-              <div className="flex items-center text-[var(--orange)] text-sm italic pl-4">
-                Customer is typing...
-              </div>
-            )}
+
+            {otherIsTyping && <div className="pl-4 text-[var(--orange)] text-sm italic">Customer is typing...</div>}
             <div ref={messagesEndRef} />
           </div>
         )}
       </main>
 
-      {/* Input Bar */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 shadow-lg z-10">
-        <div className="max-w-5xl mx-auto flex flex-col gap-2">
+      {/* Input Area */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-3 shadow-lg z-10">
+        <div className="max-w-5xl mx-auto">
           {replyTo && (
-            <div className="flex items-center gap-3 bg-gray-100 px-4 py-2 rounded-lg text-sm">
+            <div className="mb-3 bg-gray-100 px-4 py-2 rounded-lg flex items-center gap-3 text-sm">
               <FaReply className="text-[var(--orange)]" />
               <div className="flex-1 truncate">
-                <span className="font-medium">Replying to:</span>{' '}
-                {replyTo.content.slice(0, 80)}{replyTo.content.length > 80 ? '...' : ''}
+                Replying to: {replyTo.content.slice(0, 60)}{replyTo.content.length > 60 ? '...' : ''}
               </div>
-              <button onClick={cancelReply} className="text-gray-600 hover:text-red-600">
+              <button onClick={() => setReplyTo(null)} className="text-gray-500 hover:text-red-600">
                 <FaTimes />
               </button>
             </div>
@@ -548,19 +555,19 @@ export default function AdminCustomerChatPage() {
             <input
               type="text"
               value={newMessage}
-              onChange={e => {
+              onChange={(e) => {
                 setNewMessage(e.target.value)
                 handleTyping()
               }}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-              placeholder="Type your message to the customer..."
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
+              placeholder="Type your message..."
               className="flex-1 px-5 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
               disabled={sending || !!editingMessageId}
             />
             <button
               onClick={handleSendMessage}
               disabled={sending || !newMessage.trim() || !!editingMessageId}
-              className="p-3.5 bg-[var(--blue)] text-white rounded-full hover:bg-[var(--orange)] transition disabled:opacity-50"
+              className="p-3.5 bg-[var(--blue)] text-white rounded-full hover:bg-[var(--orange)] disabled:opacity-50 transition"
             >
               {sending ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
             </button>
@@ -571,56 +578,32 @@ export default function AdminCustomerChatPage() {
       {/* Context Menu */}
       {openMessageId && (
         <div
-          className="fixed bg-white shadow-xl rounded-lg py-2 min-w-[160px] z-50 border border-gray-200"
-          style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+          className="fixed bg-white shadow-2xl rounded-xl py-2 min-w-[160px] z-50 border border-gray-200"
+          style={{ bottom: '100px', right: '16px' }}
         >
-          <button
-            onClick={() => {
-              const msg = messages.find(m => m.id === openMessageId)
-              if (msg) handleReply(msg)
-            }}
-            className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-gray-100 text-[var(--blue)]"
-          >
-            <FaReply size={14} />
-            Reply
+          <button className="flex items-center gap-3 w-full px-5 py-2.5 hover:bg-gray-50 text-left" onClick={() => {
+            const msg = messages.find(m => m.id === openMessageId)
+            if (msg) { setReplyTo(msg); setOpenMessageId(null); }
+          }}>
+            <FaReply className="text-blue-600" /> Reply
           </button>
 
-          <button
-            onClick={() => {
-              const msg = messages.find(m => m.id === openMessageId)
-              if (msg) {
-                navigator.clipboard.writeText(msg.content)
-                toast.success('Copied')
-              }
-              setOpenMessageId(null)
-            }}
-            className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-gray-100"
-          >
-            <FaCopy size={14} />
-            Copy
+          <button className="flex items-center gap-3 w-full px-5 py-2.5 hover:bg-gray-50 text-left" onClick={() => {
+            const msg = messages.find(m => m.id === openMessageId)
+            if (msg) handleCopy(msg.content)
+          }}>
+            <FaCopy className="text-gray-700" /> Copy
           </button>
 
-          <button
-            onClick={() => {
-              const msg = messages.find(m => m.id === openMessageId)
-              if (msg) startEdit(msg)
-              setOpenMessageId(null)
-            }}
-            className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-gray-50 text-[var(--blue)]"
-          >
-            <FaEdit size={14} />
-            Edit
+          <button className="flex items-center gap-3 w-full px-5 py-2.5 hover:bg-gray-50 text-left text-blue-600" onClick={() => {
+            const msg = messages.find(m => m.id === openMessageId)
+            if (msg) startEdit(msg)
+          }}>
+            <FaEdit /> Edit
           </button>
 
-          <button
-            onClick={() => {
-              handleDeleteMessage(openMessageId)
-              setOpenMessageId(null)
-            }}
-            className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-gray-50 text-red-600"
-          >
-            <FaTrash size={14} />
-            Delete
+          <button className="flex items-center gap-3 w-full px-5 py-2.5 hover:bg-gray-50 text-left text-red-600" onClick={() => handleDeleteMessage(openMessageId)}>
+            <FaTrash /> Delete
           </button>
         </div>
       )}

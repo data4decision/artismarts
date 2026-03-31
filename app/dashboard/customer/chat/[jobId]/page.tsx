@@ -5,9 +5,18 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { 
-  FaSpinner, FaArrowLeft, FaPaperPlane, FaExclamationTriangle,
-  FaCheckDouble, FaCommentDots, FaEdit, FaTrash, FaArrowDown,
-  FaReply, FaCopy, FaTimes
+  FaSpinner, 
+  FaArrowLeft, 
+  FaPaperPlane, 
+  FaExclamationTriangle,
+  FaCheckDouble, 
+  FaCommentDots, 
+  FaEdit, 
+  FaTrash, 
+  FaArrowDown,
+  FaReply, 
+  FaCopy, 
+  FaTimes 
 } from 'react-icons/fa'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -23,9 +32,9 @@ interface Message {
   is_edited?: boolean
   edited_at?: string | null
   deleted_at?: string | null
-  is_admin: boolean
   reply_to_id?: string | null
   reply_to_content?: string | null
+  is_admin: boolean
 }
 
 interface Job {
@@ -64,7 +73,7 @@ export default function CustomerJobChatPage() {
   const prevMessagesLengthRef = useRef(0)
   const isPageVisibleRef = useRef(true)
 
-  // Initialize + Realtime
+  // Initialize + Realtime (instant updates)
   useEffect(() => {
     if (!jobId || typeof jobId !== 'string') {
       toast.error('Invalid job ID')
@@ -85,7 +94,7 @@ export default function CustomerJobChatPage() {
 
     init()
 
-    // Realtime Messages
+    // Realtime Messages - Ensures new messages appear instantly
     const messageChannel = supabase
       .channel(`customer-job-messages:${jobId}`)
       .on(
@@ -99,28 +108,51 @@ export default function CustomerJobChatPage() {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const newMsg = payload.new as any
-            setMessages(prev => [...prev, {
+
+            const processedMsg: Message = {
               ...newMsg,
               is_admin: newMsg.sender_id !== currentUserId
-            }])
-          } else if (payload.eventType === 'UPDATE') {
+            }
+
+            setMessages(prev => [...prev, processedMsg])
+            scrollToBottom()
+
+            if (newMsg.sender_id !== currentUserId && !newMsg.deleted_at) {
+              toast('New message from admin', {
+                icon: '💬',
+                duration: 4000,
+                position: 'top-right',
+                style: { background: '#0b0b5c', color: '#ffffff', border: '1px solid #f47b20' }
+              })
+
+              if (!isPageVisibleRef.current) {
+                if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
+                try {
+                  new Audio('/notification.mp3').play().catch(() => {})
+                } catch {}
+              }
+            }
+          } 
+          else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as any
             setMessages(prev =>
-              prev.map(m => m.id === updated.id ? { ...updated, is_admin: updated.sender_id !== currentUserId } : m)
+              prev.map(m =>
+                m.id === updated.id
+                  ? { ...updated, is_admin: updated.sender_id !== currentUserId }
+                  : m
+              )
             )
           }
         }
       )
       .subscribe()
 
-    // Typing Indicator
+    // Typing
     const typingChannel = supabase
       .channel(`typing:${jobId}`)
       .on('broadcast', { event: 'typing' }, (payload) => {
         const { is_typing, user_id } = payload.payload as { is_typing: boolean; user_id: string }
-        if (user_id !== currentUserId) {
-          setOtherIsTyping(is_typing)
-        }
+        if (user_id !== currentUserId) setOtherIsTyping(is_typing)
       })
       .subscribe()
 
@@ -130,7 +162,7 @@ export default function CustomerJobChatPage() {
     }
   }, [jobId, router])
 
-  // Mark messages as seen
+  // Mark admin messages as seen
   useEffect(() => {
     if (!jobId || loading || !currentUserId) return
 
@@ -155,40 +187,8 @@ export default function CustomerJobChatPage() {
     return () => window.removeEventListener('focus', markAsSeen)
   }, [messages, jobId, loading, currentUserId])
 
-  // New message notification
   useEffect(() => {
-    if (messages.length <= prevMessagesLengthRef.current) {
-      prevMessagesLengthRef.current = messages.length
-      return
-    }
-
-    const latest = messages[messages.length - 1]
-    if (!latest.is_admin || latest.deleted_at) {
-      prevMessagesLengthRef.current = messages.length
-      return
-    }
-
-    prevMessagesLengthRef.current = messages.length
-
-    toast('New message from admin', {
-      icon: '💬',
-      duration: 4000,
-      position: 'top-right',
-      style: { background: '#0b0b5c', color: '#ffffff', border: '1px solid #f47b20' }
-    })
-
-    if (!isPageVisibleRef.current) {
-      if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
-      try {
-        new Audio('/notification.mp3').play().catch(() => {})
-      } catch {}
-    }
-  }, [messages])
-
-  useEffect(() => {
-    const handleVisibility = () => {
-      isPageVisibleRef.current = document.visibilityState === 'visible'
-    }
+    const handleVisibility = () => isPageVisibleRef.current = document.visibilityState === 'visible'
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
@@ -212,25 +212,22 @@ export default function CustomerJobChatPage() {
   }
 
   const scrollToBottom = () => {
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 80)
   }
 
   const fetchJobAndMessages = async (userId: string) => {
     try {
-      const { data: rawJob, error: jobError } = await supabase
+      const { data: rawJob } = await supabase
         .from('job_requests')
         .select(`
-          id,
-          title,
-          status,
-          assigned_artisan_id,
+          id, title, status, assigned_artisan_id,
           artisan:assigned_artisan_id (first_name, last_name)
         `)
         .eq('id', jobId)
         .eq('customer_id', userId)
         .single()
 
-      if (jobError || !rawJob) throw new Error('Job not found or access denied')
+      if (!rawJob) throw new Error('Job not found')
 
       setJob({
         id: rawJob.id,
@@ -249,16 +246,13 @@ export default function CustomerJobChatPage() {
         .eq('job_request_id', jobId)
         .order('created_at', { ascending: true })
 
-      setMessages(
-        (msgData || []).map(msg => ({
-          ...msg,
-          is_admin: msg.sender_id !== userId
-        }))
-      )
+      setMessages((msgData || []).map(msg => ({
+        ...msg,
+        is_admin: msg.sender_id !== userId
+      })))
 
       scrollToBottom()
     } catch (err: any) {
-      console.error(err)
       toast.error(err.message || 'Failed to load chat')
       router.replace('/dashboard/customer/requests')
     } finally {
@@ -276,16 +270,16 @@ export default function CustomerJobChatPage() {
       id: tempId,
       job_request_id: jobId,
       sender_id: currentUserId,
-      receiver_id: '', // Will be filled by database trigger or RLS
+      receiver_id: '',
       content: trimmed,
       created_at: new Date().toISOString(),
       seen_at: null,
       is_edited: false,
       edited_at: null,
       deleted_at: null,
-      is_admin: false,
       reply_to_id: replyTo?.id || null,
       reply_to_content: replyTo?.content || null,
+      is_admin: false
     }
 
     setMessages(prev => [...prev, optimisticMsg])
@@ -294,29 +288,24 @@ export default function CustomerJobChatPage() {
     scrollToBottom()
 
     try {
-      const { error } = await supabase
-        .from('admin_customer_messages')
-        .insert({
-          job_request_id: jobId,
-          sender_id: currentUserId,
-          content: trimmed,
-          reply_to_id: replyTo?.id || null,
-          // receiver_id can be handled by a database trigger or left null if your RLS allows it
-        })
+      const { error } = await supabase.from('admin_customer_messages').insert({
+        job_request_id: jobId,
+        sender_id: currentUserId,
+        content: trimmed,
+        reply_to_id: replyTo?.id || null,
+      })
 
       if (error) throw error
-
       setReplyTo(null)
     } catch (err: any) {
-      console.error('Send failed:', err)
       setMessages(prev => prev.filter(m => m.id !== tempId))
-      toast.error(err.message?.includes('42501') ? 'Permission denied - check RLS' : 'Failed to send message')
+      toast.error('Failed to send message')
     } finally {
       setSending(false)
     }
   }
 
-  // Edit handlers
+  // ==================== EDITING ====================
   const startEdit = (msg: Message) => {
     if (msg.sender_id !== currentUserId || msg.deleted_at) return
     setEditingMessageId(msg.id)
@@ -337,6 +326,7 @@ export default function CustomerJobChatPage() {
 
     const originalContent = messages.find(m => m.id === editingMessageId)?.content || ''
 
+    // Optimistic update
     setMessages(prev =>
       prev.map(m =>
         m.id === editingMessageId
@@ -360,10 +350,11 @@ export default function CustomerJobChatPage() {
 
       toast.success('Message updated')
       cancelEdit()
-    } catch (err) {
-      console.error(err)
+    } catch (err: any) {
       setMessages(prev =>
-        prev.map(m => m.id === editingMessageId ? { ...m, content: originalContent } : m)
+        prev.map(m =>
+          m.id === editingMessageId ? { ...m, content: originalContent, is_edited: false, edited_at: null } : m
+        )
       )
       toast.error('Failed to update message')
     }
@@ -386,7 +377,6 @@ export default function CustomerJobChatPage() {
       if (error) throw error
       toast.success('Message deleted')
     } catch (err) {
-      console.error(err)
       setMessages(prev =>
         prev.map(m => m.id === messageId ? { ...m, deleted_at: null } : m)
       )
@@ -406,7 +396,6 @@ export default function CustomerJobChatPage() {
     setOpenMessageId(null)
   }
 
-  // Loading States
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -453,18 +442,18 @@ export default function CustomerJobChatPage() {
         </div>
       </header>
 
-      {/* Messages */}
+      {/* Messages Area */}
       <main className="flex-1 overflow-y-auto pt-28 pb-32 px-4 md:px-6 max-w-5xl mx-auto w-full">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[70vh] text-center text-gray-500">
             <FaCommentDots className="text-6xl text-[var(--orange)] mb-4" />
             <p className="text-lg font-medium">No messages yet</p>
-            <p className="text-sm mt-2">Start the conversation with the admin</p>
+            <p className="text-sm mt-2">Start the conversation with admin</p>
           </div>
         ) : (
           <div className="space-y-4">
             {messages.map((msg) => {
-              const isOwn = currentUserId && msg.sender_id === currentUserId
+              const isOwn = !msg.is_admin
 
               return (
                 <div
@@ -489,24 +478,35 @@ export default function CustomerJobChatPage() {
                     {msg.deleted_at ? (
                       <p className="text-sm italic text-gray-600">This message was deleted</p>
                     ) : editingMessageId === msg.id ? (
-                      <div className="flex flex-col gap-2">
+                      // ==================== EDIT MODE ====================
+                      <div className="flex flex-col gap-3">
                         <textarea
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
-                          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
-                          rows={2}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--orange)] resize-y min-h-[80px]"
                           autoFocus
                         />
-                        <div className="flex gap-3 justify-end text-sm">
-                          <button onClick={cancelEdit} className="text-gray-600 hover:text-gray-800">Cancel</button>
-                          <button onClick={saveEdit} className="text-[var(--orange)] font-medium">Save</button>
+                        <div className="flex gap-3 justify-end">
+                          <button 
+                            onClick={cancelEdit}
+                            className="px-5 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={saveEdit}
+                            disabled={!editText.trim()}
+                            className="px-6 py-2 bg-[var(--orange)] text-white rounded-lg hover:bg-orange-600 font-medium disabled:opacity-50 flex items-center gap-2"
+                          >
+                            Save
+                          </button>
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                     )}
 
-                    {!msg.deleted_at && (
+                    {!msg.deleted_at && editingMessageId !== msg.id && (
                       <div className="flex items-center justify-end gap-2 text-xs opacity-70 mt-1">
                         {msg.is_edited && <span className="italic">edited</span>}
                         <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -515,9 +515,9 @@ export default function CustomerJobChatPage() {
                     )}
                   </div>
 
-                  {isOwn && !msg.deleted_at && (
+                  {isOwn && !msg.deleted_at && editingMessageId !== msg.id && (
                     <button
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded-full bg-white shadow-sm hover:bg-gray-100"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-full bg-white shadow-sm hover:bg-gray-100 transition"
                       onClick={() => setOpenMessageId(openMessageId === msg.id ? null : msg.id)}
                     >
                       <FaArrowDown className="w-4 h-4 text-gray-600" />
@@ -534,13 +534,13 @@ export default function CustomerJobChatPage() {
       </main>
 
       {/* Input Area */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-3 shadow-lg z-10">
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-4 shadow-lg z-10">
         <div className="max-w-5xl mx-auto">
           {replyTo && (
-            <div className="mb-3 bg-gray-100 px-4 py-2 rounded-lg flex items-center gap-3 text-sm">
+            <div className="mb-3 bg-gray-100 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
               <FaReply className="text-[var(--orange)]" />
               <div className="flex-1 truncate">
-                Replying to: {replyTo.content.slice(0, 60)}{replyTo.content.length > 60 ? '...' : ''}
+                Replying to: {replyTo.content.slice(0, 65)}{replyTo.content.length > 65 ? '...' : ''}
               </div>
               <button onClick={() => setReplyTo(null)} className="text-gray-500 hover:text-red-600">
                 <FaTimes />
@@ -558,13 +558,13 @@ export default function CustomerJobChatPage() {
               }}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
               placeholder="Type your message..."
-              className="flex-1 px-5 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
+              className="flex-1 px-5 py-3.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--orange)] text-base"
               disabled={sending || !!editingMessageId}
             />
             <button
               onClick={handleSendMessage}
               disabled={sending || !newMessage.trim() || !!editingMessageId}
-              className="p-3.5 bg-[var(--blue)] text-white rounded-full hover:bg-[var(--orange)] disabled:opacity-50 transition"
+              className="p-4 bg-[var(--blue)] text-white rounded-full hover:bg-[var(--orange)] disabled:opacity-50 transition-all active:scale-95"
             >
               {sending ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
             </button>
@@ -575,46 +575,31 @@ export default function CustomerJobChatPage() {
       {/* Context Menu */}
       {openMessageId && (
         <div
-          className="fixed bg-white shadow-2xl rounded-xl py-2 min-w-[160px] z-50 border border-gray-200"
-          style={{ bottom: '100px', right: '16px' }}
+          className="fixed bg-white shadow-2xl rounded-xl py-2 min-w-[170px] z-50 border border-gray-200"
+          style={{ bottom: '110px', right: '20px' }}
         >
-          <button
-            className="flex items-center gap-3 w-full px-5 py-2.5 hover:bg-gray-50 text-left"
-            onClick={() => {
-              const msg = messages.find(m => m.id === openMessageId)
-              if (msg) {
-                setReplyTo(msg)
-                setOpenMessageId(null)
-              }
-            }}
-          >
+          <button className="flex items-center gap-3 w-full px-5 py-3 hover:bg-gray-50 text-left" onClick={() => {
+            const msg = messages.find(m => m.id === openMessageId)
+            if (msg) { setReplyTo(msg); setOpenMessageId(null); }
+          }}>
             <FaReply className="text-blue-600" /> Reply
           </button>
 
-          <button
-            className="flex items-center gap-3 w-full px-5 py-2.5 hover:bg-gray-50 text-left"
-            onClick={() => {
-              const msg = messages.find(m => m.id === openMessageId)
-              if (msg) handleCopy(msg.content)
-            }}
-          >
+          <button className="flex items-center gap-3 w-full px-5 py-3 hover:bg-gray-50 text-left" onClick={() => {
+            const msg = messages.find(m => m.id === openMessageId)
+            if (msg) handleCopy(msg.content)
+          }}>
             <FaCopy className="text-gray-700" /> Copy
           </button>
 
-          <button
-            className="flex items-center gap-3 w-full px-5 py-2.5 hover:bg-gray-50 text-left text-blue-600"
-            onClick={() => {
-              const msg = messages.find(m => m.id === openMessageId)
-              if (msg) startEdit(msg)
-            }}
-          >
+          <button className="flex items-center gap-3 w-full px-5 py-3 hover:bg-gray-50 text-left text-blue-600" onClick={() => {
+            const msg = messages.find(m => m.id === openMessageId)
+            if (msg) startEdit(msg)
+          }}>
             <FaEdit /> Edit
           </button>
 
-          <button
-            className="flex items-center gap-3 w-full px-5 py-2.5 hover:bg-gray-50 text-left text-red-600"
-            onClick={() => handleDeleteMessage(openMessageId)}
-          >
+          <button className="flex items-center gap-3 w-full px-5 py-3 hover:bg-gray-50 text-left text-red-600" onClick={() => handleDeleteMessage(openMessageId)}>
             <FaTrash /> Delete
           </button>
         </div>
