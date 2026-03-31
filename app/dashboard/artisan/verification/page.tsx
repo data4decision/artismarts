@@ -29,7 +29,7 @@ const steps = [
 ]
 
 // ──────────────────────────────────────────────────────────────
-// Zod Schema – field names closer to DB
+// Zod Schema
 // ──────────────────────────────────────────────────────────────
 const formSchema = z.object({
   first_name: z.string().min(2, 'First name is required'),
@@ -44,6 +44,7 @@ const formSchema = z.object({
   shop_address: z.string().min(10, 'Shop address is required'),
   association_name: z.string().min(3, 'Association name is required'),
   association_address: z.string().min(10, 'Association address is required'),
+  primary_skill: z.string().optional(),
 
   skills_categories: z.array(z.string()).min(1, 'Select at least one service'),
   years_of_experience: z.number().min(0).max(60).optional(),
@@ -69,10 +70,27 @@ const artisanCategories = [
   { id: 6, name: 'Tiling' },
 ]
 
+const skillCategories = [
+  { title: "Home & Building Services", skills: ["Plumber", "Electrician", "Carpenter", "Mason / Bricklayer", "Painter / Decorator", "Tiler"] },
+  { title: "Mechanical & Technical Services", skills: ["Generator Repair Technician", "AC Technician (Installation & Repairs)", "Refrigerator & Freezer Technician", "Washing Machine Technician"] },
+  { title: "General Maintenance", skills: ["Handyman (Minor repairs)", "Welder / Fabricator", "Aluminum Fabricator (Doors & Windows)"] },
+  { title: "Interior & Finishing Services", skills: ["POP Ceiling Installer", "Interior Decorator", "Furniture Maker", "Upholsterer"] },
+  { title: "Security & Installations", skills: ["CCTV Installer", "Solar Panel Installer", "Electric Fence Installer"] },
+  { title: "ICT & Digital Technicians", skills: ["Computer Repair Technician", "Phone Repair Technician", "Network / Internet Technician"] },
+  { title: "Personal & Domestic Services", skills: ["Cleaner / Janitorial Services", "Home Care Assistant", "Laundry & Dry Cleaning Agent", "Barber/Hairdresser"] },
+  { title: "Automotive Artisans", skills: ["Auto Mechanic", "Auto Electrician", "Panel Beater", "Car Painter"] },
+  { title: "Specialised & Industrial Artisans", skills: ["Industrial Electrician", "Industrial Plumber", "HVAC Engineer", "Heavy Equipment Technician"] },
+  { title: "Event & Creative Service Artisans", skills: ["Event Electrician", "Event Sound Technician", "Event Lighting Technician", "Stage Fabricator"] },
+] as const
+
 export default function ArtisanVerificationPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAlreadyVerified, setIsAlreadyVerified] = useState(false)   // ← New state
+
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [availableSkills, setAvailableSkills] = useState<string[]>([])
 
   const [uploads, setUploads] = useState({
     passport: null as string | null,
@@ -101,7 +119,7 @@ export default function ArtisanVerificationPage() {
 
   const idType = watch('business_id_type')
 
-  // Load existing data
+  // Load existing data + check verification status
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -114,6 +132,12 @@ export default function ArtisanVerificationPage() {
         .maybeSingle()
 
       if (data) {
+        // Check if already verified
+        if (data.verification_status === 'approved') {
+          setIsAlreadyVerified(true)
+          return
+        }
+
         // Map DB → form
         setValue('first_name', data.first_name || '')
         setValue('last_name', data.last_name || '')
@@ -125,9 +149,12 @@ export default function ArtisanVerificationPage() {
         setValue('shop_address', data.shop_address || '')
         setValue('association_name', data.association_name || '')
         setValue('association_address', data.association_address || '')
+        
         setValue('skills_categories', data.skills_categories || [])
         setValue('years_of_experience', data.years_of_experience || undefined)
         setValue('work_location', data.work_location || '')
+        setValue('primary_skill', data.primary_skill || '')
+  setValue('skills_categories', data.skills_categories || [])
 
         setUploads({
           passport: data.passport_photo_url,
@@ -139,6 +166,18 @@ export default function ArtisanVerificationPage() {
     }
     load()
   }, [setValue])
+
+  // Handle category selection for primary skill
+  // const handleCategoryChange = (categoryTitle: string) => {
+  //   setSelectedCategory(categoryTitle)
+  //   const category = skillCategories.find(cat => cat.title === categoryTitle)
+  //   setAvailableSkills(category ? [...category.skills] : [])
+  // }
+  const handleCategoryChange = (categoryTitle: string) => {
+  setSelectedCategory(categoryTitle)
+  const category = skillCategories.find(cat => cat.title === categoryTitle)
+  setAvailableSkills(category ? [...category.skills] : [])
+}
 
   useEffect(() => {
     if (currentStep === 2) trigger('business_id_number')
@@ -192,8 +231,8 @@ export default function ArtisanVerificationPage() {
         'association_address',
       ]
     } else if (currentStep === 4) {
-      fieldsToValidate = ['skills_categories', 'work_location']
-    }
+      fieldsToValidate = ['work_location', 'primary_skill', 'skills_categories']
+    } 
 
     const isValid = await trigger(fieldsToValidate)
 
@@ -262,7 +301,11 @@ export default function ArtisanVerificationPage() {
 
       toast.dismiss(toastId)
       toast.success('Verification submitted successfully!')
-      router.push('/dashboard/artisan')
+      
+      // Redirect after successful submission
+      setTimeout(() => {
+        router.push('/dashboard/artisan')
+      }, 1500)
     } catch (err: any) {
       console.error('Submission error:', err)
       toast.dismiss(toastId)
@@ -273,6 +316,27 @@ export default function ArtisanVerificationPage() {
   }
 
   const progress = ((currentStep - 1) / (steps.length - 1)) * 100
+
+  if (isAlreadyVerified) {
+    return (
+      <div className="min-h-screen bg-[var(--white)] py-12 px-4 flex items-center justify-center">
+        <div className="max-w-md text-center">
+          <CheckCircle2 className="w-20 h-20 text-green-600 mx-auto mb-6" />
+          <h2 className="text-3xl font-bold text-[var(--blue)] mb-4">You are already verified</h2>
+          <p className="text-[var(--blue)] mb-8">
+            Your artisan verification has been approved. You can now access your artisan dashboard.
+          </p>
+          <button
+            onClick={() => router.push('/dashboard/artisan')}
+            className="px-8 py-3 bg-[var(--blue)] text-white rounded-xl font-medium hover:bg-blue-700 transition"
+          >
+            Go to Artisan Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
 
   return (
     <div className="min-h-screen bg-[var(--white)] py-8 px-4 sm:py-12 sm:px-6">
@@ -435,30 +499,47 @@ export default function ArtisanVerificationPage() {
             )}
 
             {/* ─── STEP 4 ─── */}
+                        {/* ─── STEP 4 ─── */}
+                        {/* ─── STEP 4 ─── */}
             {currentStep === 4 && (
               <div className="space-y-8">
                 <h2 className="text-2xl font-semibold text-[var(--blue)]">Professional Information</h2>
 
-                <div>
-                  <label className="block text-sm font-medium text-[var(--blue)] mb-2">Services You Offer *</label>
-                  {errors.skills_categories && <p className="text-[var(--orange)] text-sm mb-2">{errors.skills_categories.message}</p>}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {artisanCategories.map(cat => (
-                      <label
-                        key={cat.id}
-                        className={`flex items-center gap-2 p-3 border border-[var(--blue)] border-opacity-40 rounded-lg cursor-pointer hover:bg-[var(--blue)] hover:bg-opacity-5 transition ${
-                          getValues('skills_categories')?.includes(cat.name) ? 'bg-[var(--orange)] bg-opacity-10 border-[var(--orange)]' : ''
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          value={cat.name}
-                          {...register('skills_categories')}
-                          className="h-5 w-5 text-[var(--orange)]"
-                        />
-                        <span className="text-[var(--blue)]">{cat.name}</span>
-                      </label>
-                    ))}
+                {/* Improved Primary Skill with Category + Skills Dropdown */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--blue)] mb-2">Skill Category</label>
+                    <select 
+                      value={selectedCategory}
+                      onChange={(e) => handleCategoryChange(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
+                    >
+                      <option value="">Select Category</option>
+                      {skillCategories.map(cat => (
+                        <option key={cat.title} value={cat.title}>{cat.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--blue)] mb-2">Primary Skill</label>
+                    
+                    
+                     
+                      <select
+    {...register('primary_skill')}
+    onChange={(e) => {
+      setValue('primary_skill', e.target.value)
+      setValue('skills_categories', [e.target.value])
+    }}
+    className="mt-1 block w-[30%] rounded-md border border-[var(--orange)] bg-[var(--background)] text-[var(--blue)] shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
+  >
+    <option value="">Select Primary Skill</option>
+    {availableSkills.map(skill => (
+      <option key={skill} value={skill}>{skill}</option>
+    ))}
+  </select>
+    <input type="hidden" {...register('skills_categories')} />
                   </div>
                 </div>
 
@@ -479,9 +560,7 @@ export default function ArtisanVerificationPage() {
                   {errors.work_location && <p className="text-[var(--orange)] text-sm mt-1">{errors.work_location.message}</p>}
                 </div>
               </div>
-            )}
-
-            {/* ─── STEP 5 ─── */}
+            )}            {/* ─── STEP 5 ─── */}
             {currentStep === 5 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold text-[var(--blue)]">Review & Submit</h2>
@@ -516,7 +595,7 @@ export default function ArtisanVerificationPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-[var(--blue)] mb-2">Professional</p>
-                    <p>Services: {getValues('skills_categories')?.join(', ') || 'None'}</p>
+                    <p>Services: {getValues('primary_skill') || 'None'}</p>
                     <p>Experience: {getValues('years_of_experience') ?? '—'} years</p>
                     <p>Location: {getValues('work_location')}</p>
                   </div>
@@ -552,8 +631,7 @@ export default function ArtisanVerificationPage() {
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Verification'}
                 </button>
-              )}
-            </div>
+              )}            </div>
           </form>
         </div>
       </div>
@@ -562,15 +640,3 @@ export default function ArtisanVerificationPage() {
 }
 
 
-// import VerificationBadge from '@/components/artisan-profile/VerificationBadge'
-// import React from 'react'
-
-// const page = () => {
-//   return (
-//     <div>
-//       <VerificationBadge/>
-//     </div>
-//   )
-// }
-
-// export default page

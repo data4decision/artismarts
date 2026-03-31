@@ -8,6 +8,7 @@ import { FaSave, FaTimes, FaSpinner, FaTrashAlt, FaPlus } from 'react-icons/fa'
 import TimePicker from 'react-time-picker'
 import 'react-time-picker/dist/TimePicker.css'
 import 'react-clock/dist/Clock.css'
+import Image from 'next/image'
 
 const DAYS = [
   'Monday',
@@ -223,9 +224,16 @@ export default function EditBioAndAvailability() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <FaSpinner className="animate-spin text-5xl text-[var(--orange)]" />
-      </div>
+       <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+              <div className="relative flex items-center justify-center">
+                <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+                <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                  <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                    <Image src="/log.png" width={48} height={48} priority alt="Loading..." className="object-contain" />
+                  </div>
+                </div>
+              </div>
+            </div>
     )
   }
 
