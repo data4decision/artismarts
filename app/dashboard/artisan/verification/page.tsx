@@ -183,23 +183,35 @@ export default function ArtisanVerificationPage() {
     if (currentStep === 2) trigger('business_id_number')
   }, [idType, currentStep, trigger])
 
-  const handleFileUpload = async (
+    const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     key: keyof typeof uploads
   ) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // NEW: Limit file size to 5MB (prevents memory issues)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File is too large. Maximum size is 5MB.')
+      return
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return toast.error('Not authenticated')
 
-      const ext = file.name.split('.').pop() || 'jpg'
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
       const path = `verifications/${key}/${user.id}-${Date.now()}.${ext}`
+
+      // Optional: Add progress toast for better UX
+      const toastId = toast.loading(`Uploading ${key.replace('_', ' ')}...`)
 
       const { error } = await supabase.storage
         .from('verification-documents')
-        .upload(path, file, { upsert: true })
+        .upload(path, file, { 
+          upsert: true,
+          cacheControl: '3600' 
+        })
 
       if (error) throw error
 
@@ -208,10 +220,12 @@ export default function ArtisanVerificationPage() {
         .getPublicUrl(path)
 
       setUploads(prev => ({ ...prev, [key]: urlData.publicUrl }))
-      toast.success(`${key.replace('_', ' ')} uploaded`)
+
+      toast.dismiss(toastId)
+      toast.success(`${key.replace('_', ' ')} uploaded successfully`)
     } catch (err: any) {
       console.error('Upload error:', err)
-      toast.error('Upload failed')
+      toast.error('Upload failed. Please try a smaller file.')
     }
   }
 
