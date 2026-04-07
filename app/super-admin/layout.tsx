@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import Sidebar from './Sidebar'
+import Sidebar from './Sidebar'                    // Your SuperAdminSidebar component
 import Image from 'next/image'
 import Link from 'next/link'
 import { FaCaretDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa'
@@ -24,7 +24,7 @@ interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function SuperAdminLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
   
@@ -58,12 +58,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       if (authError || !user) {
         console.warn('No authenticated user found')
-        router.replace('/super-admin-login')
+        router.replace('/login')
         return
       }
 
       const email = user.email ?? 'No email'
 
+      // Fetch from super_admin_profiles table
       const { data: profileRow, error: profileError } = await supabase
         .from('super_admin_profiles')
         .select('first_name, last_name, role, phone, residential_address, state, lga, profile_image')
@@ -72,10 +73,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       if (profileError) {
         console.error('Profile fetch error:', profileError)
-        return
       }
 
-      let fullName = 'User'
+      let fullName = 'Super Admin'
       let role: string | null = null
       let phone: string | null = null
       let residential_address: string | null = null
@@ -87,7 +87,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         fullName = [profileRow.first_name, profileRow.last_name]
           .filter(Boolean)
           .join(' ')
-          .trim() || 'User'
+          .trim() || 'Super Admin'
 
         role = profileRow.role ?? null
         phone = profileRow.phone ?? null
@@ -109,7 +109,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       })
     } catch (err) {
       console.error('Unexpected error in fetchProfile:', err)
-      setProfile(null)
+      setProfile({
+        full_name: 'Super Admin',
+        email: 'admin@platform.com',
+        role: 'super_admin',
+        phone: null,
+        residential_address: null,
+        state: null,
+        lga: null,
+        profile_image: null,
+      })
     } finally {
       setIsLoading(false)
     }
@@ -128,7 +137,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       }
     })
 
-    // Realtime profile changes
+    // Realtime profile changes from super_admin_profiles
     let profileChannel: RealtimeChannel | null = null
 
     const setupRealtime = async () => {
@@ -136,18 +145,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       if (!user) return
 
       profileChannel = supabase
-        .channel('profiles-changes')
+        .channel('super_admin_profiles_changes')
         .on(
           'postgres_changes',
           {
             event: 'UPDATE',
             schema: 'public',
-            table: 'profiles',
+            table: 'super_admin_profiles',
             filter: `id=eq.${user.id}`,
           },
           (payload) => {
-            console.log('Realtime profile update received:', payload.new)
-            setProfile(prev => prev ? { ...prev, ...payload.new } : null)
+            console.log('Realtime super admin profile update received:', payload.new)
+            
+            setProfile(prev => {
+              if (!prev) return null
+              return {
+                ...prev,
+                full_name: [payload.new.first_name, payload.new.last_name].filter(Boolean).join(' ') || prev.full_name,
+                role: payload.new.role ?? prev.role,
+                phone: payload.new.phone ?? prev.phone,
+                residential_address: payload.new.residential_address ?? prev.residential_address,
+                state: payload.new.state ?? prev.state,
+                lga: payload.new.lga ?? prev.lga,
+                profile_image: payload.new.profile_image ?? prev.profile_image,
+              }
+            })
           }
         )
         .subscribe()
@@ -155,32 +177,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     setupRealtime()
 
-    const handleRouteChange = () => {
-      fetchProfile()
-    }
-
+    // Refresh on window focus
+    const handleRouteChange = () => fetchProfile()
     window.addEventListener('focus', handleRouteChange)
 
     return () => {
       authSubscription.unsubscribe()
-
-      if (profileChannel) {
-        supabase.removeChannel(profileChannel)
-      }
-
+      if (profileChannel) supabase.removeChannel(profileChannel)
       window.removeEventListener('focus', handleRouteChange)
     }
   }, [pathname])
 
-  const displayName = isLoading ? 'Loading...' : profile?.full_name || 'User'
-  const displayEmail = isLoading ? 'Loading...' : profile?.email || 'No email provided'
+  const displayName = isLoading ? 'Loading...' : profile?.full_name || 'Super Admin'
+  const displayEmail = isLoading ? 'Loading...' : profile?.email || 'admin@platform.com'
   const avatarUrl = profile?.profile_image || '/default-avatar.png'
 
   return (
     <div className="font-roboto flex flex-col h-screen">
       <header className="fixed top-0 left-0 right-0 z-30 h-16 flex items-center justify-between px-4 sm:px-6 border-b border-[var(--orange)]/80 bg-[var(--blue)] text-[var(--white)] shadow-sm">
         <h1 className="text-lg font-semibold sm:ml-0 ml-10 md:ml-64">
-          {/* You can add a title here if desired */}
+          Super Admin Portal
         </h1>
 
         <div className="relative" ref={dropdownRef}>
@@ -208,25 +224,28 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-[var(--white)] text-[var(--blue)] rounded-md shadow-lg z-50">
-              <div className="p-3 border-b">
+            <div className="absolute right-0 mt-2 w-56 bg-[var(--white)] text-[var(--blue)] rounded-md shadow-lg z-50 overflow-hidden">
+              <div className="p-4 border-b">
                 <p className="font-semibold">{displayName}</p>
                 <p className="text-sm opacity-80 break-words">{displayEmail}</p>
+                {profile?.role && (
+                  <p className="text-xs text-[var(--orange)] mt-1 font-medium">Super Admin</p>
+                )}
               </div>
 
               <ul className="py-1">
                 <li>
                   <Link
-                    href="/dashboard/customer/profile"
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--blue)]/10 text-[var(--blue)]"
+                    href="/super-admin/profile"
+                    className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-100 text-[var(--blue)]"
                   >
                     <FaUser /> Profile
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/dashboard/customer/settings"
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--blue)]/10 text-[var(--blue)]"
+                    href="/super-admin/settings"
+                    className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-100 text-[var(--blue)]"
                   >
                     <FaCog /> Settings
                   </Link>
@@ -234,7 +253,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <li>
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-[var(--blue)]/10 text-[var(--blue)]"
+                    className="w-full text-left flex items-center gap-2 px-4 py-2.5 hover:bg-gray-100 text-red-600"
                   >
                     <FaSignOutAlt /> Logout
                   </button>

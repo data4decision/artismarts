@@ -59,7 +59,7 @@ export default function SuperAdminLogin() {
       toast.success('Welcome back, Super Admin!')
 
       // Redirect to your admin dashboard (adjust path as needed)
-      router.push('/super-admin/dashboard')
+      router.push('/super-admin')
       // or router.replace('/super-admin/dashboard') to prevent back navigation to login
 
     } catch (err: any) {

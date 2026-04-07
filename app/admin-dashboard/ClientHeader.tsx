@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FaCaretDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa'
+import { FaBell, FaCaretDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa'
 import { supabase } from '@/lib/supabase'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -28,6 +28,8 @@ export default function ClientHeader() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
+  const verificationChannelRef = useRef<RealtimeChannel | null>(null)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -47,128 +49,166 @@ export default function ClientHeader() {
     router.push('/admin-login')
   }
 
-  const fetchProfile = async () => {
-    try {
-      setIsLoading(true)
+  // // Handle notification bell click
+  const handleBellClick = () => {
+    router.push('/admin-dashboard/verification')
 
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-      if (authError || !user) {
-        console.warn('No authenticated user found')
-        router.replace('/admin-login')
-        return
-      }
-
-      const email = user.email ?? 'No email'
-
-      const { data: profileRow, error: profileError } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, role, phone, residential_address, state, lga, profile_image')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      if (profileError) {
-        console.error('Profile fetch error:', profileError)
-        return
-      }
-
-      let fullName = 'User'
-      let role: string | null = null
-      let phone: string | null = null
-      let residential_address: string | null = null
-      let state: string | null = null
-      let lga: string | null = null
-      let profile_image: string | null = null
-
-      if (profileRow) {
-        fullName = [profileRow.first_name, profileRow.last_name]
-          .filter(Boolean)
-          .join(' ')
-          .trim() || 'User'
-
-        role = profileRow.role ?? null
-        phone = profileRow.phone ?? null
-        residential_address = profileRow.residential_address ?? null
-        state = profileRow.state ?? null
-        lga = profileRow.lga ?? null
-        profile_image = profileRow.profile_image ?? null
-      }
-
-      setProfile({
-        full_name: fullName,
-        email,
-        role,
-        phone,
-        residential_address,
-        state,
-        lga,
-        profile_image,
-      })
-    } catch (err) {
-      console.error('Unexpected error in fetchProfile:', err)
-      setProfile(null)
-    } finally {
-      setIsLoading(false)
-    }
+    setTimeout(() => {
+      fetchPendingCount()
+    }, 800
+  ) // Reset count on click
   }
 
-  useEffect(() => {
-    fetchProfile()
+  // Fetch initial pending count
+  const fetchPendingCount = async () => {
+  try {
+    const { count, error } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('verification_status', 'pending')
 
-    // Auth state change listener
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (session?.user) {
-        fetchProfile()
-      } else {
-        setProfile(null)
-        setIsLoading(false)
-      }
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    setPendingCount(count || 0)
+  } catch (err) {
+    console.error('Unexpected error fetching pending count:', err)
+  }
+}
+  // Real-time subscription for pending verifications
+  const setupVerificationSubscription = () => {
+    if (verificationChannelRef.current) {
+      supabase.removeChannel(verificationChannelRef.current)
+    }
+
+     const channel = supabase
+     .channel('pending_artisan_verifications')
+     .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'profiles',
+        filter: 'verification_status=eq.pending',
+      },
+    
+  
+  (payload) => {
+    console.log ('verification change recieved:', payload)
+    fetchPendingCount()
+  }
+).subscribe()
+
+verificationChannelRef.current = channel
+  }
+
+  const fetchProfile = async () => {
+  try {
+    setIsLoading(true)
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      router.replace('/admin-login')
+      return
+    }
+
+    const email = user.email || 'No email provided'
+
+    const { data: profileRow, error } = await supabase
+      .from('admin_profiles') // ✅ FIXED
+      .select('first_name, last_name, role, phone, residential_address, state, lga, profile_image')
+      .eq('id', user.id)
+      .single() // ✅ better than maybeSingle
+
+    if (error) {
+      console.error('Profile fetch error:', error)
+    }
+
+    const fullName = profileRow
+      ? `${profileRow.first_name || ''} ${profileRow.last_name || ''}`.trim()
+      : 'Admin'
+
+    setProfile({
+      full_name: fullName || 'Admin',
+      email,
+      role: profileRow?.role ?? null,
+      phone: profileRow?.phone ?? null,
+      residential_address: profileRow?.residential_address ?? null,
+      state: profileRow?.state ?? null,
+      lga: profileRow?.lga ?? null,
+      profile_image: profileRow?.profile_image ?? null,
     })
 
-    // Realtime profile changes (optional)
-    let profileChannel: RealtimeChannel | null = null
+  } catch (err) {
+    console.error('Unexpected error:', err)
+    setProfile(null)
+  } finally {
+    setIsLoading(false)
+  }
+}
 
-    const setupRealtime = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+  useEffect(() => {
+  fetchProfile()
+  fetchPendingCount()
+  setupVerificationSubscription()
 
-      profileChannel = supabase
-        .channel('profiles-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'profiles',
-            filter: `id=eq.${user.id}`,
-          },
-          (payload) => {
-            console.log('Realtime profile update received:', payload.new)
-            setProfile(prev => prev ? { ...prev, ...payload.new } : null)
-          }
-        )
-        .subscribe()
-    }
-
-    setupRealtime()
-
-    const handleRouteChange = () => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    if (session?.user) {
       fetchProfile()
+      fetchPendingCount()
+    } else {
+      setProfile(null)
+      setIsLoading(false)
+      setPendingCount(0)
     }
+  })
 
-    window.addEventListener('focus', handleRouteChange)
-
-    return () => {
-      authSubscription.unsubscribe()
-
-      if (profileChannel) {
-        supabase.removeChannel(profileChannel)
-      }
-
-      window.removeEventListener('focus', handleRouteChange)
+  return () => {
+    subscription.unsubscribe()
+    if (verificationChannelRef.current) {
+      supabase.removeChannel(verificationChannelRef.current)
     }
-  }, [pathname])
+  }
+}, [pathname])
+    useEffect(() => {
+  let profileChannel: RealtimeChannel | null = null
 
+  const setupRealtime = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    profileChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'admin-profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          setProfile(prev => prev ? { ...prev, ...payload.new } : null)
+        }
+      )
+      .subscribe()
+  }
+
+  setupRealtime()
+
+  const handleFocus = () => fetchProfile()
+  window.addEventListener('focus', handleFocus)
+
+  return () => {
+    if (profileChannel) {
+      supabase.removeChannel(profileChannel)
+    }
+    window.removeEventListener('focus', handleFocus)
+  }
+}, [pathname])
   const displayName = isLoading ? 'Loading...' : profile?.full_name || 'User'
   const displayEmail = isLoading ? 'Loading...' : profile?.email || 'No email provided'
   const avatarUrl = profile?.profile_image || '/default-avatar.png'
@@ -176,10 +216,20 @@ export default function ClientHeader() {
   return (
     <header className="fixed top-0 left-0 right-0 z-30 h-16 flex items-center justify-between px-4 sm:px-6 border-b border-[var(--orange)]/80 bg-[var(--blue)] text-[var(--white)] shadow-sm">
       <h1 className="text-lg font-semibold sm:ml-0 ml-10 md:ml-64">
-        {/* Optional title */}
+        {/* <FaBell/> */}
       </h1>
 
       <div className="relative" ref={dropdownRef}>
+        <div className="flex gap-2 items-center">
+          <button onClick={handleBellClick} className="relative p-2 hover:bg-[var(--orange)]/20 rounded-md transition-colors hover:text-[var(--orange)] cursor-pointer">
+            <FaBell className='text-xl'/>
+            {pendingCount > 0 && (
+              <span className="absolute top-1 left-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                {pendingCount > 99 ? '99+' : pendingCount}
+              </span>
+            )}
+              
+          </button>
         <button
           className="flex items-center gap-2 hover:bg-[var(--orange)]/90 p-2 rounded-md transition-colors"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -202,6 +252,7 @@ export default function ClientHeader() {
             className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
           />
         </button>
+        </div>
 
         {isDropdownOpen && (
           <div className="absolute right-0 mt-2 w-48 bg-[var(--white)] text-[var(--blue)] rounded-md shadow-lg z-50">
