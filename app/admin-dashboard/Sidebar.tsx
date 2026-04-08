@@ -36,7 +36,7 @@ const logout = () => {
 const nav = [
   { label: 'Dashboard', href: '/admin-dashboard', icon: FaTachometerAlt },
   { label: 'Users', href: '/admin-dashboard/users', icon: FaUsers },
-  { label: 'Verification', href: '/admin-dashboard/verification', icon: FaUsers },
+  { label: 'Verification', href: '/admin-dashboard/verification', icon: FaCheckCircle },
   { label: 'Artisans', href: '/admin-dashboard/artisans', icon: FaUserCog },
   { label: 'Customers', href: '/admin-dashboard/customers', icon: FaUsers },
   { label: 'Job Requests', href: '/admin-dashboard/requests', icon: FaBriefcase },
@@ -59,9 +59,68 @@ export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [unreadTotal, setUnreadTotal] = useState(0)
   const [loadingUnread, setLoadingUnread] = useState(true)
+  const [pendingVerificationCount, setPendingVerificationCount] = useState(0)
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/')
+  }
+
+  
+  // Fetch pending verification count
+  const fetchPendingVerificationCount = async () => {
+    try {
+      const { count, error}= await supabase
+      .from ('profiles')
+      .select('*', {count: 'exact', head: true})
+      .eq ('role', 'artisan')
+      .eq ('verification_status', 'pending')
+
+      if (error) throw error
+      setPendingVerificationCount(count || 0)
+    } catch (err){
+      console.error('pending verification count fetch failed:', err)
+    setPendingVerificationCount(0)
+    }
+    
+  }
+
+   // Real-time subscription for pending verifications
+   useEffect(() => {
+    fetchPendingVerificationCount()
+    fetchUnreadCount()
+     // Realtime for new pending verifications
+     const verificationChannel = supabase
+     .channel('pending_verifications')
+     .on('postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'profiles',
+        filter: 'role=eq.artisan',
+      },
+      ()=> {
+        fetchPendingVerificationCount()
+      }
+     ).subscribe()
+     // Refresh on window focus
+     const handleFocus = () => {
+      fetchPendingVerificationCount()
+      fetchUnreadCount()
+     }
+     window.addEventListener('focus', handleFocus)
+     return () => {
+      supabase.removeChannel(verificationChannel)
+      window.removeEventListener('focus', handleFocus)
+     }
+   }, [])
+
+   // Clear verification badge when clicking on Verification link
+   const handleVerificationClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (isActive('/admin-dashboard/verification')) {
+      return //Already on page, no need to clear
+   }
+   // Optimistically hide the badge
+   setPendingVerificationCount(0)
   }
 
   // Fetch initial unread count
@@ -119,30 +178,29 @@ export default function Sidebar() {
   }
 
   useEffect(() => {
-    fetchUnreadCount()
+  const setup = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
 
-    // Realtime subscription for new artisan messages
     const channel = supabase
       .channel('admin_unread_messages')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'admin_artisan_messages',
-        filter: 'sender_id=neq.' + supabase.auth.getUser().then(({ data }) => data.user?.id)
+        filter: `sender_id=neq.${user.id}`
       }, () => {
-        // New message from artisan → increment unread
         setUnreadTotal(prev => prev + 1)
       })
       .subscribe()
 
-    // Refresh on focus
-    window.addEventListener('focus', fetchUnreadCount)
-
     return () => {
       supabase.removeChannel(channel)
-      window.removeEventListener('focus', fetchUnreadCount)
     }
-  }, [])
+  }
+
+  setup()
+}, [])
 
   // Optimistic clear when clicking Messages link
   const handleMessagesClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -182,12 +240,13 @@ export default function Sidebar() {
         <nav className="flex-1">
           <ul className="py-2">
             {nav.map(({ href, icon: Icon, label }) => {
+              const isVerification = label === 'Verification'
               const isMessages = label === 'Messages / Support Tickets'
               return (
                 <li key={href} className="relative">
                   <Link
                     href={href}
-                    onClick={isMessages ? handleMessagesClick : undefined}
+                    onClick={isVerification ? handleVerificationClick : isMessages ? handleMessagesClick : undefined}
                     className={`flex items-center gap-3 px-4 py-3 transition-colors text-sm sm:text-[15px] ${
                       isActive(href)
                         ? 'bg-[var(--orange)] text-[var(--white)] font-semibold shadow'
@@ -197,10 +256,16 @@ export default function Sidebar() {
                   >
                     <Icon className="shrink-0 text-lg" />
                     <span className="text-sm sm:text-[12px]">{label}</span>
+                    {/* Verification Badge */}
+                    {isVerification && pendingVerificationCount > 0 && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] text-white border border-[var(--white)] text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow">
+                        {pendingVerificationCount > 99 ? '99+' : pendingVerificationCount}
+                      </span>
+                    )}
 
                     {/* Unread badge */}
                     {isMessages && (
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow">
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] border border-[var(--white)] text-white border border-[var(--white)] text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow">
                         {loadingUnread ? '...' : unreadTotal > 99 ? '99+' : unreadTotal || ''}
                       </span>
                     )}
