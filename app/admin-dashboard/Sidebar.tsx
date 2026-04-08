@@ -60,9 +60,168 @@ export default function Sidebar() {
   const [unreadTotal, setUnreadTotal] = useState(0)
   const [loadingUnread, setLoadingUnread] = useState(true)
   const [pendingVerificationCount, setPendingVerificationCount] = useState(0)
+  const [pendingJobRequestsCount, setPendingJobRequestsCount] = useState(0)
+  const [activeJobsCount, setActiveJobsCount] = useState(0)
+  const [completedJobsCount, setCompletedJobsCount] = useState(0)
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/')
+  }
+
+// Fetch Completed Jobs Count
+const fetchCompletedJobsCount = async () => {
+  try {
+    const {count, error} = await supabase
+    .from('job_requests')
+    .select('*', {count: 'exact', head: true})
+    .in('status',[ 'completed'])
+
+    if (error) throw error
+    setCompletedJobsCount(count || 0)
+  } catch (err) {
+    console.error('Completed jobs count fetch failed:', err)
+    setCompletedJobsCount(0)
+  }
+}
+
+//Real-time subscription for Completed jobs
+useEffect(() => {
+  fetchCompletedJobsCount()
+
+  const channel = supabase
+  .channel('completed_jobs')
+  .on('postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'job_requests',
+    }, () => {
+      fetchCompletedJobsCount()
+    }
+  )
+  .subscribe()
+  const handleFocus = () => {
+    fetchCompletedJobsCount()
+  }
+  window.addEventListener('focus', handleFocus)
+  return () => {
+    supabase.removeChannel(channel)
+    window.removeEventListener('focus', handleFocus)
+  }
+}, [])
+
+const handleCompletedJobsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  if (isActive('/admin-dashboard/completed-job')) {
+    return
+    
+  }
+  setCompletedJobsCount(0)
+}
+
+// Fetch Active Jobs Count
+const fetchActiveJobsCount = async () => {
+  try {
+    const {count, error} = await supabase
+      .from('job_requests')
+      .select('*', {count: 'exact', head: true})
+      .in('status', ['assigned', 'in_progress', 'completed_pending_review'])
+
+      if (error) throw error
+      setActiveJobsCount(count || 0)
+  } catch (err) {
+    console.error('Active jobs count fetch failed:', err)
+    setActiveJobsCount(0)
+  }
+}
+
+//Real-time subscription for active job requests
+useEffect(() =>{
+  fetchActiveJobsCount()
+
+  const channel = supabase
+  .channel('active_jobs')
+  .on('postgres_changes', 
+    {
+      event: '*',
+      schema: 'public',
+      table: 'job_requests'
+    }, () => {
+      fetchActiveJobsCount()
+    }
+  )
+  .subscribe()
+
+  const handleFocus = () => {
+    fetchActiveJobsCount()
+  }
+  window.addEventListener('focus', handleFocus)
+  return () => {
+    supabase.removeChannel(channel)
+    window.removeEventListener('focus', handleFocus)
+  }
+}, [])
+
+//Clear active job requests badge when clicking on Job Requests link
+const handleActiveJobsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  if (isActive('/admin-dashboard/assigned-jobs')) {
+    return //Already on page, no need to clear
+    
+  }
+  setActiveJobsCount(0)
+}
+
+
+
+// Fetch pending job requests count
+const fetchPendingJobRequestsCount = async () => {
+  try {
+    const { count, error } = await supabase
+      .from('job_requests')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['pending'])
+      // .eq('status', 'pending')
+
+    if (error) throw error
+    setPendingJobRequestsCount(count || 0)
+  } catch (err) {
+    console.error('Pending job requests count fetch failed:', err)
+    setPendingJobRequestsCount(0)
+  }
+}
+
+// Real-time subscription for pending job requests
+useEffect(() => {
+  fetchPendingJobRequestsCount()
+
+  const channel = supabase
+    .channel('pending_job_requests')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'job_requests',
+    }, () => {
+      fetchPendingJobRequestsCount()
+    })
+    .subscribe()
+
+  const handleFocus = () => {
+    fetchPendingJobRequestsCount()
+  }
+
+  window.addEventListener('focus', handleFocus)
+
+  return () => {
+    supabase.removeChannel(channel)
+    window.removeEventListener('focus', handleFocus)
+  }
+}, [])
+
+  //Clear pending job requests badge when clicking on Job Requests link
+  const handleJobRequestsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (isActive('/admin-dashboard/requests')) {
+      return //Already on page, no need to clear
+    }
+    setPendingJobRequestsCount(0)
   }
 
   
@@ -240,13 +399,16 @@ export default function Sidebar() {
         <nav className="flex-1">
           <ul className="py-2">
             {nav.map(({ href, icon: Icon, label }) => {
+              const isCompletedJobs = label === 'Completed Jobs'
+              const isActiveJobs = label === 'Active Jobs'
+              const isPendingJobRequests = label === 'Job Requests'
               const isVerification = label === 'Verification'
               const isMessages = label === 'Messages / Support Tickets'
               return (
                 <li key={href} className="relative">
                   <Link
                     href={href}
-                    onClick={isVerification ? handleVerificationClick : isMessages ? handleMessagesClick : undefined}
+                    onClick={isCompletedJobs ? handleCompletedJobsClick : isActiveJobs ? handleActiveJobsClick : isPendingJobRequests ? handleJobRequestsClick : isVerification ? handleVerificationClick : isMessages ? handleMessagesClick : undefined}
                     className={`flex items-center gap-3 px-4 py-3 transition-colors text-sm sm:text-[15px] ${
                       isActive(href)
                         ? 'bg-[var(--orange)] text-[var(--white)] font-semibold shadow'
@@ -256,6 +418,28 @@ export default function Sidebar() {
                   >
                     <Icon className="shrink-0 text-lg" />
                     <span className="text-sm sm:text-[12px]">{label}</span>
+
+                    {/* Completed Jobs Badge */}
+                    {isCompletedJobs && completedJobsCount > 0 && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] text-white border border-[var(--white)] text-xs font-bold px-1 py-0.5 rounded-full min-w-[20px] text-center shadow">
+                        {completedJobsCount > 99 ? '99+' : completedJobsCount}
+                        </span>
+                    )}
+
+                    {/* Active Jobs Badge */}
+                    {isActiveJobs && activeJobsCount > 0 && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] text-white border border-[var(--white)] text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow">
+                        {activeJobsCount > 99 ? '99+' : activeJobsCount}
+                        </span>
+                    )}
+                     
+                      {/* Job Requests Badge */}
+                      {isPendingJobRequests && pendingJobRequestsCount > 0 && (
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] text-white border border-[var(--white)] text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow">
+                          {pendingJobRequestsCount > 99 ? '99+' : pendingJobRequestsCount}
+                        </span>
+                      )}
+
                     {/* Verification Badge */}
                     {isVerification && pendingVerificationCount > 0 && (
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] text-white border border-[var(--white)] text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow">
