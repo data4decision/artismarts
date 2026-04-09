@@ -498,6 +498,7 @@ useEffect(() => {
         <nav className="flex-1">
           <ul className="py-2">
             {nav.map(({ href, icon: Icon, label }) => {
+              const isDisputedJobs = label === 'Disputed Jobs'
               const isCompletedJobs = label === 'Completed Jobs'
               const isActiveJobs = label === 'Active Jobs'
               const isPendingJobRequests = label === 'Job Requests'
@@ -537,7 +538,7 @@ useEffect(() => {
                     <span className="text-sm sm:text-[12px]">{label}</span>
 
                     {/* Completed Jobs Badge */}
-                    {isDisputedJobs && disputeddNotificationCount > 0 && (
+                    {isDisputedJobs && disputedNotificationCount > 0 && (
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] text-white border border-[var(--white)] text-xs font-bold px-1 py-0.5 rounded-full min-w-[20px] text-center shadow">
                         {disputedNotificationCount > 99 ? '99+' : disputedNotificationCount}
                         </span>
