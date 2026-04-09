@@ -770,71 +770,168 @@ export default function CustomerJobReviewPage() {
     }
   }
 
-  const handleSubmitReview = async () => {
-    if (overallRating === 0) {
-      toast.error('Please provide an overall rating')
+//   const handleSubmitReview = async () => {
+//     if (overallRating === 0) {
+//       toast.error('Please provide an overall rating')
+//       return
+//     }
+
+//     setSubmitting(true)
+
+//     try {
+//       const { data: { user }, error: authError } = await supabase.auth.getUser()
+//       if (authError || !user) {
+//         toast.error('Please sign in again')
+//         router.replace('/login')
+//         return
+//       }
+
+//       // Submit artisan review
+//       const { error: reviewError } = await supabase.from('job_reviews').insert({
+//         job_id: jobId,
+//         reviewer_id: user.id,
+//         rating: overallRating,
+//         quality_rating: qualityRating,
+//         punctuality_rating: punctualityRating,
+//         communication_rating: communicationRating,
+//         cleanliness_rating: cleanlinessRating,
+//         would_hire_again: wouldHireAgain,
+//         review_text: comment.trim() || null,
+//         is_draft: false
+//       })
+
+//       if (reviewError) throw reviewError
+
+//       // Update job_requests
+//       const { error: jobError } = await supabase
+//         .from('job_requests')
+//         .update({
+//           status: 'completed',
+//           customer_confirmed_at: new Date().toISOString(),
+//           customer_review_rating: overallRating,
+//           customer_quality_rating: qualityRating,
+//           customer_punctuality_rating: punctualityRating,
+//           customer_communication_rating: communicationRating,
+//           customer_cleanliness_rating: cleanlinessRating,
+//           customer_would_hire_again: wouldHireAgain,
+//           customer_review_comment: comment.trim() || null,
+//           customer_review_created_at: new Date().toISOString()
+//         })
+//         .eq('id', jobId)
+
+//       if (jobError) throw jobError
+
+//       // 3. Create notification for Admin (THIS IS THE KEY CHANGE)
+//     const { error: notifError } = await supabase
+//       .from('notifications')
+//       .insert({
+//         type: 'new_completed_job',
+//         title: 'New Completed Job Review',
+//         message: `Customer reviewed job: ${job?.title || 'Untitled Job'}`,
+//         job_id: jobId,
+//         read: false,
+//         created_at: new Date().toISOString()
+//       })
+
+//     if (notifError) {
+//       console.error('Failed to create admin notification:', notifError)
+//       // Don't fail the whole review if notification fails
+//     }
+
+//     toast.success('Review submitted successfully! 🎉')
+
+//     // Show app rating modal
+//     setTimeout(() => setShowAppRatingModal(true), 800)
+
+//   } catch (err: any) {
+//     console.error(err)
+//     toast.error(err.message || 'Failed to submit review')
+//   } finally {
+//     setSubmitting(false)
+//   }
+// }
+const handleSubmitReview = async () => {
+  if (overallRating === 0) {
+    toast.error('Please provide an overall rating')
+    return
+  }
+
+  if (submitting) return
+  setSubmitting(true)
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      toast.error('Please sign in again')
+      router.replace('/login')
       return
     }
 
-    setSubmitting(true)
+    // Step 1: Insert the customer review
+    const { error: reviewError } = await supabase.from('job_reviews').insert({
+      job_id: jobId,
+      reviewer_id: user.id,
+      rating: overallRating,
+      quality_rating: qualityRating,
+      punctuality_rating: punctualityRating,
+      communication_rating: communicationRating,
+      cleanliness_rating: cleanlinessRating,
+      would_hire_again: wouldHireAgain,
+      review_text: comment.trim() || null,
+      is_draft: false
+    })
 
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) {
-        toast.error('Please sign in again')
-        router.replace('/login')
-        return
-      }
+    if (reviewError) throw reviewError
 
-      // Submit artisan review
-      const { error: reviewError } = await supabase.from('job_reviews').insert({
+    // Step 2: Update job_requests to completed
+    const { error: jobError } = await supabase
+      .from('job_requests')
+      .update({
+        status: 'completed',
+        customer_confirmed_at: new Date().toISOString(),
+        customer_review_rating: overallRating,
+        customer_quality_rating: qualityRating,
+        customer_punctuality_rating: punctualityRating,
+        customer_communication_rating: communicationRating,
+        customer_cleanliness_rating: cleanlinessRating,
+        customer_would_hire_again: wouldHireAgain,
+        customer_review_comment: comment.trim() || null,
+        customer_review_created_at: new Date().toISOString()
+      })
+      .eq('id', jobId)
+
+    if (jobError) throw jobError
+
+    // Step 3: Create notification for Admin (This triggers the badge)
+    const { error: notifError } = await supabase
+      .from('notifications')
+      .insert({
+        type: 'new_completed_job',
+        title: 'New Completed Job Review',
+        message: `A customer has reviewed the job: ${job?.title || 'Untitled Job'}`,
         job_id: jobId,
-        reviewer_id: user.id,
-        rating: overallRating,
-        quality_rating: qualityRating,
-        punctuality_rating: punctualityRating,
-        communication_rating: communicationRating,
-        cleanliness_rating: cleanlinessRating,
-        would_hire_again: wouldHireAgain,
-        review_text: comment.trim() || null,
-        is_draft: false
+        read: false
       })
 
-      if (reviewError) throw reviewError
-
-      // Update job_requests
-      const { error: jobError } = await supabase
-        .from('job_requests')
-        .update({
-          status: 'completed',
-          customer_confirmed_at: new Date().toISOString(),
-          customer_review_rating: overallRating,
-          customer_quality_rating: qualityRating,
-          customer_punctuality_rating: punctualityRating,
-          customer_communication_rating: communicationRating,
-          customer_cleanliness_rating: cleanlinessRating,
-          customer_would_hire_again: wouldHireAgain,
-          customer_review_comment: comment.trim() || null,
-          customer_review_created_at: new Date().toISOString()
-        })
-        .eq('id', jobId)
-
-      if (jobError) throw jobError
-
-      toast.success('Review submitted successfully! 🎉')
-
-      // Auto-show App Rating Modal
-      setTimeout(() => {
-        setShowAppRatingModal(true)
-      }, 800)
-
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit review')
-    } finally {
-      setSubmitting(false)
+    if (notifError) {
+      console.error('Failed to create notification:', notifError)
+      // Don't fail the review submission if notification fails
     }
-  }
 
+    toast.success('Review submitted successfully! 🎉')
+
+    // Show App Rating Modal
+    setTimeout(() => {
+      setShowAppRatingModal(true)
+    }, 800)
+
+  } catch (err: any) {
+    console.error('Submit review error:', err)
+    toast.error(err.message || 'Failed to submit review. Please try again.')
+  } finally {
+    setSubmitting(false)
+  }
+}
   const submitAppRating = async () => {
   if (appRating === 0) {
     toast.error('Please select a rating for the app')
@@ -1172,7 +1269,7 @@ export default function CustomerJobReviewPage() {
               <button
                 onClick={() => {
                   setShowAppRatingModal(false)
-                  router.push('/dashboard/customer/jobs')
+                  router.push('/dashboard/customer/completed-jobs')
                 }}
                 className="flex-1 py-4 border border-gray-300 rounded-2xl font-medium text-gray-700 hover:bg-gray-50 transition"
               >

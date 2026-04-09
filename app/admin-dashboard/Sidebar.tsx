@@ -1,9 +1,10 @@
-// app/dashboard/admin/Sidebar.tsx
+
 'use client'
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { toast } from 'react-hot-toast'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   FaTachometerAlt,
@@ -26,6 +27,15 @@ import {
   FaSignOutAlt,
 } from 'react-icons/fa'
 import { supabase } from '@/lib/supabase'
+
+// 👇 Add this ABOVE your Sidebar component
+type Notification = {
+  id: string
+  type: string
+  read: boolean
+  job_id?: string
+  created_at: string
+}
 
 // Logout handler
 const logout = () => {
@@ -62,61 +72,150 @@ export default function Sidebar() {
   const [pendingVerificationCount, setPendingVerificationCount] = useState(0)
   const [pendingJobRequestsCount, setPendingJobRequestsCount] = useState(0)
   const [activeJobsCount, setActiveJobsCount] = useState(0)
-  const [completedJobsCount, setCompletedJobsCount] = useState(0)
+  const [completedNotificationCount, setCompletedNotificationCount] = useState(0)
+  const [disputedNotificationCount, setDisputedNotificationCount] = useState(0)
+ 
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/')
   }
 
 // Fetch Completed Jobs Count
-const fetchCompletedJobsCount = async () => {
+
+// ====================== FETCH DISPUTED NOTIFICATION COUNT ======================
+const fetchDisputedNotificationCount = async ()=> {
+try {
+  const {count, error} = await supabase
+  .from('notifications')
+  .select('*', {count: 'exact', head: true})
+  .eq('type', 'new_disputed_job')
+  .eq('read', false)
+
+  if (error) throw console.error();
+  setDisputedNotificationCount(count ?? 0)
+} catch (err) {
+  console.error('Disputed notification count fetch failed:', err)
+  setDisputedNotificationCount(0)
+}
+}
+
+// Fetch disputed notification count on mount and set up real-time subscription
+useEffect (() => {
+  fetchDisputedNotificationCount()
+  const channel = supabase
+  .channel('disputed_notifications')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'notifications',
+    filter: 'type=eq.new_disputed_job'
+
+  }, ()=> {
+    fetchDisputedNotificationCount()
+
+  }).subscribe()
+  const handleFocus = () => {
+    fetchDisputedNotificationCount()
+  }
+  window.addEventListener('focus', handleFocus)
+  return () => {
+    window.removeEventListener('focus', handleFocus)
+    supabase.removeChannel(channel)
+  }
+}, [])
+
+// Handle click on Disputed Jobs - mark as read
+const handleDisputedNotificationClick = async () => {
+  if (isActive('/admin-dashboard/disputes')) return
   try {
-    const {count, error} = await supabase
-    .from('job_requests')
-    .select('*', {count: 'exact', head: true})
-    .in('status',[ 'completed'])
+    const {error} = await supabase
+    .from('notifications')
+    .update({read: true})
+    .eq('type', 'new_disputed_job')
+    .eq('read', false)
 
     if (error) throw error
-    setCompletedJobsCount(count || 0)
+    // Optimistically clear badge
+    setDisputedNotificationCount(0)
   } catch (err) {
-    console.error('Completed jobs count fetch failed:', err)
-    setCompletedJobsCount(0)
+    console.error ('Failed to mark disputed notifications as read:', err)
+      // Fallback: refresh count
+      fetchDisputedNotificationCount()
+  }
+}
+// ====================== FETCH COMPLETED NOTIFICATION COUNT ======================
+const fetchCompletedNotificationCount = async () => {
+  try {
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('type', 'new_completed_job')
+      .eq('read', false)
+
+    if (error) throw error
+
+    setCompletedNotificationCount(count ?? 0)
+  } catch (err) {
+    console.error('Completed notification count fetch failed:', err)
+    setCompletedNotificationCount(0)
   }
 }
 
-//Real-time subscription for Completed jobs
+// ====================== REAL-TIME SUBSCRIPTION ======================
 useEffect(() => {
-  fetchCompletedJobsCount()
+  fetchCompletedNotificationCount()
 
   const channel = supabase
-  .channel('completed_jobs')
-  .on('postgres_changes',
-    {
-      event: '*',
-      schema: 'public',
-      table: 'job_requests',
-    }, () => {
-      fetchCompletedJobsCount()
-    }
-  )
-  .subscribe()
+    .channel('completed_notifications')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',                    // Listen to INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'notifications',
+        filter: 'type=eq.new_completed_job'
+      },
+      () => {
+        fetchCompletedNotificationCount()
+      }
+    )
+    .subscribe()
+
   const handleFocus = () => {
-    fetchCompletedJobsCount()
+    fetchCompletedNotificationCount()
   }
+
   window.addEventListener('focus', handleFocus)
+
   return () => {
     supabase.removeChannel(channel)
     window.removeEventListener('focus', handleFocus)
   }
 }, [])
 
-const handleCompletedJobsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-  if (isActive('/admin-dashboard/completed-job')) {
-    return
-    
+// ====================== HANDLE CLICK - MARK NOTIFICATIONS AS READ ======================
+const handleCompletedNotificationClick = async () => {
+  if (isActive('/admin-dashboard/completed-job')) return
+
+  try {
+    // Mark all unread 'new_completed_job' notifications as read
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('type', 'new_completed_job')
+      .eq('read', false)
+
+    if (error) throw error
+
+    // Optimistically clear the badge
+    setCompletedNotificationCount(0)
+  } catch (err) {
+    console.error('Failed to mark notifications as read:', err)
+    // Fallback: refresh count
+    fetchCompletedNotificationCount()
   }
-  setCompletedJobsCount(0)
 }
+
 
 // Fetch Active Jobs Count
 const fetchActiveJobsCount = async () => {
@@ -407,8 +506,26 @@ useEffect(() => {
               return (
                 <li key={href} className="relative">
                   <Link
-                    href={href}
-                    onClick={isCompletedJobs ? handleCompletedJobsClick : isActiveJobs ? handleActiveJobsClick : isPendingJobRequests ? handleJobRequestsClick : isVerification ? handleVerificationClick : isMessages ? handleMessagesClick : undefined}
+  href={href}
+  onClick={async (e) => {
+    if (isCompletedJobs) {
+      e.preventDefault()
+      await handleCompletedNotificationClick()
+      router.push('/admin-dashboard/completed-job')
+      return
+    }
+
+    if (isDisputedJobs) {
+      e.preventDefault()
+      await handleDisputedNotificationClick()
+      router.push('/admin-dashboard/disputes')
+    }
+
+    if (isActiveJobs) return handleActiveJobsClick(e)
+    if (isPendingJobRequests) return handleJobRequestsClick(e)
+    if (isVerification) return handleVerificationClick(e)
+    if (isMessages) return handleMessagesClick(e)
+  }}
                     className={`flex items-center gap-3 px-4 py-3 transition-colors text-sm sm:text-[15px] ${
                       isActive(href)
                         ? 'bg-[var(--orange)] text-[var(--white)] font-semibold shadow'
@@ -420,9 +537,16 @@ useEffect(() => {
                     <span className="text-sm sm:text-[12px]">{label}</span>
 
                     {/* Completed Jobs Badge */}
-                    {isCompletedJobs && completedJobsCount > 0 && (
+                    {isDisputedJobs && disputeddNotificationCount > 0 && (
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] text-white border border-[var(--white)] text-xs font-bold px-1 py-0.5 rounded-full min-w-[20px] text-center shadow">
-                        {completedJobsCount > 99 ? '99+' : completedJobsCount}
+                        {disputedNotificationCount > 99 ? '99+' : disputedNotificationCount}
+                        </span>
+                    )}
+
+                    {/* Completed Jobs Badge */}
+                    {isCompletedJobs && completedNotificationCount > 0 && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-[var(--orange)] text-white border border-[var(--white)] text-xs font-bold px-1 py-0.5 rounded-full min-w-[20px] text-center shadow">
+                        {completedNotificationCount > 99 ? '99+' : completedNotificationCount}
                         </span>
                     )}
 
