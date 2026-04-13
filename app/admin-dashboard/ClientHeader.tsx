@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { FaBell, FaCaretDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa'
 import { supabase } from '@/lib/supabase'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import AdminNotificationBell from '@/components/AdminNotificationBell'
 
 interface Profile {
   full_name: string | null
@@ -221,6 +222,7 @@ verificationChannelRef.current = channel
 
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 items-center">
+          <AdminNotificationBell/>
           <button onClick={handleBellClick} className="relative p-2 hover:bg-[var(--orange)]/20 rounded-md transition-colors hover:text-[var(--orange)] cursor-pointer">
             <FaBell className='text-xl'/>
             {pendingCount > 0 && (

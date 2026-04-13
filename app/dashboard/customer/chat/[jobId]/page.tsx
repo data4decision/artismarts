@@ -93,6 +93,7 @@ export default function CustomerJobChatPage() {
     }
 
     init()
+    
 
     // Realtime Messages - Ensures new messages appear instantly
     const messageChannel = supabase
@@ -180,12 +181,20 @@ export default function CustomerJobChatPage() {
       setMessages(prev =>
         prev.map(m => unseen.some(u => u.id === m.id) ? { ...m, seen_at: now } : m)
       )
-    }
+      // Badge update is handled by realtime, so no need to do anything else here
+     await supabase
+  .from('user_job_read_status')
+  .upsert({
+    user_id: currentUserId,
+    job_id: jobId,
+    last_read_at: now
+    })
+  }
 
     markAsSeen()
     window.addEventListener('focus', markAsSeen)
     return () => window.removeEventListener('focus', markAsSeen)
-  }, [messages, jobId, loading, currentUserId])
+  }, [jobId, loading, messages, currentUserId])
 
   useEffect(() => {
     const handleVisibility = () => isPageVisibleRef.current = document.visibilityState === 'visible'
@@ -582,14 +591,14 @@ export default function CustomerJobChatPage() {
             const msg = messages.find(m => m.id === openMessageId)
             if (msg) { setReplyTo(msg); setOpenMessageId(null); }
           }}>
-            <FaReply className="text-blue-600" /> Reply
+            <FaReply className="text-[var(--blue)]" /> Reply
           </button>
 
           <button className="flex items-center gap-3 w-full px-5 py-3 hover:bg-gray-50 text-left" onClick={() => {
             const msg = messages.find(m => m.id === openMessageId)
             if (msg) handleCopy(msg.content)
           }}>
-            <FaCopy className="text-gray-700" /> Copy
+            <FaCopy className="text-[var(--blue)]" /> Copy
           </button>
 
           <button className="flex items-center gap-3 w-full px-5 py-3 hover:bg-gray-50 text-left text-blue-600" onClick={() => {

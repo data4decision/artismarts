@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -503,7 +502,7 @@ useEffect(() => {
               const isActiveJobs = label === 'Active Jobs'
               const isPendingJobRequests = label === 'Job Requests'
               const isVerification = label === 'Verification'
-              const isMessages = label === 'Messages / Support Tickets'
+              const isMessages = label === 'Messages'
               return (
                 <li key={href} className="relative">
                   <Link
