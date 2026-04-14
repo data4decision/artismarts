@@ -430,9 +430,23 @@ export default function AdminChatPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <FaSpinner className="animate-spin text-[var(--orange)] text-6xl" />
-      </div>
+      <div className="min-h-screen bg-gray-50/70 flex items-center justify-center">
+              <div className="relative flex items-center justify-center">
+                <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-orange-500 border-opacity-70 shadow-lg"></div>
+                <div className="absolute inset-0 flex items-center justify-center animate-pulse">
+                  <div className="bg-white rounded-full p-3 shadow-md">
+                    <Image
+                      src="/log.png"
+                      width={56}
+                      height={56}
+                      priority
+                      alt="Loading..."
+                      className="object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
     )
   }
 
@@ -470,7 +484,7 @@ export default function AdminChatPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col relative">
       {/* Header */}
-      <header className="bg-gradient-to-r from-[var(--blue)] to-[var(--orange)] text-white px-6 py-4 shadow-lg fixed top-0 left-0 right-0 w-full z-20">
+      <header className="bg-gradient-to-r from-[var(--blue)] to-[var(--orange)] text-white px-6 py-4 shadow-lg fixed top-15 left-0 right-0 w-full z-20">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => router.back()} className="hover:opacity-80">

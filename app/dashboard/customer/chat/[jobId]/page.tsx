@@ -454,7 +454,7 @@ export default function CustomerJobChatPage() {
       {/* Messages Area */}
       <main className="flex-1 overflow-y-auto pt-28 pb-32 px-4 md:px-6 max-w-5xl mx-auto w-full">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[70vh] text-center text-gray-500">
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center text-[var(--blue)]">
             <FaCommentDots className="text-6xl text-[var(--orange)] mb-4" />
             <p className="text-lg font-medium">No messages yet</p>
             <p className="text-sm mt-2">Start the conversation with admin</p>
@@ -474,7 +474,7 @@ export default function CustomerJobChatPage() {
                     className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
                       isOwn
                         ? 'bg-[var(--orange)] text-white rounded-br-none'
-                        : 'bg-white text-gray-900 rounded-bl-none border border-gray-200'
+                        : 'bg-white text-[var(--blue)] rounded-bl-none border border-gray-200'
                     } ${msg.deleted_at ? 'opacity-60' : ''}`}
                   >
                     {msg.reply_to_content && (
@@ -543,7 +543,7 @@ export default function CustomerJobChatPage() {
       </main>
 
       {/* Input Area */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-4 shadow-lg z-10">
+      <footer className="fixed bottom-0 left-10 right-0 bg-white border-t px-4 py-4 shadow-lg z-10">
         <div className="max-w-5xl mx-auto">
           {replyTo && (
             <div className="mb-3 bg-gray-100 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">

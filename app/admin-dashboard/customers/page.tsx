@@ -120,33 +120,33 @@ export default function CustomersPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">All Customers</h1>
-            <p className="mt-2 text-gray-600">
+            <h1 className="text-3xl font-bold text-[var(--blue)]">All Customers</h1>
+            <p className="mt-2 text-[var(--blue)]">
               Registered customers on the platform ({filteredCustomers.length})
             </p>
           </div>
 
           <div className="relative w-full sm:w-72">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5 text-[var(--blue)]" />
             </div>
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search by name, phone, email, state..."
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="block w-full pl-10 pr-3 py-2 border border-[var(--orange)] rounded-lg focus:ring-[var(--blue)] focus:border-[var(--blue)]/50 text-sm"
             />
           </div>
         </div>
 
         {filteredCustomers.length === 0 ? (
           <div className="bg-white rounded-xl shadow p-10 text-center">
-            <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-700 mb-2">
+            <User className="w-16 h-16 mx-auto text-[var(--orange)] mb-4" />
+            <h2 className="text-2xl font-semibold text-[var(--blue)] mb-2">
               No customers found
             </h2>
-            <p className="text-gray-500">
+            <p className="text-[var(--blue)]">
               {searchTerm
                 ? 'Try adjusting your search terms'
                 : 'No customers have registered yet'}
@@ -162,14 +162,14 @@ export default function CustomersPage() {
                 <div className="p-6">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-8 h-8 text-gray-500" />
+                      <User className="w-8 h-8 text-[var(--blue)]" />
                     </div>
 
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-xl font-semibold text-[var(--blue)]">
                         {customer.first_name} {customer.last_name}
                       </h3>
-                      <p className="text-sm text-gray-600 font-medium">
+                      <p className="text-sm text-[var(--blue)] font-medium">
                         Customer
                       </p>
                     </div>
@@ -177,22 +177,22 @@ export default function CustomersPage() {
 
                   <div className="space-y-3 text-sm mb-5">
                     {customer.phone && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Phone className="w-4 h-4 text-gray-500" />
+                      <div className="flex items-center gap-2 text-[var(--blue)]">
+                        <Phone className="w-4 h-4 text-[var(--blue)]" />
                         <span>{customer.phone}</span>
                       </div>
                     )}
 
                     {customer.email && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Mail className="w-4 h-4 text-gray-500" />
+                      <div className="flex items-center gap-2 text-[var(--blue)]">
+                        <Mail className="w-4 h-4 text-[var(--blue)]" />
                         <span className="break-all">{customer.email}</span>
                       </div>
                     )}
 
                     {(customer.state || customer.lga || customer.residential_address) && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <MapPin className="w-4 h-4 text-gray-500" />
+                      <div className="flex items-center gap-2 text-[var(--blue)]">
+                        <MapPin className="w-4 h-4 text-[var(--blue)]" />
                         <span>
                           {customer.state}
                           {customer.lga && `, ${customer.lga}`}
@@ -201,7 +201,7 @@ export default function CustomersPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 text-gray-600 text-xs">
+                    <div className="flex items-center gap-2 text-[var(--blue)] text-xs">
                       <Calendar className="w-4 h-4" />
                       <span>Joined: {formatDate(customer.created_at)}</span>
                     </div>
@@ -216,7 +216,7 @@ export default function CustomersPage() {
                   <div className="flex gap-3">
                     <Link
                       href={`/dashboard/admin/customers/${customer.id}`}
-                      className="flex-1 text-center py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                      className="flex-1 text-center py-2 px-4 bg-[var(--blue)]/90 text-white rounded-lg hover:bg-[var(--blue)] transition text-sm font-medium"
                     >
                       View Profile
                     </Link>
@@ -243,7 +243,7 @@ export default function CustomersPage() {
         <div className="mt-8 text-center">
           <button
             onClick={fetchCustomers}
-            className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition"
+            className="px-6 py-3 bg-[var(--blue)] text-white rounded-lg hover:bg-[var(--blue)]/90 transition"
           >
             Refresh List
           </button>
