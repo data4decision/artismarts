@@ -24,7 +24,15 @@ interface NotificationItem {
 }
 
 // Sound options
-const NOTIFICATION_SOUNDS = [ { name: 'Default Chime', value: '/sounds/notification.mp3' }, { name: 'Soft Bell', value: '/sounds/soft-bell.mp3' }, { name: 'Dragon Bell', value: '/sounds/dragon-bell.mp3' }, { name: 'Dragon Festive Chime', value: '/sounds/dragon-festive-chime.mp3' }, { name: 'Gigidela Romusic', value: '/sounds/gigidelaromusic.mp3' }, { name: 'Celestial Chime', value: '/sounds/celestial-chime.mp3' }, { name: 'Universal Field Chime', value: '/sounds/universfield-chime.mp3' }, ]
+const NOTIFICATION_SOUNDS = [
+  { name: 'Default Chime', value: '/sounds/notification.mp3' },
+  { name: 'Soft Bell', value: '/sounds/soft-bell.mp3' },
+  { name: 'Dragon Bell', value: '/sounds/dragon-bell.mp3' },
+  { name: 'Dragon Festive Chime', value: '/sounds/dragon-festive-chime.mp3' },
+  { name: 'Gigidela Romusic', value: '/sounds/gigidelaromusic.mp3' },
+  { name: 'Celestial Chime', value: '/sounds/celestial-chime.mp3' },
+  { name: 'Universal Field Chime', value: '/sounds/universfield-chime.mp3' },
+]
 
 export default function AdminNotificationBell() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
@@ -38,6 +46,7 @@ export default function AdminNotificationBell() {
   const channelRef = useRef<RealtimeChannel | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const router = useRouter()
+  const prevCountRef = useRef(0)
 
   // Load saved preferences
   useEffect(() => {
@@ -94,23 +103,26 @@ export default function AdminNotificationBell() {
         .order('created_at', { ascending: false })
         .limit(10)
 
+      // Fixed: Fetch completed from notifications table with type 'new_completed_job'
       const { data: completed } = await supabase
         .from('notifications')
-        .select(`id, title, created_at, artisan:assigned_artisan_id(first_name, last_name, profile_image)`)
-        .eq('status', 'new_completed_job')
+        .select(`id, title, message as customMessage, created_at, job_id`)
+        .eq('type', 'new_completed_job')
         .order('created_at', { ascending: false })
         .limit(10)
-        
-  const { data: disputed } = await supabase
+
+      const { data: disputed } = await supabase
         .from('job_requests')
         .select(`id, title, created_at, artisan:assigned_artisan_id(first_name, last_name, profile_image)`)
         .eq('status', 'disputed')
         .order('created_at', { ascending: false })
         .limit(10)
-  const { data: verification } = await supabase
+
+      const { data: verification } = await supabase
         .from('profiles')
-        .select(`id, title, created_at, artisan:assigned_artisan_id(first_name, last_name, profile_image)`)
-        .eq('status', 'pending')
+        .select(`id, first_name, last_name, profile_image, created_at`)
+        .eq('role', 'artisan')
+        .eq('verification_status', 'pending')
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -140,17 +152,16 @@ export default function AdminNotificationBell() {
 
       const completedFormatted = (completed || []).map((item: any) => ({
         id: item.id,
-        job_id: item.id,
+        job_id: item.job_id || item.id,
         created_at: item.created_at,
         read: false,
-        artisanName: `${item.artisan?.first_name || ''} ${item.artisan?.last_name || ''}`.trim() || 'An Artisan',
-        artisanImage: item.artisan?.profile_image || null,
-        customMessage: `Job "${item.title}" has been completed`,
+        artisanName: 'System',
+        customMessage: item.customMessage || `Job has been completed`,
         jobTitle: item.title || 'Untitled Job',
         type: 'completed_job' as const
       }))
 
-  const disputedFormatted = (disputed || []).map((item: any) => ({
+      const disputedFormatted = (disputed || []).map((item: any) => ({
         id: item.id,
         job_id: item.id,
         created_at: item.created_at,
@@ -161,19 +172,20 @@ export default function AdminNotificationBell() {
         jobTitle: item.title || 'Untitled Job',
         type: 'disputed_job' as const
       }))
-  const verificationFormatted = (verification || []).map((item: any) => ({
+
+      const verificationFormatted = (verification || []).map((item: any) => ({
         id: item.id,
         job_id: item.id,
         created_at: item.created_at,
         read: false,
-        artisanName: `${item.artisan?.first_name || ''} ${item.artisan?.last_name || ''}`.trim() || 'An Artisan',
-        artisanImage: item.artisan?.profile_image || null,
-        customMessage: `Job "${item.title}" new verification requested`,
-        // jobTitle: item.title || 'Untitled Job',
+        artisanName: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'An Artisan',
+        artisanImage: item.profile_image || null,
+        customMessage: `New verification request from ${item.first_name || ''} ${item.last_name || ''}`,
+        jobTitle: 'Verification Request',
         type: 'verification' as const
       }))
 
-      const allNotifications = [...pendingFormatted, ...acceptedFormatted, ...completedFormatted, ...disputedFormatted]
+      const allNotifications = [...pendingFormatted, ...acceptedFormatted, ...completedFormatted, ...disputedFormatted, ...verificationFormatted]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
       setNotifications(allNotifications)
@@ -186,24 +198,35 @@ export default function AdminNotificationBell() {
   }
 
   const setupRealtime = () => {
-    if (channelRef.current) supabase.removeChannel(channelRef.current)
+  if (channelRef.current) supabase.removeChannel(channelRef.current)
 
-    const channel = supabase
-      .channel('admin_notifications_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'job_requests' }, fetchNotifications)
-      .subscribe()
+  const channel = supabase
+    .channel('admin_notifications_realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'job_requests' },
+      (payload) => {
+        // Play sound ONLY on new records (INSERT) or relevant updates
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          playNotificationSound()
+        }
+        fetchNotifications()
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'notifications' },
+      (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          playNotificationSound()
+        }
+        fetchNotifications()
+      }
+    )
+    .subscribe()
 
-    channelRef.current = channel
-  }
-
-  useEffect(() => {
-    fetchNotifications()
-    setupRealtime()
-
-    return () => {
-      if (channelRef.current) supabase.removeChannel(channelRef.current)
-    }
-  }, [])
+  channelRef.current = channel
+}
 
   const handleNotificationClick = (notif: NotificationItem) => {
     setNotifications(prev => prev.filter(n => n.id !== notif.id))
@@ -217,9 +240,9 @@ export default function AdminNotificationBell() {
     } else if (notif.type === 'completed_job') {
       router.push('/admin-dashboard/completed-job')
     } else if (notif.type === 'disputed_job') {
-      router.push('/admin-dashboard/disputed-jobs')
+      router.push('/admin-dashboard/disputes')
     } else if (notif.type === 'verification') {
-      router.push('/admin-dashboard/disputed-jobs')
+      router.push('/admin-dashboard/verification')
     }
   }
 
@@ -361,3 +384,4 @@ export default function AdminNotificationBell() {
     </div>
   )
 }
+
