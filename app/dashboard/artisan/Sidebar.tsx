@@ -32,7 +32,7 @@ const nav = [
   { label: 'Dashboard', href: '/dashboard/artisan', icon: FaTachometerAlt },
   { label: 'Profile', href: '/dashboard/artisan/profile', icon: FaUser },
   { label: 'Verification', href: '/dashboard/artisan/verification', icon: FaIdCard },
-  { label: 'Job Requests', href: '/dashboard/artisan/requests', icon: FaBriefcase },
+  // { label: 'Job Requests', href: '/dashboard/artisan/requests', icon: FaBriefcase },
   { label: 'Assigned Jobs', href: '/dashboard/artisan/assigned-jobs', icon: FaBriefcase },
   { label: 'Active Jobs', href: '/dashboard/artisan/jobs', icon: FaTasks },
   { label: 'Completed Jobs', href: '/dashboard/artisan/completed-jobs', icon: FaTasks },
