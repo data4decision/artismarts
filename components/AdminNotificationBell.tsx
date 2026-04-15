@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
-import { FaBell, FaTimes, FaCheck, FaSpinner, FaCog, FaVolumeMute, FaVolumeUp } from 'react-icons/fa'
+import { FaBell, FaTimes, FaCheck, FaSpinner } from 'react-icons/fa'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -23,17 +23,6 @@ interface NotificationItem {
   type: 'new_job_request' | 'job_accepted' | 'completed_job' | 'disputed_job' | 'verification'
 }
 
-// Sound options
-const NOTIFICATION_SOUNDS = [
-  { name: 'Default Chime', value: '/sounds/notification.mp3' },
-  { name: 'Soft Bell', value: '/sounds/soft-bell.mp3' },
-  { name: 'Dragon Bell', value: '/sounds/dragon-bell.mp3' },
-  { name: 'Dragon Festive Chime', value: '/sounds/dragon-festive-chime.mp3' },
-  { name: 'Gigidela Romusic', value: '/sounds/gigidelaromusic.mp3' },
-  { name: 'Celestial Chime', value: '/sounds/celestial-chime.mp3' },
-  { name: 'Universal Field Chime', value: '/sounds/universfield-chime.mp3' },
-]
-
 export default function AdminNotificationBell() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -41,14 +30,13 @@ export default function AdminNotificationBell() {
   const [loading, setLoading] = useState(true)
   const [selectedSound, setSelectedSound] = useState('/sounds/notification.mp3')
   const [isMuted, setIsMuted] = useState(false)
-  const [showSoundSettings, setShowSoundSettings] = useState(false)
 
   const channelRef = useRef<RealtimeChannel | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const router = useRouter()
-  const prevCountRef = useRef(0)
+  const prevUnreadRef = useRef(0)   // Helps detect actual new notifications
 
-  // Load saved preferences
+  // Load notification preferences from localStorage
   useEffect(() => {
     const savedSound = localStorage.getItem('notificationSound')
     const savedMute = localStorage.getItem('notificationMuted') === 'true'
@@ -57,7 +45,7 @@ export default function AdminNotificationBell() {
     setIsMuted(savedMute)
   }, [])
 
-  // Initialize audio
+  // Initialize audio element
   useEffect(() => {
     audioRef.current = new Audio(selectedSound)
     audioRef.current.volume = 0.65
@@ -66,25 +54,9 @@ export default function AdminNotificationBell() {
   const playNotificationSound = () => {
     if (isMuted || !audioRef.current) return
     audioRef.current.currentTime = 0
-    audioRef.current.play().catch(() => {})
-  }
-
-  const changeNotificationSound = (soundUrl: string) => {
-    setSelectedSound(soundUrl)
-    localStorage.setItem('notificationSound', soundUrl)
-
-    const preview = new Audio(soundUrl)
-    preview.volume = 0.6
-    preview.play().catch(() => {})
-
-    toast.success('Sound changed')
-  }
-
-  const toggleMute = () => {
-    const newState = !isMuted
-    setIsMuted(newState)
-    localStorage.setItem('notificationMuted', newState.toString())
-    toast.success(newState ? 'Notifications muted' : 'Notifications unmuted')
+    audioRef.current.play().catch((err) => {
+      console.warn('Notification sound playback failed:', err)
+    })
   }
 
   const fetchNotifications = async () => {
@@ -103,7 +75,6 @@ export default function AdminNotificationBell() {
         .order('created_at', { ascending: false })
         .limit(10)
 
-      // Fixed: Fetch completed from notifications table with type 'new_completed_job'
       const { data: completed } = await supabase
         .from('notifications')
         .select(`id, title, message as customMessage, created_at, job_id`)
@@ -188,45 +159,51 @@ export default function AdminNotificationBell() {
       const allNotifications = [...pendingFormatted, ...acceptedFormatted, ...completedFormatted, ...disputedFormatted, ...verificationFormatted]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
+      const newUnreadCount = allNotifications.length
+
+      // Play sound only when unread count actually increases (new notification arrived)
+      if (newUnreadCount > prevUnreadRef.current) {
+        playNotificationSound()
+      }
+
+      prevUnreadRef.current = newUnreadCount
       setNotifications(allNotifications)
-      setUnreadCount(allNotifications.length)
+      setUnreadCount(newUnreadCount)
     } catch (err) {
-      console.error(err)
+      console.error('Failed to fetch notifications:', err)
     } finally {
       setLoading(false)
     }
   }
 
   const setupRealtime = () => {
-  if (channelRef.current) supabase.removeChannel(channelRef.current)
+    if (channelRef.current) supabase.removeChannel(channelRef.current)
 
-  const channel = supabase
-    .channel('admin_notifications_realtime')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'job_requests' },
-      (payload) => {
-        // Play sound ONLY on new records (INSERT) or relevant updates
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          playNotificationSound()
-        }
-        fetchNotifications()
-      }
-    )
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'notifications' },
-      (payload) => {
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          playNotificationSound()
-        }
-        fetchNotifications()
-      }
-    )
-    .subscribe()
+    const channel = supabase
+      .channel('admin_notifications_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'job_requests' },
+        () => fetchNotifications()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        () => fetchNotifications()
+      )
+      .subscribe()
 
-  channelRef.current = channel
-}
+    channelRef.current = channel
+  }
+
+  useEffect(() => {
+    fetchNotifications()
+    setupRealtime()
+
+    return () => {
+      if (channelRef.current) supabase.removeChannel(channelRef.current)
+    }
+  }, [])
 
   const handleNotificationClick = (notif: NotificationItem) => {
     setNotifications(prev => prev.filter(n => n.id !== notif.id))
@@ -272,13 +249,7 @@ export default function AdminNotificationBell() {
           <div className="flex items-center justify-between px-6 py-4 border-b bg-[var(--blue)] text-white rounded-t-2xl">
             <h3 className="font-semibold text-lg">Notifications</h3>
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setShowSoundSettings(!showSoundSettings)}
-                className="text-white hover:text-gray-200"
-                title="Sound Settings"
-              >
-                <FaCog size={16} />
-              </button>
+              {/* Removed cog icon - settings now in dedicated page */}
               {unreadCount > 0 && (
                 <button onClick={markAllAsRead} className="text-sm flex items-center gap-1 hover:underline">
                   <FaCheck size={14} /> Mark all
@@ -289,35 +260,6 @@ export default function AdminNotificationBell() {
               </button>
             </div>
           </div>
-
-          {/* Sound Settings */}
-          {showSoundSettings && (
-            <div className="p-4 border-b bg-gray-50">
-              <div className="flex justify-between mb-3">
-                <p className="text-sm font-medium">Notification Sound</p>
-                <button 
-                  onClick={toggleMute}
-                  className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm ${isMuted ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}
-                >
-                  {isMuted ? <FaVolumeMute /> : <FaVolumeUp />}
-                  {isMuted ? 'Muted' : 'On'}
-                </button>
-              </div>
-              <div className="space-y-1">
-                {NOTIFICATION_SOUNDS.map(sound => (
-                  <button
-                    key={sound.value}
-                    onClick={() => changeNotificationSound(sound.value)}
-                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition ${
-                      selectedSound === sound.value ? 'bg-[var(--orange)] text-white' : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    {sound.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Notification List */}
           <div className="max-h-[380px] overflow-y-auto">
@@ -384,4 +326,3 @@ export default function AdminNotificationBell() {
     </div>
   )
 }
-
