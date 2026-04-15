@@ -223,7 +223,7 @@ verificationChannelRef.current = channel
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 items-center">
           <AdminNotificationBell/>
-          <button onClick={handleBellClick} className="relative p-2 hover:bg-[var(--orange)]/20 rounded-md transition-colors hover:text-[var(--orange)] cursor-pointer">
+          {/* <button onClick={handleBellClick} className="relative p-2 hover:bg-[var(--orange)]/20 rounded-md transition-colors hover:text-[var(--orange)] cursor-pointer">
             <FaBell className='text-xl'/>
             {pendingCount > 0 && (
               <span className="absolute top-1 left-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
@@ -231,7 +231,7 @@ verificationChannelRef.current = channel
               </span>
             )}
               
-          </button>
+          </button> */}
         <button
           className="flex items-center gap-2 hover:bg-[var(--orange)]/90 p-2 rounded-md transition-colors"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
