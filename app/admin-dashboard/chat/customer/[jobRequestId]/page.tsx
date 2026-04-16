@@ -75,63 +75,91 @@ export default function AdminCustomerChatPage() {
 
   // Initialize + Realtime (ensures instant updates)
   useEffect(() => {
-  if (!jobRequestId || typeof jobRequestId !== 'string') {
-    toast.error('Invalid job ID')
-    router.replace('/dashboard/admin/jobs')
-    return
-  }
-
-  const init = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      toast.error('Please sign in')
-      router.replace('/login')
+    if (!jobRequestId || typeof jobRequestId !== 'string') {
+      toast.error('Invalid job ID')
+      router.replace('/dashboard/admin/jobs')
       return
     }
 
-    setCurrentUserId(user.id)
-    await fetchJobAndMessages(user.id)
-  }
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('Please sign in')
+        router.replace('/login')
+        return
+      }
+      setCurrentUserId(user.id)
+      await fetchJobAndMessages(user.id)
+    }
 
-  init()
-}, [jobRequestId])
+    init()
 
     // Realtime - This ensures new messages appear instantly without refresh
-    useEffect(() => {
-    if (!currentUserId || !jobRequestId) return
-
-    const channel = supabase
-      .channel(`chat:${jobRequestId}`)
+    const messageChannel = supabase
+      .channel(`admin-customer-chat:${jobRequestId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'admin_customer_messages',
           filter: `job_request_id=eq.${jobRequestId}`
         },
         (payload) => {
-          const newMsg = payload.new as Message
+          if (payload.eventType === 'INSERT') {
+            const newMsg = payload.new as any
 
-          setMessages(prev => {
-            // prevent duplicates
-            if (prev.some(m => m.id === newMsg.id)) return prev
+            const processedMsg: Message = {
+              ...newMsg,
+              is_admin: newMsg.sender_id === currentUserId
+            }
 
-            // remove temp messages
-            const filtered = prev.filter(m => !m.id.startsWith('temp-'))
+            setMessages(prev => [...prev, processedMsg])
+            scrollToBottom()
 
-            return [...filtered, newMsg]
-          })
+            if (newMsg.sender_id !== currentUserId && !newMsg.deleted_at) {
+              toast('New message from customer', {
+                icon: '💬',
+                duration: 4000,
+                position: 'top-right',
+                style: { background: '#0b0b5c', color: '#ffffff', border: '1px solid #f47b20' }
+              })
 
-          scrollToBottom()
+              if (!isPageVisibleRef.current) {
+                if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
+                try {
+                  new Audio('/notification.mp3').play().catch(() => {})
+                } catch {}
+              }
+            }
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as any
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === updated.id
+                  ? { ...updated, is_admin: updated.sender_id === currentUserId }
+                  : m
+              )
+            )
+          }
         }
       )
       .subscribe()
 
+    const typingChannel = supabase
+      .channel(`typing:${jobRequestId}`)
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        const { is_typing, user_id } = payload.payload as { is_typing: boolean; user_id: string }
+        if (user_id !== currentUserId) setOtherIsTyping(is_typing)
+      })
+      .subscribe()
+
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(messageChannel)
+      supabase.removeChannel(typingChannel)
     }
-  }, [jobRequestId, currentUserId])
+  }, [jobRequestId, router])
 
   // Mark messages as seen
   useEffect(() => {
