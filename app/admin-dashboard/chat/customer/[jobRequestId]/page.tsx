@@ -98,37 +98,40 @@ export default function AdminCustomerChatPage() {
 
     // Realtime - This ensures new messages appear instantly without refresh
     useEffect(() => {
-  if (!currentUserId) return; // prevent running early
+    if (!currentUserId || !jobRequestId) return
 
-  const messageChannel = supabase
-    .channel(`admin-customer-chat:${jobRequestId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'admin_customer_messages',
-        filter: `job_request_id=eq.${jobRequestId}`
-      },
-      (payload) => {
-        if (payload.eventType === 'INSERT') {
-          const newMsg = payload.new as any
+    const channel = supabase
+      .channel(`chat:${jobRequestId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'admin_customer_messages',
+          filter: `job_request_id=eq.${jobRequestId}`
+        },
+        (payload) => {
+          const newMsg = payload.new as Message
 
-          const processedMsg: Message = {
-            ...newMsg,
-            is_admin: newMsg.sender_id === currentUserId
-          }
+          setMessages(prev => {
+            // prevent duplicates
+            if (prev.some(m => m.id === newMsg.id)) return prev
 
-          setMessages(prev => [...prev, processedMsg])
+            // remove temp messages
+            const filtered = prev.filter(m => !m.id.startsWith('temp-'))
+
+            return [...filtered, newMsg]
+          })
+
+          scrollToBottom()
         }
-      }
-    )
-    .subscribe()
+      )
+      .subscribe()
 
-  return () => {
-    supabase.removeChannel(messageChannel)
-  }
-}, [jobRequestId, currentUserId]) // ✅ FIXED
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [jobRequestId, currentUserId])
 
   // Mark messages as seen
   useEffect(() => {
