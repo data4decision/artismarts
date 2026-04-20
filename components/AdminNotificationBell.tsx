@@ -757,7 +757,6 @@ import { FaBell, FaTimes, FaCheck, FaSpinner, FaCog } from 'react-icons/fa'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { RealtimeChannel } from '@supabase/supabase-js'
 
 interface NotificationItem {
   id: string
@@ -770,7 +769,16 @@ interface NotificationItem {
   artisanImage?: string | null
   customMessage: string
   jobTitle: string
-  type: 'new_job_request' | 'job_accepted' | 'completed_job' | 'new_dispute' | 'verification' | 'customerMessage' | 'artisanMessage' | 'appRating'
+  type: 
+    | 'new_job_request' 
+    | 'job_accepted' 
+    | 'completed_job' 
+    | 'new_dispute' 
+    | 'verification' 
+    | 'customerMessage' 
+    | 'artisanMessage' 
+    | 'appRating' 
+    | 'earningAndPayout'
 }
 
 export default function AdminNotificationBell() {
@@ -781,11 +789,11 @@ export default function AdminNotificationBell() {
   const [selectedSound, setSelectedSound] = useState('/sounds/notification.mp3')
   const [isMuted, setIsMuted] = useState(false)
 
-  const channelRef = useRef<RealtimeChannel | null>(null)
+  const channelRef = useRef<any>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const router = useRouter()
 
-  // Load sound & mute from Settings page
+  // Load sound & mute settings
   useEffect(() => {
     const savedSound = localStorage.getItem('notificationSound') || '/sounds/notification.mp3'
     const savedMute = localStorage.getItem('notificationMuted') === 'true'
@@ -823,7 +831,7 @@ export default function AdminNotificationBell() {
         .order('created_at', { ascending: false })
         .limit(8)
 
-      // 3. UNREAD Completed Job Reviews
+      // 3. Unread Completed Job Reviews
       const { data: completed } = await supabase
         .from('notifications')
         .select(`
@@ -839,7 +847,7 @@ export default function AdminNotificationBell() {
         .order('created_at', { ascending: false })
         .limit(10)
 
-      // 4. UNREAD Disputes
+      // 4. Unread Disputes
       const { data: disputed } = await supabase
         .from('notifications')
         .select(`
@@ -862,21 +870,30 @@ export default function AdminNotificationBell() {
         .eq('verification_status', 'pending')
         .order('created_at', { ascending: false })
         .limit(8)
-    const {data: appRatings} = await supabase
-    .from('app_ratings')
-    .select(`*, customer:customer_id(first_name, last_name, profile_image)`)
-    .eq('is_seen', false)
-    .order('created_at', { ascending: false })
-    .limit(10)
 
-      // 6. UNREAD Customer Messages
+      // 6. App Ratings (from notifications table - new_rating)
+      const { data: appRatings } = await supabase
+        .from('notifications')
+        .select(`id, title, message, created_at, read`)
+        .eq('type', 'new_rating')
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      // 7. Earnings & Payouts (from notifications table)
+      const { data: earningAndPayouts } = await supabase
+        .from('notifications')
+        .select(`id, title, message, created_at, read`)
+        .eq('type', 'new_payment')
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      // 8. Unread Customer Messages
       const { data: customerMessagesData } = await supabase
         .from('admin_customer_messages')
         .select(`
-          id,
-          message,
-          created_at,
-          job_request_id,
+          id, message, created_at, job_request_id,
           sender:sender_id(first_name, last_name, profile_image)
         `)
         .eq('is_seen', false)
@@ -884,14 +901,11 @@ export default function AdminNotificationBell() {
         .order('created_at', { ascending: false })
         .limit(10)
 
-      // 7. UNREAD Artisan Messages (NEW)
+      // 9. Unread Artisan Messages
       const { data: artisanMessagesData } = await supabase
         .from('admin_artisan_messages')
         .select(`
-          id,
-          message,
-          created_at,
-          job_id,
+          id, message, created_at, job_id,
           sender:sender_id(first_name, last_name, profile_image)
         `)
         .eq('is_seen', false)
@@ -899,114 +913,119 @@ export default function AdminNotificationBell() {
         .order('created_at', { ascending: false })
         .limit(10)
 
-      // Format sections
-      const pendingFormatted = (pending || []).map((item: any) => ({
+      // ====================== FORMAT ALL NOTIFICATIONS ======================
+
+      const pendingFormatted: NotificationItem[] = (pending || []).map((item: any) => ({
         id: item.id,
         job_id: item.id,
         created_at: item.created_at,
         read: false,
         customerName: `${item.customer?.first_name || ''} ${item.customer?.last_name || ''}`.trim() || 'A Customer',
         customerImage: item.customer?.profile_image || null,
-        customMessage: `${item.customer?.first_name || ''} ${item.customer?.last_name || ''} sent a new job request`.trim(),
+        customMessage: `New job request: ${item.title || 'Untitled Job'}`,
         jobTitle: item.title || 'Untitled Job',
-        type: 'new_job_request' as const
+        type: 'new_job_request'
       }))
 
-      const acceptedFormatted = (inProgress || []).map((item: any) => ({
+      const acceptedFormatted: NotificationItem[] = (inProgress || []).map((item: any) => ({
         id: item.id,
         job_id: item.id,
         created_at: item.created_at,
         read: false,
         artisanName: `${item.artisan?.first_name || ''} ${item.artisan?.last_name || ''}`.trim() || 'An Artisan',
         artisanImage: item.artisan?.profile_image || null,
-        customMessage: `Artisan ${item.artisan?.first_name || ''} ${item.artisan?.last_name || ''} accepted the job`,
+        customMessage: `Artisan accepted job: ${item.title || 'Untitled Job'}`,
         jobTitle: item.title || 'Untitled Job',
-        type: 'job_accepted' as const
+        type: 'job_accepted'
       }))
 
-      const completedFormatted = (completed || []).map((item: any) => {
-        const job = item.job || {}
-        const customer = job.customer || {}
-        const artisan = job.artisan || {}
-
-        return {
-          id: item.id,
-          job_id: item.job_id,
-          created_at: item.created_at,
-          read: false,
-          customerName: `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Customer',
-          customerImage: customer.profile_image || null,
-          artisanName: `${artisan.first_name || ''} ${artisan.last_name || ''}`.trim() || 'Artisan',
-          artisanImage: artisan.profile_image || null,
-          customMessage: item.message || 'A customer has reviewed the job',
-          jobTitle: job.title || item.title || 'Untitled Job',
-          type: 'completed_job' as const
-        }
-      })
-
-      const disputedFormatted = (disputed || []).map((item: any) => {
-        const job = item.job || {}
-        const artisan = job.artisan || {}
-
-        return {
-          id: item.id,
-          job_id: item.job_id,
-          created_at: item.created_at,
-          read: false,
-          artisanName: `${artisan.first_name || ''} ${artisan.last_name || ''}`.trim() || 'Artisan',
-          artisanImage: artisan.profile_image || null,
-          customMessage: item.message || 'A dispute has been raised on the job',
-          jobTitle: job.title || item.title || 'Untitled Job',
-          type: 'new_dispute' as const
-        }
-      })
-
-      const verificationFormatted = (verification || []).map((item: any) => ({
+      const completedFormatted: NotificationItem[] = (completed || []).map((item: any) => ({
         id: item.id,
-        job_id: item.id,
+        job_id: item.job_id,
+        created_at: item.created_at,
+        read: item.read || false,
+        customerName: item.job?.customer 
+          ? `${item.job.customer.first_name || ''} ${item.job.customer.last_name || ''}`.trim() 
+          : 'Customer',
+        customMessage: item.message || 'A customer has reviewed the completed job',
+        jobTitle: item.job?.title || 'Job Review',
+        type: 'completed_job'
+      }))
+
+      const disputedFormatted: NotificationItem[] = (disputed || []).map((item: any) => ({
+        id: item.id,
+        job_id: item.job_id,
+        created_at: item.created_at,
+        read: item.read || false,
+        artisanName: item.job?.artisan 
+          ? `${item.job.artisan.first_name || ''} ${item.job.artisan.last_name || ''}`.trim() 
+          : 'Artisan',
+        customMessage: item.message || 'A dispute has been raised',
+        jobTitle: item.job?.title || 'Disputed Job',
+        type: 'new_dispute'
+      }))
+
+      const verificationFormatted: NotificationItem[] = (verification || []).map((item: any) => ({
+        id: item.id,
+        job_id: null,
         created_at: item.created_at,
         read: false,
         artisanName: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'An Artisan',
         artisanImage: item.profile_image || null,
         customMessage: `New verification request from ${item.first_name || ''} ${item.last_name || ''}`,
         jobTitle: 'Verification Request',
-        type: 'verification' as const
+        type: 'verification'
       }))
 
-      const customerMessageFormatted = (customerMessagesData || []).map((item: any) => ({
+      const appRatingsFormatted: NotificationItem[] = (appRatings || []).map((item: any) => ({
+        id: item.id,
+        job_id: null,
+        created_at: item.created_at,
+        read: false,
+        customerName: 'A Customer',
+        customMessage: item.message || 'New app rating received',
+        jobTitle: 'App Rating',
+        type: 'appRating'
+      }))
+
+      const earningAndPayoutsFormatted: NotificationItem[] = (earningAndPayouts || []).map((item: any) => ({
+        id: item.id,
+        job_id: null,
+        created_at: item.created_at,
+        read: false,
+        customerName: 'A Customer',
+        customMessage: item.message || 'New payment received',
+        jobTitle: 'New Payment / Earning',
+        type: 'earningAndPayout'
+      }))
+
+      const customerMessageFormatted: NotificationItem[] = (customerMessagesData || []).map((item: any) => ({
         id: item.id,
         job_id: item.job_request_id,
         created_at: item.created_at,
         read: false,
-        customerName: `${item.sender?.first_name || ''} ${item.sender?.last_name || ''}`.trim() || 'Customer',
-        customerImage: item.sender?.profile_image || null,
+        customerName: item.sender 
+          ? `${item.sender.first_name || ''} ${item.sender.last_name || ''}`.trim() 
+          : 'Customer',
         customMessage: item.message || 'New message from customer',
         jobTitle: 'Customer Message',
-        type: 'customerMessage' as const
+        type: 'customerMessage'
       }))
 
-      const artisanMessageFormatted = (artisanMessagesData || []).map((item: any) => ({
+      const artisanMessageFormatted: NotificationItem[] = (artisanMessagesData || []).map((item: any) => ({
         id: item.id,
         job_id: item.job_id,
         created_at: item.created_at,
         read: false,
-        artisanName: `${item.sender?.first_name || ''} ${item.sender?.last_name || ''}`.trim() || 'Artisan',
-        artisanImage: item.sender?.profile_image || null,
+        artisanName: item.sender 
+          ? `${item.sender.first_name || ''} ${item.sender.last_name || ''}`.trim() 
+          : 'Artisan',
         customMessage: item.message || 'New message from artisan',
         jobTitle: 'Artisan Message',
-        type: 'artisanMessage' as const
+        type: 'artisanMessage'
       }))
-  const appRatingsFormatted = (appRatings || []).map((item: any) => ({
-    id: item.id,
-    job_id: null,
-    created_at: item.created_at,
-    read: false,
-    customerName: `${item.customer?.first_name || ''} ${item.customer?.last_name || ''}`.trim() || 'A Customer',
-    customerImage: item.customer?.profile_image || null,
-    customMessage: `New app rating: ${item.rating} stars. ${item.comment ? `Comment: "${item.comment}"` : ''}`,
-    jobTitle: 'App Rating',
-    type: 'appRating' as const
-  }))
+
+      // Combine and sort by newest first
       const allNotifications = [
         ...pendingFormatted,
         ...acceptedFormatted,
@@ -1015,11 +1034,13 @@ export default function AdminNotificationBell() {
         ...verificationFormatted,
         ...customerMessageFormatted,
         ...artisanMessageFormatted,
-        ...appRatingsFormatted
+        ...appRatingsFormatted,
+        ...earningAndPayoutsFormatted
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
       setNotifications(allNotifications)
       setUnreadCount(allNotifications.length)
+
     } catch (err) {
       console.error('Failed to fetch notifications:', err)
     } finally {
@@ -1042,11 +1063,7 @@ export default function AdminNotificationBell() {
         fetchNotifications()
         playNotificationSound()
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_artisan_messages' }, () => {   // ← Added for artisans
-        fetchNotifications()
-        playNotificationSound()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_ratings' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_artisan_messages' }, () => {
         fetchNotifications()
         playNotificationSound()
       })
@@ -1065,7 +1082,7 @@ export default function AdminNotificationBell() {
   }, [])
 
   const handleNotificationClick = async (notif: NotificationItem) => {
-    // Mark as read for notifications table entries
+    // Mark as read for notification table entries
     if ((notif.type === 'completed_job' || notif.type === 'new_dispute') && !notif.read) {
       await supabase
         .from('notifications')
@@ -1073,6 +1090,7 @@ export default function AdminNotificationBell() {
         .eq('id', notif.id)
     }
 
+    // Remove from local list
     setNotifications(prev => prev.filter(n => n.id !== notif.id))
     setUnreadCount(prev => Math.max(0, prev - 1))
     setIsOpen(false)
@@ -1083,9 +1101,10 @@ export default function AdminNotificationBell() {
     else if (notif.type === 'completed_job') router.push('/admin-dashboard/completed-job')
     else if (notif.type === 'new_dispute') router.push('/admin-dashboard/disputes')
     else if (notif.type === 'verification') router.push('/admin-dashboard/verification')
-    else if (notif.type === 'customerMessage') router.push(`/admin-dashboard/messages?job=${notif.job_id}`)
-    else if (notif.type === 'artisanMessage') router.push(`/admin-dashboard/messages?job=${notif.job_id}`)  
-    else if (notif.type === 'appRating') router.push('/admin-dashboard/app-ratings')
+    else if (notif.type === 'customerMessage' || notif.type === 'artisanMessage') 
+      router.push(`/admin-dashboard/messages?job=${notif.job_id}`)
+    else if (notif.type === 'appRating') router.push('/admin-dashboard/reviews')
+    else if (notif.type === 'earningAndPayout') router.push('/admin-dashboard/earnings')
   }
 
   const markAllAsRead = () => {
