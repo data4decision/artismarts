@@ -761,7 +761,7 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 
 interface NotificationItem {
   id: string
-  job_id: string
+  job_id: string | null
   created_at: string
   read: boolean
   customerName?: string
@@ -770,7 +770,7 @@ interface NotificationItem {
   artisanImage?: string | null
   customMessage: string
   jobTitle: string
-  type: 'new_job_request' | 'job_accepted' | 'completed_job' | 'new_dispute' | 'verification' | 'customerMessage' | 'artisanMessage'
+  type: 'new_job_request' | 'job_accepted' | 'completed_job' | 'new_dispute' | 'verification' | 'customerMessage' | 'artisanMessage' | 'appRating'
 }
 
 export default function AdminNotificationBell() {
@@ -862,6 +862,12 @@ export default function AdminNotificationBell() {
         .eq('verification_status', 'pending')
         .order('created_at', { ascending: false })
         .limit(8)
+    const {data: appRatings} = await supabase
+    .from('app_ratings')
+    .select(`*, customer:customer_id(first_name, last_name, profile_image)`)
+    .eq('is_seen', false)
+    .order('created_at', { ascending: false })
+    .limit(10)
 
       // 6. UNREAD Customer Messages
       const { data: customerMessagesData } = await supabase
@@ -990,7 +996,17 @@ export default function AdminNotificationBell() {
         jobTitle: 'Artisan Message',
         type: 'artisanMessage' as const
       }))
-
+  const appRatingsFormatted = (appRatings || []).map((item: any) => ({
+    id: item.id,
+    job_id: null,
+    created_at: item.created_at,
+    read: false,
+    customerName: `${item.customer?.first_name || ''} ${item.customer?.last_name || ''}`.trim() || 'A Customer',
+    customerImage: item.customer?.profile_image || null,
+    customMessage: `New app rating: ${item.rating} stars. ${item.comment ? `Comment: "${item.comment}"` : ''}`,
+    jobTitle: 'App Rating',
+    type: 'appRating' as const
+  }))
       const allNotifications = [
         ...pendingFormatted,
         ...acceptedFormatted,
@@ -998,7 +1014,8 @@ export default function AdminNotificationBell() {
         ...disputedFormatted,
         ...verificationFormatted,
         ...customerMessageFormatted,
-        ...artisanMessageFormatted
+        ...artisanMessageFormatted,
+        ...appRatingsFormatted
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
       setNotifications(allNotifications)
@@ -1026,6 +1043,10 @@ export default function AdminNotificationBell() {
         playNotificationSound()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_artisan_messages' }, () => {   // ← Added for artisans
+        fetchNotifications()
+        playNotificationSound()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_ratings' }, () => {
         fetchNotifications()
         playNotificationSound()
       })
@@ -1063,7 +1084,8 @@ export default function AdminNotificationBell() {
     else if (notif.type === 'new_dispute') router.push('/admin-dashboard/disputes')
     else if (notif.type === 'verification') router.push('/admin-dashboard/verification')
     else if (notif.type === 'customerMessage') router.push(`/admin-dashboard/messages?job=${notif.job_id}`)
-    else if (notif.type === 'artisanMessage') router.push(`/admin-dashboard/messages?job=${notif.job_id}`)  // Same chat page
+    else if (notif.type === 'artisanMessage') router.push(`/admin-dashboard/messages?job=${notif.job_id}`)  
+    else if (notif.type === 'appRating') router.push('/admin-dashboard/app-ratings')
   }
 
   const markAllAsRead = () => {
