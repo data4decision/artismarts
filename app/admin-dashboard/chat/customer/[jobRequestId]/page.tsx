@@ -721,7 +721,7 @@ export default function AdminCustomerChatPage() {
           filter: `job_request_id=eq.${jobRequestId}`
         },
         (payload) => {
-          console.log('🔴 Realtime payload:', payload.eventType, payload.new?.id)
+          console.log('🔴 Realtime payload:', payload.eventType, (payload.new as any)?.id)
 
           const newMsg = payload.new as any
           if (!newMsg) return
