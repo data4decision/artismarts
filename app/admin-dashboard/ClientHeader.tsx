@@ -239,7 +239,7 @@ verificationChannelRef.current = channel
         >
           <div className="h-8 w-8 rounded-full bg-[var(--white)] overflow-hidden relative">
             <Image
-              src={avatarUrl}
+              src={avatarUrl || '/log.png'}
               alt="Profile photo"
               fill
               className="object-cover"

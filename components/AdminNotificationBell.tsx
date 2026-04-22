@@ -890,28 +890,19 @@ export default function AdminNotificationBell() {
         .limit(10)
 
       // 8. Unread Customer Messages
-      const { data: customerMessagesData } = await supabase
-        .from('admin_customer_messages')
-        .select(`
-          id, message, created_at, job_request_id,
-          sender:sender_id(first_name, last_name, profile_image)
-        `)
-        .eq('is_seen', false)
-        .neq('sender_id', (await supabase.auth.getUser()).data.user?.id)
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const { data: customerMessages } = await supabase
+  .from('admin_customer_messages')
+  .select(`id, content, created_at, job_request_id, is_seen`)
+  .eq('is_seen', false)
+  .order('created_at', { ascending: false })
+  .limit(10)
 
-      // 9. Unread Artisan Messages
-      const { data: artisanMessagesData } = await supabase
-        .from('admin_artisan_messages')
-        .select(`
-          id, message, created_at, job_id,
-          sender:sender_id(first_name, last_name, profile_image)
-        `)
-        .eq('is_seen', false)
-        .neq('sender_id', (await supabase.auth.getUser()).data.user?.id)
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const { data: artisanMessages } = await supabase
+  .from('admin_artisan_messages')
+  .select(`id, content, created_at, job_id, is_seen`)
+  .eq('is_seen', false)
+  .order('created_at', { ascending: false })
+  .limit(10)
 
       // ====================== FORMAT ALL NOTIFICATIONS ======================
 
@@ -999,32 +990,27 @@ export default function AdminNotificationBell() {
         type: 'earningAndPayout'
       }))
 
-      const customerMessageFormatted: NotificationItem[] = (customerMessagesData || []).map((item: any) => ({
-        id: item.id,
-        job_id: item.job_request_id,
-        created_at: item.created_at,
-        read: false,
-        customerName: item.sender 
-          ? `${item.sender.first_name || ''} ${item.sender.last_name || ''}`.trim() 
-          : 'Customer',
-        customMessage: item.message || 'New message from customer',
-        jobTitle: 'Customer Message',
-        type: 'customerMessage'
-      }))
+      const customerMessageFormatted: NotificationItem[] = (customerMessages || []).map((item: any) => ({
+  id: item.id,
+  job_id: item.job_request_id, // ✅ correct field
+  created_at: item.created_at,
+  read: item.is_seen, // ✅ use correct field
+  customerName: 'Customer',
+  customMessage: item.content || 'New message from customer', // ✅ FIXED
+  jobTitle: 'Customer Message',
+  type: 'customerMessage'
+}))
 
-      const artisanMessageFormatted: NotificationItem[] = (artisanMessagesData || []).map((item: any) => ({
-        id: item.id,
-        job_id: item.job_id,
-        created_at: item.created_at,
-        read: false,
-        artisanName: item.sender 
-          ? `${item.sender.first_name || ''} ${item.sender.last_name || ''}`.trim() 
-          : 'Artisan',
-        customMessage: item.message || 'New message from artisan',
-        jobTitle: 'Artisan Message',
-        type: 'artisanMessage'
-      }))
-
+const artisanMessageFormatted: NotificationItem[] = (artisanMessages || []).map((item: any) => ({
+  id: item.id,
+  job_id: item.job_id,
+  created_at: item.created_at,
+  read: item.is_seen,
+  artisanName: 'Artisan',
+  customMessage: item.content || 'New message from artisan', // ✅ FIXED
+  jobTitle: 'Artisan Message',
+  type: 'artisanMessage'
+}))
       // Combine and sort by newest first
       const allNotifications = [
         ...pendingFormatted,
@@ -1082,7 +1068,9 @@ export default function AdminNotificationBell() {
   }, [])
 
   const handleNotificationClick = async (notif: NotificationItem) => {
-    // Mark as read for notification table entries
+  try {
+    // ================= MARK AS READ =================
+    
     if ((notif.type === 'completed_job' || notif.type === 'new_dispute') && !notif.read) {
       await supabase
         .from('notifications')
@@ -1090,23 +1078,44 @@ export default function AdminNotificationBell() {
         .eq('id', notif.id)
     }
 
-    // Remove from local list
+    if (notif.type === 'customerMessage' && !notif.read) {
+      await supabase
+        .from('admin_customer_messages')
+        .update({ is_seen: true })
+        .eq('id', notif.id)
+    }
+
+    if (notif.type === 'artisanMessage' && !notif.read) {
+      await supabase
+        .from('admin_artisan_messages')
+        .update({ is_seen: true })
+        .eq('id', notif.id)
+    }
+
+    // ================= UPDATE UI =================
+
     setNotifications(prev => prev.filter(n => n.id !== notif.id))
     setUnreadCount(prev => Math.max(0, prev - 1))
     setIsOpen(false)
 
-    // Navigation
+    // ================= NAVIGATION =================
+
     if (notif.type === 'new_job_request') router.push('/admin-dashboard/requests')
     else if (notif.type === 'job_accepted') router.push('/admin-dashboard/assigned-jobs')
     else if (notif.type === 'completed_job') router.push('/admin-dashboard/completed-job')
     else if (notif.type === 'new_dispute') router.push('/admin-dashboard/disputes')
     else if (notif.type === 'verification') router.push('/admin-dashboard/verification')
-    else if (notif.type === 'customerMessage' || notif.type === 'artisanMessage') 
+    else if (notif.type === 'customerMessage' || notif.type === 'artisanMessage') {
       router.push(`/admin-dashboard/messages?job=${notif.job_id}`)
+    }
     else if (notif.type === 'appRating') router.push('/admin-dashboard/reviews')
     else if (notif.type === 'earningAndPayout') router.push('/admin-dashboard/earnings')
-  }
 
+  } catch (error) {
+    console.error('Error handling notification:', error)
+    toast.error('Something went wrong')
+  }
+}
   const markAllAsRead = () => {
     setNotifications([])
     setUnreadCount(0)

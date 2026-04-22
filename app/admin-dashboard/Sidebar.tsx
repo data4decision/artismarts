@@ -1850,7 +1850,7 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex-1">
-          <ul className="py-2">
+          <ul className="py-1">
             {nav.map(({ href, icon: Icon, label }) => {
               const isMessages = label === 'Messages'
               const isDisputedJobs = label === 'Disputed Jobs'
@@ -1875,7 +1875,7 @@ export default function Sidebar() {
                       if (isAppRatings) return handleAppRatingsClick()
                       if (isEarningsAndPayouts) return handleEarningsAndPayoutsClick()
                     }}
-                    className={`flex items-center gap-3 px-4 py-3 transition-colors text-sm sm:text-[15px] ${
+                    className={`flex items-center gap-1 px-4 py-2 transition-colors text-sm sm:text-[12px] ${
                       isActive(href)
                         ? 'bg-[var(--orange)] text-[var(--white)] font-semibold shadow'
                         : 'hover:bg-[var(--orange)]/90'

@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { FaCaretDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa'
 import { supabase } from '@/lib/supabase'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import CustomerNotificationBell from '@/components/CustomerNotificationBell'
 
 interface Profile {
   full_name: string | null
@@ -184,6 +185,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </h1>
 
         <div className="relative" ref={dropdownRef}>
+          <div className="flex items-center gap-4">
+            <CustomerNotificationBell/>
           <button
             className="flex items-center gap-2 hover:bg-[var(--orange)]/90 p-2 rounded-md transition-colors"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -206,6 +209,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
             />
           </button>
+          </div>
 
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-[var(--white)] text-[var(--blue)] rounded-md shadow-lg z-50">
