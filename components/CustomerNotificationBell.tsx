@@ -1338,7 +1338,7 @@ const CustomerNotificationBell = () => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-66 sm:w-96 bg-[var(--white)] rounded-2xl shadow-2xl border border-[var(--white)] overflow-hidden z-50">
+        <div className="absolute -right-10 sm:right-0 mt-3 w-76 sm:w-96 bg-[var(--white)] rounded-2xl shadow-2xl border border-[var(--white)] overflow-hidden z-50">
 
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b bg-[var(--blue)] text-[var(--white)] rounded-t-2xl">
@@ -1375,7 +1375,7 @@ const CustomerNotificationBell = () => {
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
                   className={`group px-6 py-5 border-b hover:bg-[var(--blue)]/5 cursor-pointer transition-all
-                    ${!notif.read ? 'bg-[var(--orange)]/5 border-l-4 border-l-[var(--blue)]' : ''}`}
+                    ${!notif.read ? ' border-l-4 border-l-[var(--blue)]' : ''}`}
                 >
 
                   <div className="flex gap-4">
