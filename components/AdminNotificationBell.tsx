@@ -992,11 +992,11 @@ export default function AdminNotificationBell() {
 
       const customerMessageFormatted: NotificationItem[] = (customerMessages || []).map((item: any) => ({
   id: item.id,
-  job_id: item.job_request_id, // ✅ correct field
+  job_id: item.job_request_id, 
   created_at: item.created_at,
-  read: item.is_seen, // ✅ use correct field
+  read: item.is_seen, 
   customerName: 'Customer',
-  customMessage: item.content || 'New message from customer', // ✅ FIXED
+  customMessage: item.content || 'New message from customer', 
   jobTitle: 'Customer Message',
   type: 'customerMessage'
 }))
@@ -1007,7 +1007,7 @@ const artisanMessageFormatted: NotificationItem[] = (artisanMessages || []).map(
   created_at: item.created_at,
   read: item.is_seen,
   artisanName: 'Artisan',
-  customMessage: item.content || 'New message from artisan', // ✅ FIXED
+  customMessage: item.content || 'New message from artisan', 
   jobTitle: 'Artisan Message',
   type: 'artisanMessage'
 }))
@@ -1144,7 +1144,7 @@ const artisanMessageFormatted: NotificationItem[] = (artisanMessages || []).map(
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
+        <div className="absolute right-0 mt-3 w-66 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
           <div className="flex items-center justify-between px-6 py-4 border-b bg-[var(--blue)] text-white rounded-t-2xl">
             <h3 className="font-semibold text-lg">Notifications</h3>
             <div className="flex items-center gap-4">
@@ -1182,7 +1182,7 @@ const artisanMessageFormatted: NotificationItem[] = (artisanMessages || []).map(
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
                   className={`group px-6 py-5 border-b hover:bg-gray-50 cursor-pointer transition-all
-                    ${!notif.read ? 'bg-orange-50 border-l-4 border-l-[var(--orange)]' : ''}`}
+                    ${!notif.read ? 'bg-orange-50 border-l-4 border-l-[var(--blue)]' : ''}`}
                 >
                   <div className="flex gap-4">
                     <div className="flex-shrink-0">
