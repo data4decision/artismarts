@@ -816,13 +816,30 @@ export default function CustomerJobChatPage() {
           user_id: currentUserId,
           job_id: jobId,
           last_read_at: now
-        })
+        })    
     }
+    
 
     markAsSeen()
     window.addEventListener('focus', markAsSeen)
     return () => window.removeEventListener('focus', markAsSeen)
   }, [jobId, loading, messages, currentUserId])
+
+          // Auto mark notifications as read when this chat page is open
+useEffect(() => {
+  const markAsRead = async () => {
+    if (!jobId || !currentUserId) return
+
+    await supabase
+      .from('customer_notifications')
+      .update({ read: true })
+      .eq('customer_id', currentUserId)
+      .eq('job_request_id', jobId)
+      .eq('read', false)
+  }
+
+  markAsRead()
+}, [jobId, currentUserId])
 
   useEffect(() => {
     const handleVisibility = () => {
