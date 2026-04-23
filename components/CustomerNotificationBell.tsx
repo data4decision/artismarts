@@ -1077,9 +1077,35 @@ const CustomerNotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedSound, setSelectedSound] = useState('/sounds/dragon-festive-chime.mp3')
+  const [isMuted, setIsMuted] = useState(false)
 
   const router = useRouter()
   const channelRef = useRef<any>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+   //Load sound & mute settings
+  useEffect (() => {
+  const savedSound = localStorage.getItem('notificationSound') || '/sound/dragon-festive-chime.mp3'
+  const savedMute = localStorage.getItem('notificationMuted') === 'true'
+
+  setSelectedSound(savedSound)
+  setIsMuted(savedMute)
+
+  audioRef.current = new Audio(savedSound)
+  audioRef.current.volume = 0.65
+  }, [])
+
+  const playNotificationSound = () => {
+    if (isMuted || !audioRef.current) return
+    try {
+      audioRef.current.currentTime = 0
+    audioRef.current.play().catch(() => {})
+    }catch (err) {
+    console.error('Notification sound playback failed:', err)
+  } 
+  
+  }
 
   // ================= FETCH NOTIFICATIONS =================
   const fetchNotifications = async () => {
@@ -1219,7 +1245,12 @@ const CustomerNotificationBell = () => {
           schema: 'public',
           table: 'customer_notifications'
         },
-        () => fetchNotifications()
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            playNotificationSound()
+          }
+          fetchNotifications()
+        }
       )
       .subscribe()
 

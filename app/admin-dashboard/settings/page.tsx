@@ -91,7 +91,7 @@ export default function AdminSettings() {
       <div className="bg-white rounded-2xl shadow border p-8 space-y-10">
         {/* Notification Preferences */}
         <div>
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-3">
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-3 text-[var(--blue)]">
             <FaVolumeUp className="text-[var(--orange)]" />
             Notification Preferences
           </h2>
@@ -165,8 +165,8 @@ export default function AdminSettings() {
             disabled={!hasUnsavedChanges}
             className={`flex-1 flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-medium border transition-all ${
               hasUnsavedChanges 
-                ? 'border-gray-300 hover:bg-gray-100 text-gray-700' 
-                : 'border-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'border-[var(--blue)] hover:bg-[var(--orange)] text-[var(--blue)]' 
+                : 'border-[var(--orange)] text-gray-400 cursor-not-allowed'
             }`}
           >
             <FaUndo /> Discard Changes
@@ -174,7 +174,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      <p className="text-center text-xs text-gray-400 mt-8">
+      <p className="text-center text-xs text-[var(--blue)] mt-8">
         Changes are only saved when you click "Save Settings"
       </p>
     </div>
