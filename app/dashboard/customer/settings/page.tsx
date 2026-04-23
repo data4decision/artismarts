@@ -156,8 +156,8 @@ const hasUnsavedChanges = selectedSound !== savedSound || isMuted !== savedMute
           disabled={!hasUnsavedChanges}
           className={`flex-1 flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-medium border transition-all ${
             hasUnsavedChanges 
-              ? 'border-[var(--orange)] hover:bg-[var(--blue)]/20 text-[var(--white)]' 
-              : 'border-[var(--blue)] text-[var(--white)] cursor-not-allowed'
+              ? 'border-[var(--blue)] hover:bg-[var(--orange)] text-[var(--blue)]' 
+              : 'border-[var(--blue)] text-[var(--blue)] cursor-not-allowed'
           }`}
         >
           <FaUndo /> Discard Changes

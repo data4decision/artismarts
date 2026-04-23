@@ -101,7 +101,7 @@ export default function AdminSettings() {
             <div className="flex items-center justify-between p-5 bg-gray-50 rounded-xl">
               <div>
                 <p className="font-medium">Enable Sound</p>
-                <p className="text-sm text-gray-500">Play sound when new notifications arrive</p>
+                <p className="text-sm text-[var(--blue)]">Play sound when new notifications arrive</p>
               </div>
               <button
                 onClick={toggleMute}
@@ -166,7 +166,7 @@ export default function AdminSettings() {
             className={`flex-1 flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-medium border transition-all ${
               hasUnsavedChanges 
                 ? 'border-[var(--blue)] hover:bg-[var(--orange)] text-[var(--blue)]' 
-                : 'border-[var(--orange)] text-gray-400 cursor-not-allowed'
+                : 'border-[var(--orange)] text-[var(--blue)] cursor-not-allowed'
             }`}
           >
             <FaUndo /> Discard Changes
