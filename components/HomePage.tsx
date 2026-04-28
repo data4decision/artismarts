@@ -7,6 +7,7 @@ import OurMission from './OurMission'
 import Faq from './Faq'
 import Navbar from './Navbar'
 import FeaturedAppRating from './FeaturedAppRating'
+import Footer from './Footer'
 
 
 
@@ -23,7 +24,7 @@ const HomePage = () => {
       <FeaturedAppRating/>
   
       {/* <FeaturesAndBenefit/> */}
-      
+      <Footer/>
     </div>
   )
 }

@@ -17,18 +17,83 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 // ─── Categories ────────────────────────────────────────────────────
+// const skillCategories = [
+//   { title: "Home & Building Services", skills: ["Plumber", "Electrician", "Carpenter", "Mason / Bricklayer", "Painter / Decorator", "Tiler"] },
+//   { title: "Mechanical & Technical Services", skills: ["Generator Repair Technician", "AC Technician (Installation & Repairs)", "Refrigerator & Freezer Technician", "Washing Machine Technician"] },
+//   { title: "General Maintenance", skills: ["Handyman (Minor repairs)", "Welder / Fabricator", "Aluminum Fabricator (Doors & Windows)"] },
+//   { title: "Interior & Finishing Services", skills: ["POP Ceiling Installer", "Interior Decorator", "Furniture Maker", "Upholsterer"] },
+//   { title: "Security & Installations", skills: ["CCTV Installer", "Solar Panel Installer", "Electric Fence Installer"] },
+//   { title: "ICT & Digital Technicians", skills: ["Computer Repair Technician", "Phone Repair Technician", "Network / Internet Technician"] },
+//   { title: "Personal & Domestic Services", skills: ["Cleaner / Janitorial Services", "Home Care Assistant", "Laundry & Dry Cleaning Agent", "Barber/Hairdresser"] },
+//   { title: "Automotive Artisans", skills: ["Auto Mechanic", "Auto Electrician", "Panel Beater", "Car Painter"] },
+//   { title: "Specialised & Industrial Artisans", skills: ["Industrial Electrician", "Industrial Plumber", "HVAC Engineer", "Heavy Equipment Technician"] },
+//   { title: "Event & Creative Service Artisans", skills: ["Event Electrician", "Event Sound Technician", "Event Lighting Technician", "Stage Fabricator"] },
+// ] as const
+
 const skillCategories = [
-  { title: "Home & Building Services", skills: ["Plumber", "Electrician", "Carpenter", "Mason / Bricklayer", "Painter / Decorator", "Tiler"] },
-  { title: "Mechanical & Technical Services", skills: ["Generator Repair Technician", "AC Technician (Installation & Repairs)", "Refrigerator & Freezer Technician", "Washing Machine Technician"] },
-  { title: "General Maintenance", skills: ["Handyman (Minor repairs)", "Welder / Fabricator", "Aluminum Fabricator (Doors & Windows)"] },
-  { title: "Interior & Finishing Services", skills: ["POP Ceiling Installer", "Interior Decorator", "Furniture Maker", "Upholsterer"] },
-  { title: "Security & Installations", skills: ["CCTV Installer", "Solar Panel Installer", "Electric Fence Installer"] },
-  { title: "ICT & Digital Technicians", skills: ["Computer Repair Technician", "Phone Repair Technician", "Network / Internet Technician"] },
-  { title: "Personal & Domestic Services", skills: ["Cleaner / Janitorial Services", "Home Care Assistant", "Laundry & Dry Cleaning Agent", "Barber/Hairdresser"] },
-  { title: "Automotive Artisans", skills: ["Auto Mechanic", "Auto Electrician", "Panel Beater", "Car Painter"] },
-  { title: "Specialised & Industrial Artisans", skills: ["Industrial Electrician", "Industrial Plumber", "HVAC Engineer", "Heavy Equipment Technician"] },
-  { title: "Event & Creative Service Artisans", skills: ["Event Electrician", "Event Sound Technician", "Event Lighting Technician", "Stage Fabricator"] },
-] as const
+  { 
+    title: "Home & Building Services", 
+    skills: ["Plumber", "Electrician", "Carpenter", "Mason / Bricklayer", "Painter / Decorator", "Tiler"] 
+  },
+  { 
+    title: "Mechanical & Technical Services", 
+    skills: ["Generator Repair Technician", "AC Technician (Installation & Repairs)", "Refrigerator & Freezer Technician", "Washing Machine Technician"] 
+  },
+  { 
+    title: "General Maintenance", 
+    skills: ["Handyman (Minor repairs)", "Welder / Fabricator", "Aluminum Fabricator (Doors & Windows)"] 
+  },
+  { 
+    title: "Interior & Finishing Services", 
+    skills: ["POP Ceiling Installer", "Interior Decorator", "Furniture Maker", "Upholsterer"] 
+  },
+  { 
+    title: "Security & Installations", 
+    skills: ["CCTV Installer", "Solar Panel Installer", "Electric Fence Installer"] 
+  },
+  { 
+    title: "ICT & Digital Technicians", 
+    skills: ["Computer Repair Technician", "Phone Repair Technician", "Network / Internet Technician"] 
+  },
+  { 
+    title: "Personal & Domestic Services", 
+    skills: [
+      "Cleaner / Janitorial Services",
+      "Home Care Assistant",
+      "Laundry & Dry Cleaning Agent",
+      "Barber/Hairdresser",
+      "Housekeeper" // ✅ Added here (best fit)
+    ] 
+  },
+  { 
+    title: "Automotive Artisans", 
+    skills: ["Auto Mechanic", "Auto Electrician", "Panel Beater", "Car Painter"] 
+  },
+  { 
+    title: "Specialised & Industrial Artisans", 
+    skills: ["Industrial Electrician", "Industrial Plumber", "HVAC Engineer", "Heavy Equipment Technician"] 
+  },
+  { 
+    title: "Event & Creative Service Artisans", 
+    skills: [
+      "Event Electrician",
+      "Event Sound Technician",
+      "Event Lighting Technician",
+      "Stage Fabricator",
+      "Photographer" // ✅ Fits well here
+    ] 
+  },
+
+  // ✅ NEW CATEGORY (cleaner than forcing them into wrong places)
+  { 
+    title: "Beauty & Fashion Services", 
+    skills: [
+      "Make-up Artist",
+      "Fashion Designer",
+      "Barber" // (optional: keep here OR in Personal & Domestic, but avoid duplication)
+    ] 
+  }
+] as const;
 
 export default function ArtisanSkillsPage() {
   const router = useRouter()

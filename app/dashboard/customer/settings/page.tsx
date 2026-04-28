@@ -115,7 +115,7 @@ const hasUnsavedChanges = selectedSound !== savedSound || isMuted !== savedMute
            </div>
 
            {/* Sound Selection  */}
-           {isMuted ? null : (
+           {isMuted &&  (
             <div className="">
               <p className='font-medium text-[var(--blue)] mb-4'>Choose your Notification Sound</p>
               <div className="grid grid-cols-1 gap-3">
