@@ -1086,7 +1086,7 @@ const CustomerNotificationBell = () => {
 
    //Load sound & mute settings
   useEffect (() => {
-  const savedSound = localStorage.getItem('notificationSound') || '/sound/dragon-festive-chime.mp3'
+  const savedSound = localStorage.getItem('notificationSound') || '/sounds/dragon-festive-chime.mp3'
   const savedMute = localStorage.getItem('notificationMuted') === 'true'
 
   setSelectedSound(savedSound)
