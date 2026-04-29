@@ -76,11 +76,11 @@ const Navbar = () => {
         <div className="">
         <ul className="flex flex-col items-center gap-2">
             <li className=""><Link href="/" className="text-[var(--white)]  hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Home</Link></li>
-            <li><Link href="/container/about" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> About</Link></li>
-            <li><Link href="/container/faq" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> FAQ</Link></li>
-            <li><Link href="/container/careers" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Careers</Link></li>
-            <li><Link href="/container/contact-us" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Contact Us</Link></li>
-            <li><Link href="/container/blog" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Blog</Link></li>
+            <li><Link href="/aboutUs" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> About</Link></li>
+            <li><Link href="/faq" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> FAQ</Link></li>
+            <li><Link href="/careers" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Careers</Link></li>
+            <li><Link href="/contact-us" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Contact Us</Link></li>
+            <li><Link href="/blog" className="text-[var(--white)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Blog</Link></li>
         </ul>
       </div>
       <div className="">
