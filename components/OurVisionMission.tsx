@@ -27,7 +27,7 @@ const OurVisionMission = () => {
             </h3>
             <p className="text-lg text-[var(--blue)]  leading-relaxed">
               To empower artisans by providing a vibrant digital platform that connects 
-              their exceptional craftsmanship with a global audience, while fostering 
+              their exceptional skills with a global audience, while fostering 
               creativity, sustainability, and fair economic opportunities.
             </p>
           </div>
@@ -41,8 +41,7 @@ const OurVisionMission = () => {
               Our Vision
             </h3>
             <p className="text-lg text-[var(--blue)] dark:text-gray-300 leading-relaxed">
-              A world where every artisan is celebrated, their skills are valued, 
-              and traditional craftsmanship thrives alongside modern innovation in 
+              A world where every artisan is celebrated, their skills are valued with modern innovation in 
               a sustainable and inclusive marketplace.
             </p>
           </div>
@@ -68,7 +67,7 @@ const OurVisionMission = () => {
               <div>
                 <h4 className="font-semibold text-xl mb-2 text-[var(--blue)] ">Authenticity</h4>
                 <p className="text-[var(--white)] ">
-                  We celebrate genuine handmade crafts and the unique stories behind every creation.
+                  We celebrate genuine handmade skills and the unique stories behind every creation.
                 </p>
               </div>
             </div>
@@ -92,7 +91,7 @@ const OurVisionMission = () => {
               <div>
                 <h4 className="font-semibold text-xl mb-2 text-[var(--blue)] dark:text-white">Innovation</h4>
                 <p className="text-[var(--white)]">
-                  Blending traditional craftsmanship with modern technology and creative solutions.
+                  Blending traditional skils with modern technology and creative solutions.
                 </p>
               </div>
             </div>
@@ -116,7 +115,7 @@ const OurVisionMission = () => {
               <div>
                 <h4 className="font-semibold text-xl mb-2 text-[var(--blue)] dark:text-white">Sustainability</h4>
                 <p className="text-[var(--white)]">
-                  Promoting ethical practices and environmentally conscious craftsmanship.
+                  Promoting ethical practices and environmentally conscious skills.
                 </p>
               </div>
             </div>
