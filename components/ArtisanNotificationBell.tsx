@@ -27,9 +27,34 @@ const ArtisanNotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSound, setSelectedSound] = useState('/sounds/dragon-bell.mp3')
+  const [isMuted, setIsMuted] = useState(false)
 
   const router = useRouter();
   const channelRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  //Load sound & mute settings
+  useEffect (()=> {
+    const savedSound = localStorage.getItem('notificationSound') || '/sounds/dragon-bell.mp3'
+    const savedMute = localStorage.getItem('notificationMuted') === 'true'
+
+    setSelectedSound(savedSound)
+    setIsMuted(savedMute)
+
+    audioRef.current = new Audio(savedSound)
+    audioRef.current.volume = 0.65
+  }, [])
+
+  const playNotificationSound = () => {
+    if (isMuted || !audioRef.current) return
+    try {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch(()=> {})
+    }catch (err){
+    console.error('Notification sound playback failed:', err)
+    }
+  }
 
   // ================= FETCH NOTIFICATIONS + CUSTOMER PROFILE =================
 
@@ -116,25 +141,42 @@ const fetchNotifications = async () => {
 };
 
   // ================= REALTIME =================
-  useEffect(() => {
-    fetchNotifications();
-
-    const channel = supabase
-      .channel('artisan-notifications-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'artisan_notifications' },
-        () => fetchNotifications()
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) supabase.removeChannel(channelRef.current);
-    };
-  }, []);
-
+   const setupRealtime = () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+      }
+  
+      const channel = supabase
+        .channel('artisan_notifications_realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'artisan_notifications'
+          },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              playNotificationSound()
+            }
+            fetchNotifications()
+          }
+        )
+        .subscribe()
+  
+      channelRef.current = channel
+    }
+  
+    useEffect(() => {
+      fetchNotifications()
+      setupRealtime()
+  
+      return () => {
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current)
+        }
+      }
+    }, [])
   // ================= HELPERS =================
   const getNotificationLabel = (type: string) => {
     switch (type) {

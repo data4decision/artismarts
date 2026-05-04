@@ -19,6 +19,7 @@ import {
   FaTimes,
   FaBars,
   FaSignOutAlt,
+  FaCog,
 } from 'react-icons/fa'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
@@ -37,10 +38,11 @@ const nav = [
   { label: 'Active Jobs', href: '/dashboard/artisan/jobs', icon: FaTasks },
   { label: 'Completed Jobs', href: '/dashboard/artisan/completed-jobs', icon: FaTasks },
   { label: 'Messages', href: '/dashboard/artisan/messages', icon: FaComments },
-  { label: 'Earnings', href: '/dashboard/artisan/earnings', icon: FaWallet },
+  // { label: 'Earnings', href: '/dashboard/artisan/earnings', icon: FaWallet },
   { label: 'Reviews', href: '/dashboard/artisan/reviews', icon: FaStar },
-  { label: 'Availability', href: '/dashboard/artisan/availability', icon: FaCalendarAlt },
+  // { label: 'Availability', href: '/dashboard/artisan/availability', icon: FaCalendarAlt },
   { label: 'Notifications', href: '/dashboard/artisan/notifications', icon: FaBell },
+  { label: 'Settings', href: '/dashboard/artisan/settings', icon: FaCog },
   { label: 'Support', href: '/dashboard/artisan/support', icon: FaLifeRing },
 ]
 
