@@ -5,9 +5,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FaCaretDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa'
+import { FaBell, FaCaretDown, FaCog, FaSignOutAlt, FaUser } from 'react-icons/fa'
 import { supabase } from '@/lib/supabase'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import ArtisanNotificationBell from '@/components/ArtisanNotificationBell'
 
 interface Profile {
   full_name: string | null
@@ -183,7 +184,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* You can add a title here if desired */}
         </h1>
 
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative flex items-center gap-4" ref={dropdownRef}>
+          <ArtisanNotificationBell/>
           <button
             className="flex items-center gap-2 hover:bg-[var(--orange)]/90 p-2 rounded-md transition-colors"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
