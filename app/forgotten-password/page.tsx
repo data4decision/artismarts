@@ -24,10 +24,13 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
+      // Dynamic redirect URL (works in both localhost and production)
+      const redirectUrl = `${window.location.origin}/reset-password`;
+
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
         {
-          redirectTo: 'http://localhost:3000/reset-password', // ← change this in production
+          redirectTo: redirectUrl,
         }
       );
 
