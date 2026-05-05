@@ -26,13 +26,13 @@ const settingsInfo = [
     href: '/dashboard/customer/settings/notifications',
     icon: FaBell,
   },
-  {
-    id: 'billing',
-    title: 'Billing & Payment',
-    description: 'Manage payment methods and billing history',
-    href: '/dashboard/customer/settings/billing',
-    icon: FaCreditCard,
-  },
+  // {
+  //   id: 'billing',
+  //   title: 'Billing & Payment',
+  //   description: 'Manage payment methods and billing history',
+  //   href: '/dashboard/customer/settings/billing',
+  //   icon: FaCreditCard,
+  // },
 ];
 
 const helpInfo = [
@@ -91,7 +91,7 @@ const SettingsPage = () => {
                 <h3 className="font-semibold text-lg text-[var(--blue)] group-hover:text-[var(--orange)] transition-colors">
                   {item.title}
                 </h3>
-                <p className="text-gray-600 text-sm mt-1 leading-relaxed">
+                <p className="text-[var(--blue)] text-sm mt-1 leading-relaxed">
                   {item.description}
                 </p>
               </div>
