@@ -56,7 +56,7 @@ const Page = () => {
         maxLength={1000} 
         onChange={(e) => setText(e.target.value)}
         placeholder='What feature would make Artismart more useful for you?'
-        className='w-full h-100 border border-[var(--orange)] hover:border-[var(--blue)] text-[var(--blue)] mt-9 p-3 rounded-lg'
+        className='w-full h-80 border border-[var(--orange)] hover:border-[var(--blue)] text-[var(--blue)] mt-9 p-3 rounded-lg'
         /> 
         <p className='mt-2 text-sm text-right text-[var(--blue)]/70'>
           {text.length}/1000 characters
