@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import React from 'react'
-import { FaGlobe, FaInfoCircle, FaLightbulb, FaPhoneAlt, FaQuestionCircle, FaTools } from 'react-icons/fa'
+import { FaArrowLeft, FaGlobe, FaInfoCircle, FaLightbulb, FaPhoneAlt, FaQuestionCircle, FaTools } from 'react-icons/fa'
 
 const help = [
   {
@@ -35,10 +35,13 @@ const help = [
 
 const page = () => {
   return (
-    <div className='max-w-4xl mx-auto p-6'>
+    <div className='max-w-4xl mx-auto p-6'> 
         <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-4">
+            <FaArrowLeft size={20} className='text-[var(--orange)] hover:text-[var(--blue)]'/>
             <FaPhoneAlt size={38} className='text-[var(--blue)] bg-[var(--orange)]/50 rounded-full p-2'/>
-            <h1 className='text-3xl font-bold text-[var(--blue)]'>Contact Us</h1>
+            <h1 className='text-2xl font-bold text-[var(--blue)]'>Contact Us</h1>
+         </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

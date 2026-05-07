@@ -287,9 +287,9 @@ const nav = [
   { label: 'Completed Jobs', href: '/dashboard/customer/completed-jobs', icon: FaCheckCircle },
   { label: 'Messages', href: '/dashboard/customer/messages', icon: FaComments },
   { label: 'Payments', href: '/dashboard/customer/payment', icon: FaCreditCard },
-  { label: 'Settings', href: '/dashboard/customer/settings', icon: FaCog },
   { label: 'Notifications', href: '/dashboard/customer/notifications', icon: FaBell },
-  { label: 'Support', href: '/dashboard/customer/support', icon: FaLifeRing },
+  { label: 'Settings', href: '/dashboard/customer/settings', icon: FaCog },
+  // { label: 'Support', href: '/dashboard/customer/support', icon: FaLifeRing },
 ]
 
 export default function Sidebar() {
