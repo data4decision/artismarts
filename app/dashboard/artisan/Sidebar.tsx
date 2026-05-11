@@ -43,7 +43,7 @@ const nav = [
   // { label: 'Availability', href: '/dashboard/artisan/availability', icon: FaCalendarAlt },
   { label: 'Notifications', href: '/dashboard/artisan/notifications', icon: FaBell },
   { label: 'Settings', href: '/dashboard/artisan/settings', icon: FaCog },
-  { label: 'Support', href: '/dashboard/artisan/support', icon: FaLifeRing },
+  // { label: 'Support', href: '/dashboard/artisan/support', icon: FaLifeRing },
 ]
 
 export default function Sidebar() {
