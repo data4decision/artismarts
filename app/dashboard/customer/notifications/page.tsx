@@ -188,7 +188,18 @@ const Page = () => {
   })
 
   if (loading) {
-    return <div className="min-h-screen bg-[var(--blue)]/5 flex items-center justify-center">Loading notifications...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
+        <div className="relative flex items-center justify-center">
+          <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+          <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+            <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+              <Image src="/log.png" width={48} height={48} priority alt="Loading..." className="object-contain" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

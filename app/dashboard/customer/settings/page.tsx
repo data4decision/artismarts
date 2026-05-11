@@ -16,7 +16,7 @@ const settingsInfo = [
     id: 'security',
     title: 'Security',
     description: 'Password and account security settings',
-    href: '/dashboard/customer/settings/security',
+    href: '/dashboard/customer/settings/forgot-password',
     icon: FaLock,
   },
   {

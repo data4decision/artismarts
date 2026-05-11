@@ -272,7 +272,7 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-0">
+    <div className="max-w-5xl mx-auto px-4 sm:px-0">
       <h1 className="text-2xl sm:text-3xl font-bold text-[var(--blue)] mb-8">My Profile</h1>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -320,7 +320,7 @@ const ProfilePage = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">First Name</label>
+                  <label className="block text-sm font-medium text-[var(--orange)] mb-1.5">First Name</label>
                   <input
                     name="first_name"
                     value={formData.first_name}
@@ -329,7 +329,7 @@ const ProfilePage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Last Name</label>
+                  <label className="block text-sm font-medium text-[var(--orange)] mb-1.5">Last Name</label>
                   <input
                     name="last_name"
                     value={formData.last_name}
@@ -340,7 +340,7 @@ const ProfilePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Phone Number</label>
+                <label className="block text-sm font-medium text-[var(--orange)] mb-1.5">Phone Number</label>
                 <input
                   type="tel"
                   name="phone"
@@ -351,7 +351,7 @@ const ProfilePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">Residential Address</label>
+                <label className="block text-sm font-medium text-[var(--orange)] mb-1.5">Residential Address</label>
                 <input
                   name="residential_address"
                   value={formData.residential_address}
@@ -362,7 +362,7 @@ const ProfilePage = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">State</label>
+                  <label className="block text-sm font-medium text-[var(--orange)] mb-1.5">State</label>
                   <input
                     name="state"
                     value={formData.state}
@@ -371,7 +371,7 @@ const ProfilePage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[var(--blue)] mb-1.5">LGA</label>
+                  <label className="block text-sm font-medium text-[var(--orange)] mb-1.5">LGA</label>
                   <input
                     name="lga"
                     value={formData.lga}
@@ -447,27 +447,27 @@ const ProfilePage = () => {
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <h3 className="text-sm font-medium text-[var(--blue)] uppercase tracking-wide">First Name</h3>
+                  <h3 className="text-sm font-medium text-[var(--orange)] uppercase tracking-wide">First Name</h3>
                   <p className="mt-2 text-[var(--blue)] text-lg">{profile.first_name || '—'}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-[var(--blue)] uppercase tracking-wide">Last Name</h3>
+                  <h3 className="text-sm font-medium text-[var(--orange)] uppercase tracking-wide">Last Name</h3>
                   <p className="mt-2 text-[var(--blue)] text-lg">{profile.last_name || '—'}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-[var(--blue)] uppercase tracking-wide">Phone</h3>
+                  <h3 className="text-sm font-medium text-[var(--orange)] uppercase tracking-wide">Phone</h3>
                   <p className="mt-2 text-[var(--blue)] text-lg">{profile.phone || '—'}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-[var(--blue)] uppercase tracking-wide">Address</h3>
+                  <h3 className="text-sm font-medium text-[var(--orange)] uppercase tracking-wide">Address</h3>
                   <p className="mt-2 text-[var(--blue)]">{profile.residential_address || '—'}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-[var(--blue)] uppercase tracking-wide">State</h3>
+                  <h3 className="text-sm font-medium text-[var(--orange)] uppercase tracking-wide">State</h3>
                   <p className="mt-2 text-[var(--blue)]">{profile.state || '—'}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-[var(--blue)] uppercase tracking-wide">LGA</h3>
+                  <h3 className="text-sm font-medium text-[var(--orange)] uppercase tracking-wide">LGA</h3>
                   <p className="mt-2 text-[var(--blue)]">{profile.lga || '—'}</p>
                 </div>
               </div>

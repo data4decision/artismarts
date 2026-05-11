@@ -246,13 +246,13 @@ const downloadReceiptAsPDF = async () => {
               onClick={() => router.back()}
               className="mb-4 flex items-center text-[var(--blue)] hover:text-blue-800 transition"
             >
-              <FaArrowLeft className="mr-2" />
+              <FaArrowLeft className="mr-2 text-[var(--blue)] cursor-pointer"/>
               Back to Dashboard
             </button>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+            <h1 className="text-3xl md:text-4xl font-bold text-[var(--blue)]">
               My Payments
             </h1>
-            <p className="mt-3 text-lg text-gray-600">
+            <p className="mt-3 text-lg text-[var(--blue)]">
               View all your successful payments and receipts
             </p>
           </div>
@@ -267,10 +267,10 @@ const downloadReceiptAsPDF = async () => {
         {payments.length === 0 ? (
           <div className="bg-[var(--white)] rounded-2xl shadow-lg p-12 text-center border border-gray-200">
             <FaMoneyBillWave className="text-[var(--orange)] text-8xl mx-auto mb-6 opacity-70" />
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            <h2 className="text-3xl font-bold text-[var(--blue)] mb-4">
               No payments yet
             </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-[var(--blue)]/90 mb-8 max-w-2xl mx-auto">
               When you complete a payment for a job, it will appear here with full details.
             </p>
             <button
@@ -301,21 +301,21 @@ const downloadReceiptAsPDF = async () => {
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
-                      <p className="text-sm text-gray-500">Reference</p>
-                      <p className="font-medium text-gray-900 break-all">{payment.reference}</p>
+                      <p className="text-sm text-[var(--blue)]/90">Reference</p>
+                      <p className="font-medium text-[var(--blue)] break-all">{payment.reference}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Amount</p>
+                      <p className="text-sm text-[var(--blue)]/90">Amount</p>
                       <p className="text-2xl font-bold text-[var(--orange)]">
                         ₦{payment.amount.toLocaleString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Method</p>
+                      <p className="text-sm text-[var(--blue)]/90">Method</p>
                       <p className="font-medium capitalize">{payment.channel || 'Unknown'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Artisan</p>
+                      <p className="text-sm text-[var(--blue)]/90">Artisan</p>
                       <p className="font-medium">{payment.artisan_name || '—'}</p>
                     </div>
                   </div>
