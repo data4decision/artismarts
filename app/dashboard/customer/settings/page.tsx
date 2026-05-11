@@ -57,13 +57,13 @@ const helpInfo = [
     href: '/dashboard/customer/settings/notifications',
     icon: FaBell,
   },
-  {
-    id: 'billing',
-    title: 'Billing & Payment',
-    description: 'Manage payment methods and billing history',
-    href: '/dashboard/customer/settings/billing',
-    icon: FaCreditCard,
-  },
+  // {
+  //   id: 'billing',
+  //   title: 'Billing & Payment',
+  //   description: 'Manage payment methods and billing history',
+  //   href: '/dashboard/customer/settings/billing',
+  //   icon: FaCreditCard,
+  // },
 ];
 
 const SettingsPage = () => {
