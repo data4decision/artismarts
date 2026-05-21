@@ -69,6 +69,7 @@ export default function MobileFeaturedAppRating() {
     arrows: false,           // Better UX on mobile
     adaptiveHeight: true,
   }
+  
 
   if (loading) {
     return <div className="py-20 text-center text-gray-500">Loading testimonials...</div>
@@ -77,14 +78,14 @@ export default function MobileFeaturedAppRating() {
   if (testimonials.length === 0) return null
 
   return (
-    <div className="lg:hidden bg-white py-20">
+    <div className="lg:hidden bg-white py-12">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center mb-16">
-          <p className="text-[var(--orange)] font-medium tracking-widest text-sm mb-3">
+        <div className="text-center mb-8">
+          <p className="text-[var(--orange)] font-medium tracking-widest text-[14px] mb-3">
             WHAT OUR CUSTOMERS SAY
           </p>
-          <h2 className="text-4xl font-bold text-[var(--blue)]">
+          <h2 className="text-[16px] font-bold text-[var(--blue)]">
             Testimonials
           </h2>
         </div>
@@ -94,7 +95,7 @@ export default function MobileFeaturedAppRating() {
             {testimonials.map((testimonial) => (
               <div key={testimonial.id} className="px-3">
                 <div className="bg-white border-2 border-[var(--blue)] hover:border-[var(--orange)] 
-                                rounded-3xl shadow-md hover:shadow-2xl p-8 h-[340px] 
+                                rounded-3xl shadow-md hover:shadow-2xl p-8 h-[240px] 
                                 flex flex-col transition-all duration-300">
                   
                   {/* Profile */}
@@ -119,10 +120,10 @@ export default function MobileFeaturedAppRating() {
                       )}
                     </div>
                     <div>
-                      <p className="font-semibold text-[var(--blue)] text-lg">
+                      <p className="font-semibold text-[var(--blue)] text-[14px]">
                         {testimonial.user_name}
                       </p>
-                      <p className="text-sm text-gray-500">{testimonial.role}</p>
+                      <p className="text-[12px] text-gray-500">{testimonial.role}</p>
                     </div>
                   </div>
 
@@ -131,7 +132,7 @@ export default function MobileFeaturedAppRating() {
                     {[1, 2, 3, 4, 5].map((s) => (
                       <FaStar
                         key={s}
-                        className={`text-2xl ${
+                        className={`text-xl ${
                           s <= testimonial.rating ? 'text-[var(--orange)]' : 'text-gray-200'
                         }`}
                       />
@@ -139,7 +140,7 @@ export default function MobileFeaturedAppRating() {
                   </div>
 
                   {/* Comment */}
-                  <p className="text-gray-700 italic leading-relaxed flex-1 text-[15.5px]">
+                  <p className="text-gray-700 italic leading-relaxed flex-1 text-[12px]">
                     “{testimonial.comment}”
                   </p>
                 </div>

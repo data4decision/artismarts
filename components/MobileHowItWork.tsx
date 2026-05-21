@@ -99,21 +99,21 @@ export default function MobileHowItWork() {
     <div key={index} className="px-3">
       <div className="bg-white border border-[var(--blue)]/30 hover:border-[var(--orange)] 
                       rounded-3xl p-8 shadow-md hover:shadow-xl transition-all duration-300 
-                      flex flex-col items-center text-center min-h-[320px]">
+                      flex flex-col items-center text-center min-h-[220px]">
         
         {/* Icon */}
-        <div className="mb-6 text-5xl text-[var(--blue)] bg-[var(--blue)]/5 w-20 h-20 
-                        flex items-center justify-center rounded-2xl border border-[var(--orange)]/20">
+        <div className="mb-6 text-5xl text-[var(--blue)] bg-[var(--blue)]/5 w-15 h-15 
+                        flex items-center justify-center rounded-2xl border border-[var(--orange)]">
           {item.icon}
         </div>
 
         {/* Title */}
-        <h3 className="text-xl font-bold text-[var(--blue)] mb-4 leading-tight">
+        <h3 className="text-[12px] font-bold text-[var(--blue)] mb-4 leading-tight">
           {item.name}
         </h3>
 
         {/* Description */}
-        <p className="text-[var(--blue)]/80 text-[15px] leading-relaxed flex-1">
+        <p className="text-[var(--blue)]/80 text-[10px] leading-relaxed flex-1">
           {item.description}
         </p>
       </div>
@@ -121,14 +121,14 @@ export default function MobileHowItWork() {
   )
 
   return (
-    <div className="lg:hidden py-16 md:py-20 bg-[var(--orange)]/5">
+    <div className="lg:hidden py-8 md:py-20 bg-[var(--orange)]/5">
       {/* Customers Section */}
       <div className="max-w-7xl mx-auto px-5 sm:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-[var(--blue)] mb-4">
+          <h2 className="text-[14px] font-bold text-[var(--blue)] mb-2">
             How it Works for Customers
           </h2>
-          <p className="text-lg text-[var(--blue)]/80 max-w-2xl mx-auto">
+          <p className="text-[10px] text-[var(--blue)]/80 max-w-2xl mx-auto">
             Get quality service with ArtiSmart in just a few easy steps
           </p>
         </div>
@@ -139,11 +139,11 @@ export default function MobileHowItWork() {
           </Slider>
         </div>
 
-        <div className="flex justify-center mt-12">
+        <div className="flex justify-center mt-6">
           <Link
             href="/signup"
-            className="inline-flex items-center px-10 py-4 bg-[var(--blue)] hover:bg-[var(--blue)]/90 
-                       text-white font-semibold text-lg rounded-2xl shadow-lg transition-all duration-300"
+            className="inline-flex items-center px-5 py-2 bg-[var(--blue)] hover:bg-[var(--blue)]/90 
+                       text-white font-semibold text-[12px] rounded-2xl shadow-lg transition-all duration-300"
           >
             Join as a Customer →
           </Link>
@@ -152,8 +152,8 @@ export default function MobileHowItWork() {
 
       {/* Artisans Section */}
       <div className="max-w-7xl mx-auto px-5 sm:px-6 mt-20">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-[var(--blue)] mb-4">
+        <div className="text-center mb-6">
+          <h2 className="text-[14px] font-bold text-[var(--blue)] mb-4">
             How it Works for Artisans
           </h2>
         </div>
@@ -167,8 +167,8 @@ export default function MobileHowItWork() {
         <div className="flex justify-center mt-12">
           <Link
             href="/signup"
-            className="inline-flex items-center px-10 py-4 bg-[var(--blue)] hover:bg-[var(--blue)]/90 
-                       text-white font-semibold text-lg rounded-2xl shadow-lg transition-all duration-300"
+            className="inline-flex items-center sm:px-10 px-5 sm:py-4 py-2 bg-[var(--blue)] hover:bg-[var(--blue)]/90 
+                       text-white font-semibold text-[12px] rounded-2xl shadow-lg transition-all duration-300"
           >
             Join as an Artisan →
           </Link>

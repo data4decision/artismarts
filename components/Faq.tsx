@@ -49,14 +49,14 @@ const Faq = () => {
   return (
     <div className="font-roboto">
       <div className="bg-[var(--blue)] py-12 md:py-16 lg:py-20">
-        <h1 className="text-xl lg:text-4xl md:text-3xl font-bold text-center text-[var(--white)]">
+        <h1 className="text-[14px] lg:text-4xl md:text-3xl font-bold text-center text-[var(--white)]">
           Question & Answers
         </h1>
-        <p className="text-lg lg:text-[17px] md:text-[15px] text-center text-[var(--white)] mt-3">
+        <p className="text-[12px] lg:text-[17px] md:text-[15px] text-center text-[var(--white)] mt-3">
           Find answers to all your queries about the Artismart artisan platform.
         </p>
 
-        <div className="mt-10 md:mt-16">
+        <div className="mt-7 md:mt-16">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center max-w-7xl mx-auto px-6">
             <div className="flex justify-center md:justify-start">
               <Image
@@ -81,7 +81,7 @@ const Faq = () => {
                     // Optional: close all open items when search changes
                     setOpenItems({})
                   }}
-                  className="w-full bg-white py-3 px-4 pr-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--orange)] border border-gray-200"
+                  className="w-full bg-white py-2 px-2 pr-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--orange)] border border-[var(--orange)]"
                 />
                 <FaSearch
                   size={18}
@@ -90,17 +90,17 @@ const Faq = () => {
               </div>
 
               <div className="bg-white rounded-xl shadow-lg mt-8 p-6 md:p-8">
-                <h2 className="text-xl lg:text-2xl font-bold text-center text-[var(--blue)] mb-6">
+                <h2 className="text-[14px] lg:text-2xl font-bold text-center text-[var(--blue)] mb-6">
                   Help You to Find
                 </h2>
 
                 {filteredFaqs.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center sm:py-8 py-4 text-[var(--blue)]/80">
                     No matching questions found. Try different keywords.
                   </div>
                 ) : (
                   filteredFaqs.map((faq, index) => (
-                    <div key={index} className="mb-4 last:mb-0">
+                    <div key={index} className="sm:mb-4 mb-2 last:mb-0">
                       <button
                         type="button"
                         onClick={() => toggleItem(index)}
@@ -108,7 +108,7 @@ const Faq = () => {
                         aria-controls={`faq-${index}`}
                         className="flex items-center justify-between w-full py-4 px-5 text-left border-b border-gray-200 hover:bg-gray-50 transition-colors"
                       >
-                        <span className="text-[var(--blue)] font-medium text-base lg:text-lg">
+                        <span className="text-[var(--blue)] font-medium text-[12px] lg:text-lg">
                           {faq.question}
                         </span>
                         {openItems[index] ? (
@@ -126,7 +126,7 @@ const Faq = () => {
 
                       {openItems[index] && (
                         <div id={`faq-${index}`} className="px-5 py-4 bg-gray-50">
-                          <p className="text-[var(--blue)] text-sm lg:text-base leading-relaxed">
+                          <p className="text-[var(--blue)] text-[12px] lg:text-base leading-relaxed">
                             {faq.answer}
                           </p>
                         </div>

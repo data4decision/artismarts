@@ -12,6 +12,7 @@ import MobileHowItWork from './MobileHowItWork'
 import AllSkills from './AllSkills'
 import MobileAllSkills from './MobileAllSkills'
 import MobileHeroSection from './MobileHeroSection'
+import MobileFeaturedAppRating from './MobileFeaturedAppRating'
 
 
 
@@ -31,6 +32,7 @@ const HomePage = () => {
       <MobileHowItWork/>
       <Faq/>
       <FeaturedAppRating/>
+      <MobileFeaturedAppRating/>
   
       {/* <FeaturesAndBenefit/> */}
       <Footer/>
