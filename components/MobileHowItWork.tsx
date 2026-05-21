@@ -143,7 +143,7 @@ function MobileHowItWork() {
   )
 
   return (
-    <div className="md:hidden py-16 md:py-20 bg-[var(--orange)]/5">
+    <div className="lg:hidden py-16 md:py-20 bg-[var(--orange)]/5">
       {/* Customers Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">

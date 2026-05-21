@@ -143,7 +143,7 @@ function HowItWork() {
   )
 
   return (
-    <div className="hidden md:block py-16 md:py-20 bg-[var(--orange)]/5">
+    <div className="hidden lg:block py-16 md:py-20 bg-[var(--orange)]/5">
       {/* Customers Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
