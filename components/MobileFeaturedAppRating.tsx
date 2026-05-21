@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Slider from 'react-slick'
 
+
+
 import { supabase } from '@/lib/supabase'
 import { FaStar } from 'react-icons/fa'
 import Image from 'next/image'
@@ -31,7 +33,7 @@ export default function MobileFeaturedAppRating() {
           )
         `)
         .order('created_at', { ascending: false })
-        .limit(10)   // Max 10 as requested
+        .limit(10)
 
       if (error) throw error
 
@@ -56,45 +58,15 @@ export default function MobileFeaturedAppRating() {
 
   const settings = {
     dots: true,
-    infinite: testimonials.length > 4,
+    infinite: testimonials.length > 1,
     speed: 600,
-    slidesToShow: 4,
+    slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
     autoplaySpeed: 5000,
     pauseOnHover: true,
-    arrows: true,
-    responsive: [
-      {
-        breakpoint: 1280,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 1,
-        }
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 1,
-        }
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-        }
-      },
-      {
-        breakpoint: 640,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          arrows: false,
-        }
-      }
-    ]
+    arrows: false,           // Better UX on mobile
+    adaptiveHeight: true,
   }
 
   if (loading) {
@@ -104,15 +76,14 @@ export default function MobileFeaturedAppRating() {
   if (testimonials.length === 0) return null
 
   return (
-    <div className="">
-        <div className="lg:hidden bg-[var(--white)] py-20">
+    <div className="lg:hidden bg-white py-20">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-16">
           <p className="text-[var(--orange)] font-medium tracking-widest text-sm mb-3">
             WHAT OUR CUSTOMERS SAY
           </p>
-          <h2 className="text-5xl font-bold text-[var(--blue)]">
+          <h2 className="text-4xl font-bold text-[var(--blue)]">
             Testimonials
           </h2>
         </div>
@@ -122,8 +93,8 @@ export default function MobileFeaturedAppRating() {
             {testimonials.map((testimonial) => (
               <div key={testimonial.id} className="px-3">
                 <div className="bg-white border-2 border-[var(--blue)] hover:border-[var(--orange)] 
-                                rounded-3xl shadow-md hover:shadow-2xl p-8 h-[280px] w- flex flex-col 
-                                transition-all duration-300">
+                                rounded-3xl shadow-md hover:shadow-2xl p-8 h-[340px] 
+                                flex flex-col transition-all duration-300">
                   
                   {/* Profile */}
                   <div className="flex items-center gap-4 mb-6">
@@ -156,7 +127,7 @@ export default function MobileFeaturedAppRating() {
 
                   {/* Stars */}
                   <div className="flex gap-1 mb-5">
-                    {[1,2,3,4,5].map((s) => (
+                    {[1, 2, 3, 4, 5].map((s) => (
                       <FaStar
                         key={s}
                         className={`text-2xl ${
@@ -176,7 +147,6 @@ export default function MobileFeaturedAppRating() {
           </Slider>
         </div>
       </div>
-    </div>
     </div>
   )
 }
