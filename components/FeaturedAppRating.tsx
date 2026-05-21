@@ -104,8 +104,8 @@ export default function Testimonials() {
   if (testimonials.length === 0) return null
 
   return (
-    <div className="hidden lg:block">
-      <div className="bg-[var(--white)] py-20">
+    <div className="">
+      <div className="hidden lg:block bg-[var(--white)] py-20">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-16">
