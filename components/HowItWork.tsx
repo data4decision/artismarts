@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import Slider from 'react-slick'
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
@@ -25,44 +25,7 @@ interface StepItem {
   icon: React.ReactNode
 }
 
-function HowItWork() {
-  const [sliderSettings, setSliderSettings] = useState({
-    dots: true,
-    infinite: true,
-    speed: 600,
-    autoplay: true,
-    autoplaySpeed: 4000,
-    pauseOnHover: true,
-    slidesToShow: 4,
-    slidesToScroll: 1,
-    arrows: true,
-    swipeToSlide: true,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 1,
-        }
-      },
-      {
-        breakpoint: 768,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-        }
-      },
-      {
-        breakpoint: 640,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          arrows: false,
-        }
-      }
-    ]
-  })
-
+export default function HowItWork() {
   const steps: StepItem[] = [
     {
       name: "Choose a Service",
@@ -119,9 +82,42 @@ function HowItWork() {
     }
   ]
 
+  const sliderSettings = {
+    dots: true,
+    infinite: true,
+    speed: 600,
+    autoplay: true,
+    autoplaySpeed: 4000,
+    pauseOnHover: true,
+    slidesToShow: 4,
+    slidesToScroll: 1,
+    arrows: true,
+    swipeToSlide: true,
+    responsive: [
+      {
+        breakpoint: 1280,
+        settings: { slidesToShow: 3 }
+      },
+      {
+        breakpoint: 1024,
+        settings: { slidesToShow: 3 }
+      },
+      {
+        breakpoint: 768,
+        settings: { slidesToShow: 2 }
+      },
+      {
+        breakpoint: 640,
+        settings: { 
+          slidesToShow: 1,
+          arrows: false 
+        }
+      }
+    ]
+  }
+
   const renderCard = (item: StepItem, index: number) => (
-    <div className="">
-      <div key={index} className="px-3">
+    <div key={index} className="px-3">
       <div className="h-full bg-white border border-[var(--blue)]/30 hover:border-[var(--orange)] 
                       rounded-3xl p-8 shadow-md hover:shadow-xl transition-all duration-300 
                       flex flex-col items-center text-center min-h-[340px]">
@@ -143,13 +139,12 @@ function HowItWork() {
         </p>
       </div>
     </div>
-    </div>
   )
 
   return (
     <div className="hidden lg:block py-16 md:py-20 bg-[var(--orange)]/5">
       {/* Customers Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold text-[var(--blue)] mb-4">
             How it Works for Customers
@@ -177,7 +172,7 @@ function HowItWork() {
       </div>
 
       {/* Artisans Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-20">
+      <div className="max-w-7xl mx-auto px-6 mt-20">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold text-[var(--blue)] mb-4">
             How it Works for Artisans
@@ -203,5 +198,3 @@ function HowItWork() {
     </div>
   )
 }
-
-export default HowItWork

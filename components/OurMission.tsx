@@ -8,23 +8,23 @@ const OurMission = () => {
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#f3f4f6_1px,transparent_1px)] [background-size:40px_40px] opacity-40" />
 
-      <div className="max-w-7xl mx-auto px-6 relative">
+      <div className="max-w-6xl mx-auto px-6 relative">
         
         {/* Header */}
         <div className="max-w-2xl mx-auto text-center mb-16">
           <p className="text-[var(--orange)] font-semibold tracking-[3px] text-sm mb-4">
             OUR PURPOSE
           </p>
-          <h2 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
+          <h2 className="text-3xl md:text-5xl font-bold text-[var(--blue)] leading-tight">
             Building Trust Between<br />
-            <span className="text-[var(--blue)]">Customers & Artisans</span>
+            <span className="text-[var(--orange)] text-2xl md:text-3xl">Customers & Artisans</span>
           </h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
           
           {/* Left Content - Mission & Vision */}
-          <div className="lg:col-span-7 space-y-10">
+          <div className="lg:col-span-6 space-y-10">
             
             <div className="space-y-8">
               {/* Mission Card */}
@@ -34,8 +34,8 @@ const OurMission = () => {
                     <Target className="w-8 h-8 text-[var(--orange)]" />
                   </div>
                   <div>
-                    <h3 className="text-3xl font-bold text-gray-900 mb-4">Our Mission</h3>
-                    <p className="text-gray-600 leading-relaxed text-lg">
+                    <h3 className="text-3xl font-bold text-[var(--blue)] mb-4">Our Mission</h3>
+                    <p className="text-[var(--blue)]/50 leading-relaxed text-md">
                       To empower skilled artisans by connecting them with customers who value quality workmanship, 
                       while creating transparency, fair opportunities, and sustainable livelihoods.
                     </p>
@@ -44,14 +44,14 @@ const OurMission = () => {
               </div>
 
               {/* Vision Card */}
-              <div className="group bg-white border border-gray-100 rounded-3xl p-10 hover:border-[var(--blue)]/30 transition-all duration-500 hover:shadow-2xl">
+              <div className="group bg-white border border-gray-100 rounded-3xl p-10 hover:border-[var(--orange)]/30 transition-all duration-500 hover:shadow-2xl">
                 <div className="flex items-start gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-100 flex-shrink-0 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Eye className="w-8 h-8 text-[var(--blue)]" />
+                  <div className="w-14 h-14 rounded-2xl bg-orange-100 flex-shrink-0 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Eye className="w-8 h-8 text-[var(--orange)]" />
                   </div>
                   <div>
-                    <h3 className="text-3xl font-bold text-gray-900 mb-4">Our Vision</h3>
-                    <p className="text-gray-600 leading-relaxed text-lg">
+                    <h3 className="text-3xl font-bold text-[var(--blue)] mb-4">Our Vision</h3>
+                    <p className="text-[var(--blue)]/50 leading-relaxed text-md">
                       A world where finding reliable, high-quality artisan services is effortless, 
                       and every skilled professional has the opportunity to thrive in a trusted digital economy.
                     </p>
@@ -62,8 +62,8 @@ const OurMission = () => {
 
             {/* Core Values */}
             <div>
-              <h4 className="text-xl font-semibold text-gray-500 mb-6">Our Core Values</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <h4 className="text-xl font-semibold text-[var(--blue)] mb-6">Our Core Values</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { icon: Shield, label: "Trust & Safety" },
                   { icon: Users, label: "Community" },
@@ -72,7 +72,7 @@ const OurMission = () => {
                 ].map((value, i) => (
                   <div key={i} className="bg-gray-50 hover:bg-white p-6 rounded-2xl border border-transparent hover:border-gray-200 transition-all text-center">
                     <value.icon className="w-9 h-9 mx-auto text-[var(--orange)] mb-4" />
-                    <p className="font-medium text-gray-800">{value.label}</p>
+                    <p className="font-medium text-[var(--blue)]/50 text-sm">{value.label}</p>
                   </div>
                 ))}
               </div>
@@ -80,8 +80,8 @@ const OurMission = () => {
           </div>
 
           {/* Right Side - Visual */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative rounded-[2.75rem] overflow-hidden shadow-2xl aspect-[4/3.1] lg:aspect-auto lg:h-[620px]">
+          <div className="lg:col-span-6 relative">
+            <div className="relative rounded-[2.75rem] overflow-hidden shadow-2xl aspect-[4/3.1] lg:aspect-auto lg:h-[520px]">
               <Image 
                 src="/missions.jpeg" 
                 alt="ArtiSmart Mission & Artisans" 

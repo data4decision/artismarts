@@ -9,6 +9,7 @@ import Navbar from './Navbar'
 import FeaturedAppRating from './FeaturedAppRating'
 import Footer from './Footer'
 import MobileHowItWork from './MobileHowItWork'
+import AllSkills from './AllSkills'
 
 
 
@@ -19,6 +20,7 @@ const HomePage = () => {
     <div>
         <Navbar/>
       <HeroSection/>
+      <AllSkills/>
       <OurMission/>
       <HowItWork/>
       <MobileHowItWork/>
