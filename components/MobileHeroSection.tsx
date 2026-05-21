@@ -4,9 +4,9 @@ import Image from 'next/image';
 
 const HeroSection = () => {
   return (
-    <div className="hidden lg:block font-roboto">
+    <div className="lg:hidden font-roboto">
     <section
-      className="relative min-h-[30vh] md:min-h-screen w-full bg-cover bg-center"
+      className="relative min-h-[20vh] w-full bg-cover bg-center h-[350px]"
       style={{ backgroundImage: "url('/herobg.jpg')" }}
     >
     
@@ -17,18 +17,18 @@ const HeroSection = () => {
           
           
           <div className="text-white md:mt-20 mt-5">
-            <h1 className="text-2xl lg:text-6xl lg:w-[80%] md:text-5xl font-bold leading-tight">
+            <h1 className="text-xl lg:text-6xl lg:w-[80%] md:text-5xl font-bold leading-tight">
               Find Trusted Artisans Near You
             </h1>
             
-            <p className="text-md md:text-xl mb-4 opacity-90 lg:w-[80%]">
+            <p className="text-[12px] md:text-xl mb-4 opacity-90 lg:w-[80%] mt-4">
               Connecting you with verified professionals for every job - 
               quickly, easily, and securely.
             </p>
 
             <Link
               href="/signup"
-              className="inline-block bg-[var(--orange)]/90 hover:bg-[var(--orange)] text-white font-medium px-5 py-3 rounded-lg text-sm transition"
+              className="inline-block bg-[var(--orange)]/90 hover:bg-[var(--orange)] text-white font-medium px-3 py-2 rounded-lg text-sm transition"
             >
               Get Started 
             </Link>
@@ -36,12 +36,12 @@ const HeroSection = () => {
 
          
           <div className="flex justify-center md:justify-end">
-            <div className="relative w-full max-w-[380px] lg:max-w-[680px] md:max-w-[780px] md-w-[700px]  aspect-square ">
+            <div className="relative w-full max-w-[197px] lg:max-w-[680px] md:max-w-[780px] md-w-[700px]  aspect-square ">
               <Image
                 src="/art.png"
                 alt="Artisan working"
                 fill
-                className="object-contain lg:mt-26 md:mt-30 "
+                className="object-contain lg:mt-26 md:mt-30 mb-10"
                 priority
               />
             </div>

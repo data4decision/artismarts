@@ -11,6 +11,7 @@ import Footer from './Footer'
 import MobileHowItWork from './MobileHowItWork'
 import AllSkills from './AllSkills'
 import MobileAllSkills from './MobileAllSkills'
+import MobileHeroSection from './MobileHeroSection'
 
 
 
@@ -22,6 +23,7 @@ const HomePage = () => {
     <div>
         <Navbar/>
       <HeroSection/>
+      <MobileHeroSection/>
       <AllSkills/>
       <MobileAllSkills/>
       <OurMission/>

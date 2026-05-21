@@ -75,11 +75,11 @@ export default function SkillsSlider() {
   return (
     <div className="lg:hidden py-2 bg-white">
       <div className="max-w-7xl mx-auto px-3">
-        <div className="text-center mb-7">
-          <p className="text-[var(--orange)] font-semibold tracking-widest text-sm ">
+        <div className="text-center mb-4">
+          <p className="text-[var(--orange)] font-semibold tracking-widest text-[10px] ">
             OUR EXPERTISE
           </p>
-          <h2 className="text-sm md:text-2xl font-bold text-[var(--blue)]">
+          <h2 className="text-[12px] md:text-2xl font-bold text-[var(--blue)]">
             Skilled Artisans in Every Trade
           </h2>
         </div>
@@ -89,14 +89,14 @@ export default function SkillsSlider() {
             {skills.map((skill, index) => (
               <div key={index} className="px-3">
                 <div className="group bg-white border border-[var(--blue)] hover:border-[var(--orange)] 
-                                rounded-3xl p-3 text-center transition-all duration-300 
-                                hover:shadow-xl hover:-translate-y-1 flex flex-col items-center justify-center h-[150px]">
+                                rounded-xl p-1 text-center transition-all duration-300 
+                                hover:shadow-xl hover:-translate-y-1 flex flex-col items-center justify-center h-[100px]">
                   
                   <div className="text-[var(--blue)] group-hover:text-[var(--orange)] transition-colors mb-5">
                     {skill.icon}
                   </div>
                   
-                  <h3 className="font-semibold text-sm text-[var(--blue)] group-hover:text-[var(--orange)] transition-colors">
+                  <h3 className="font-semibold text-[12px] text-[var(--blue)] group-hover:text-[var(--orange)] transition-colors">
                     {skill.name}
                   </h3>
                 </div>
