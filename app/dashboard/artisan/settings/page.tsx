@@ -55,13 +55,13 @@ const helpInfo = [
     href: '/dashboard/artisan/settings/privacy',
     icon: FaLock,
   },
-  {
-    id: 'disable',
-    title: 'Disable Account',
-    description: 'Manage your notification preferences',
-    href: '/dashboard/artisan/settings/disable-account',
-    icon: FaBell,
-  },
+  // {
+  //   id: 'disable',
+  //   title: 'Disable Account',
+  //   description: 'Manage your notification preferences',
+  //   href: '/dashboard/artisan/settings/disable-account',
+  //   icon: FaBell,
+  // },
   // {
   //   id: 'billing',
   //   title: 'Billing & Payment',

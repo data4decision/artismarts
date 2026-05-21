@@ -23,7 +23,7 @@ interface StepItem {
   icon: React.ReactNode
 }
 
-function HowItWork() {
+function MobileHowItWork() {
   const [sliderSettings, setSliderSettings] = useState({
     dots: true,
     infinite: true,
@@ -31,7 +31,7 @@ function HowItWork() {
     autoplay: true,
     autoplaySpeed: 4000,
     pauseOnHover: true,
-    slidesToShow: 4,
+    slidesToShow: 1,
     slidesToScroll: 1,
     arrows: true,
     swipeToSlide: true,
@@ -39,7 +39,7 @@ function HowItWork() {
       {
         breakpoint: 1024,
         settings: {
-          slidesToShow: 3,
+          slidesToShow: 1,
           slidesToScroll: 1,
         }
       },
@@ -143,7 +143,7 @@ function HowItWork() {
   )
 
   return (
-    <div className="hidden md:block py-16 md:py-20 bg-[var(--orange)]/5">
+    <div className="md:hidden py-16 md:py-20 bg-[var(--orange)]/5">
       {/* Customers Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
@@ -200,4 +200,4 @@ function HowItWork() {
   )
 }
 
-export default HowItWork
+export default MobileHowItWork

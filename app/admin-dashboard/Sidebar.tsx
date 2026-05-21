@@ -1430,7 +1430,7 @@ const nav = [
   { label: 'Analytics', href: '/admin-dashboard/analytics', icon: FaChartLine },
   { label: 'Notifications', href: '/admin-dashboard/notifications', icon: FaBell },
   { label: 'Settings', href: '/admin-dashboard/settings', icon: FaCog },
-  { label: 'Security & Logs', href: '/admin-dashboard/security', icon: FaShieldAlt },
+  // { label: 'Security & Logs', href: '/admin-dashboard/security', icon: FaShieldAlt },
   { label: 'Help / Support', href: '/admin-dashboard/help', icon: FaLifeRing },
 ]
 
@@ -1875,7 +1875,7 @@ export default function Sidebar() {
                       if (isAppRatings) return handleAppRatingsClick()
                       if (isEarningsAndPayouts) return handleEarningsAndPayoutsClick()
                     }}
-                    className={`flex items-center gap-1 px-4 py-2 transition-colors text-sm sm:text-[12px] ${
+                    className={`flex items-center gap-1 px-4 py-1 transition-colors text-sm sm:text-[12px] ${
                       isActive(href)
                         ? 'bg-[var(--orange)] text-[var(--white)] font-semibold shadow'
                         : 'hover:bg-[var(--orange)]/90'

@@ -50,13 +50,13 @@ const helpInfo = [
     href: '/dashboard/customer/settings/privacy',
     icon: FaLock,
   },
-  {
-    id: 'notifications',
-    title: 'Notifications Sound',
-    description: 'Manage your notification preferences',
-    href: '/dashboard/customer/settings/notifications',
-    icon: FaBell,
-  },
+  // {
+  //   id: 'disable',
+  //   title: 'Disable Account',
+  //   description: 'Delete my account',
+  //   href: '/dashboard/customer/settings/disable-account',
+  //   icon: FaBell,
+  // },
   // {
   //   id: 'billing',
   //   title: 'Billing & Payment',
