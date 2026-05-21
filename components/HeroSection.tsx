@@ -41,7 +41,7 @@ const HeroSection = () => {
                 src="/art.png"
                 alt="Artisan working"
                 fill
-                className="object-contain lg:mt-5 md:mt-30 "
+                className="object-contain lg:mt-26 md:mt-30 "
                 priority
               />
             </div>

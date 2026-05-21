@@ -65,15 +65,15 @@ export default function SkillsSlider() {
     prevArrow: <CustomArrow direction="prev" />,
     nextArrow: <CustomArrow direction="next" />,
     responsive: [
-      { breakpoint: 1280, settings: { slidesToShow: 5 } },
-      { breakpoint: 1024, settings: { slidesToShow: 4 } },
-      { breakpoint: 768, settings: { slidesToShow: 3 } },
+      { breakpoint: 1280, settings: { slidesToShow: 2 } },
+      { breakpoint: 1024, settings: { slidesToShow: 2 } },
+      { breakpoint: 768, settings: { slidesToShow: 2 } },
       { breakpoint: 640, settings: { slidesToShow: 2, arrows: false } },
     ]
   };
 
   return (
-    <div className="hidden lg:block py-2 bg-white">
+    <div className="lg:hidden py-2 bg-white">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-7">
           <p className="text-[var(--orange)] font-semibold tracking-widest text-sm mb-3">
