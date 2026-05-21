@@ -76,10 +76,10 @@ export default function SkillsSlider() {
     <div className="lg:hidden py-2 bg-white">
       <div className="max-w-7xl mx-auto px-3">
         <div className="text-center mb-7">
-          <p className="text-[var(--orange)] font-semibold tracking-widest text-sm mb-3">
+          <p className="text-[var(--orange)] font-semibold tracking-widest text-sm ">
             OUR EXPERTISE
           </p>
-          <h2 className="text-xl md:text-2xl font-bold text-[var(--blue)]">
+          <h2 className="text-sm md:text-2xl font-bold text-[var(--blue)]">
             Skilled Artisans in Every Trade
           </h2>
         </div>
@@ -88,7 +88,7 @@ export default function SkillsSlider() {
           <Slider {...settings}>
             {skills.map((skill, index) => (
               <div key={index} className="px-3">
-                <div className="group bg-white border border-gray-100 hover:border-[var(--orange)] 
+                <div className="group bg-white border border-[var(--blue)] hover:border-[var(--orange)] 
                                 rounded-3xl p-3 text-center transition-all duration-300 
                                 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center justify-center h-[150px]">
                   
