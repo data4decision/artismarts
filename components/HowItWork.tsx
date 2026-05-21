@@ -118,7 +118,8 @@ function HowItWork() {
   ]
 
   const renderCard = (item: StepItem, index: number) => (
-    <div key={index} className="px-3">
+    <div className="hidden lg:block">
+      <div key={index} className="px-3">
       <div className="h-full bg-white border border-[var(--blue)]/30 hover:border-[var(--orange)] 
                       rounded-3xl p-8 shadow-md hover:shadow-xl transition-all duration-300 
                       flex flex-col items-center text-center min-h-[340px]">
@@ -140,10 +141,11 @@ function HowItWork() {
         </p>
       </div>
     </div>
+    </div>
   )
 
   return (
-    <div className="hidden lg:block py-16 md:py-20 bg-[var(--orange)]/5">
+    <div className=" py-16 md:py-20 bg-[var(--orange)]/5">
       {/* Customers Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
