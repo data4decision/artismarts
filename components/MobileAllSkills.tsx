@@ -14,30 +14,30 @@ import {
 } from 'react-icons/fa';
 
 const skills = [
-  { name: "Plumber", icon: <FaWrench className="text-4xl" /> },
-  { name: "Electrician", icon: <FaBolt className="text-4xl" /> },
-  { name: "Carpenter", icon: <FaHammer className="text-4xl" /> },
-  { name: "Painter / Decorator", icon: <FaPaintRoller className="text-4xl" /> },
-  { name: "Tiler", icon: <FaTools className="text-4xl" /> },
-  { name: "AC Technician", icon: <FaSnowflake className="text-4xl" /> },
-  { name: "Refrigerator Technician", icon: <FaSnowflake className="text-4xl" /> },
-  { name: "Generator Repair", icon: <FaCogs className="text-4xl" /> },
-  { name: "Handyman", icon: <FaTools className="text-4xl" /> },
-  { name: "Welder / Fabricator", icon: <FaIndustry className="text-4xl" /> },
-  { name: "POP Ceiling Installer", icon: <FaLightbulb className="text-4xl" /> },
-  { name: "Interior Decorator", icon: <FaPaintRoller className="text-4xl" /> },
-  { name: "CCTV Installer", icon: <FaCamera className="text-4xl" /> },
-  { name: "Solar Panel Installer", icon: <FaSolarPanel className="text-4xl" /> },
-  { name: "Computer Repair", icon: <FaLaptop className="text-4xl" /> },
-  { name: "Phone Repair Technician", icon: <FaPhone className="text-4xl" /> },
-  { name: "Network Technician", icon: <FaMicrochip className="text-4xl" /> },
-  { name: "Cleaner / Janitor", icon: <FaBroom className="text-4xl" /> },
-  { name: "Barber / Hairdresser", icon: <FaCut className="text-4xl" /> },
-  { name: "Auto Mechanic", icon: <FaCar className="text-4xl" /> },
-  { name: "Auto Electrician", icon: <FaBolt className="text-4xl" /> },
-  { name: "HVAC Engineer", icon: <FaSnowflake className="text-4xl" /> },
-  { name: "Event Sound Technician", icon: <FaTv className="text-4xl" /> },
-  { name: "Aluminum Fabricator", icon: <FaDoorOpen className="text-4xl" /> },
+  { name: "Plumber", icon: <FaWrench className="text-2xl" /> },
+  { name: "Electrician", icon: <FaBolt className="text-2xl" /> },
+  { name: "Carpenter", icon: <FaHammer className="text-2xl" /> },
+  { name: "Painter / Decorator", icon: <FaPaintRoller className="text-2xl" /> },
+  { name: "Tiler", icon: <FaTools className="text-2xl" /> },
+  { name: "AC Technician", icon: <FaSnowflake className="text-2xl" /> },
+  { name: "Refrigerator Technician", icon: <FaSnowflake className="text-2xl" /> },
+  { name: "Generator Repair", icon: <FaCogs className="text-2xl" /> },
+  { name: "Handyman", icon: <FaTools className="text-2xl" /> },
+  { name: "Welder / Fabricator", icon: <FaIndustry className="text-2xl" /> },
+  { name: "POP Ceiling Installer", icon: <FaLightbulb className="text-2xl" /> },
+  { name: "Interior Decorator", icon: <FaPaintRoller className="text-2xl" /> },
+  { name: "CCTV Installer", icon: <FaCamera className="text-2xl" /> },
+  { name: "Solar Panel Installer", icon: <FaSolarPanel className="text-2xl" /> },
+  { name: "Computer Repair", icon: <FaLaptop className="text-2xl" /> },
+  { name: "Phone Repair Technician", icon: <FaPhone className="text-2xl" /> },
+  { name: "Network Technician", icon: <FaMicrochip className="text-2xl" /> },
+  { name: "Cleaner / Janitor", icon: <FaBroom className="text-2xl" /> },
+  { name: "Barber / Hairdresser", icon: <FaCut className="text-2xl" /> },
+  { name: "Auto Mechanic", icon: <FaCar className="text-2xl" /> },
+  { name: "Auto Electrician", icon: <FaBolt className="text-2xl" /> },
+  { name: "HVAC Engineer", icon: <FaSnowflake className="text-2xl" /> },
+  { name: "Event Sound Technician", icon: <FaTv className="text-2xl" /> },
+  { name: "Aluminum Fabricator", icon: <FaDoorOpen className="text-2xl" /> },
 ];
 
 const CustomArrow = ({ direction, onClick }: { direction: 'prev' | 'next'; onClick?: () => void }) => (
@@ -57,7 +57,7 @@ export default function SkillsSlider() {
     dots: false,
     infinite: true,
     speed: 600,
-    slidesToShow: 6,
+    slidesToShow: 2,
     slidesToScroll: 1,
     autoplay: true,
     autoplaySpeed: 3000,
@@ -74,7 +74,7 @@ export default function SkillsSlider() {
 
   return (
     <div className="lg:hidden py-2 bg-white">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-3">
         <div className="text-center mb-7">
           <p className="text-[var(--orange)] font-semibold tracking-widest text-sm mb-3">
             OUR EXPERTISE
@@ -84,7 +84,7 @@ export default function SkillsSlider() {
           </h2>
         </div>
 
-        <div className="relative px-8">
+        <div className="relative px-3">
           <Slider {...settings}>
             {skills.map((skill, index) => (
               <div key={index} className="px-3">
