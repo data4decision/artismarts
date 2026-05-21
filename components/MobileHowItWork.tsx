@@ -102,7 +102,7 @@ export default function MobileHowItWork() {
                       flex flex-col items-center text-center min-h-[220px]">
         
         {/* Icon */}
-        <div className="mb-6 text-5xl text-[var(--blue)] bg-[var(--blue)]/5 w-20 h-20 
+        <div className="mb-6 text-5xl text-[var(--white)] bg-[var(--blue)]/5 w-20 h-20 
                         flex items-center justify-center rounded-2xl border border-[var(--orange)]">
           {item.icon}
         </div>
