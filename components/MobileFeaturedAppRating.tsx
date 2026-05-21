@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { FaStar } from 'react-icons/fa'
 import Image from 'next/image'
 
-export default function Testimonials() {
+export default function MobileFeaturedAppRating() {
   const [testimonials, setTestimonials] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -104,8 +104,8 @@ export default function Testimonials() {
   if (testimonials.length === 0) return null
 
   return (
-    <div className="hidden lg:block">
-      <div className="bg-[var(--white)] py-20">
+    <div className="lg:hidden">
+        <div className="bg-[var(--white)] py-20">
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-16">
