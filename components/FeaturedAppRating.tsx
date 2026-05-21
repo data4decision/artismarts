@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import Slider from 'react-slick'
 
 // Import slick styles (very important!)
-import 'slick-carousel/slick/slick.css'
-import 'slick-carousel/slick/slick-theme.css'
+
 
 import { supabase } from '@/lib/supabase'
 import { FaStar } from 'react-icons/fa'
