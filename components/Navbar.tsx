@@ -25,7 +25,7 @@ const Navbar = () => {
             <li><Link href="/" className="text-[var(--blue)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Home</Link></li>
             <li><Link href="/aboutUs" className="text-[var(--blue)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> About</Link></li>
             <li><Link href="/faq" className="text-[var(--blue)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> FAQ</Link></li>
-            <li><Link href="/careers" className="text-[var(--blue)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Careers</Link></li>
+            {/* <li><Link href="/careers" className="text-[var(--blue)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Careers</Link></li> */}
             <li><Link href="/contact-us" className="text-[var(--blue)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Contact Us</Link></li>
             <li><Link href="/blog" className="text-[var(--blue)] hover:text-[var(--orange)] transition-all duration-300 ease-in-out text-[17px]"> Blog</Link></li>
         </ul>

@@ -5,6 +5,8 @@ import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaClock, FaWhatsapp, FaArrowRight 
 import { motion } from 'framer-motion';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function ContactUsPage() {
   const [formData, setFormData] = useState({
@@ -33,20 +35,31 @@ export default function ContactUsPage() {
     <div className="font-roboto">
       <Navbar/>
       {/* Hero */}
-      <section className="bg-[var(--blue)] text-white py-28">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-6xl font-bold mb-6"
+      <div className="">
+       <div className="relative">
+          <Image
+            src="/aboutartismart.jpeg"
+            alt="Artismart"
+            width={1200}
+            height={100}
+            className="w-full h-100 object-cover object-top"
+            priority
+            />
+          </div>
+          <div className="absolute top-1/2 -translate-y-1/2  ">
+            <motion.div 
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="lg:col-span-7"
           >
+        <h1 className='text-2xl text-[var(--blue)] font-bold bg-[var(--white)] w-[220px] sm:ml-20 ml-10  px-4 py-3 rounded-lg border-b-3 border-r-0 border-l-0 border-t-0 border-[var(--blue)]  '>
             Let’s Talk
-          </motion.h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            We’re here to help you connect with the best artisans or answer any questions you have.
-          </p>
-        </div>
-      </section>
+        </h1>
+        <p className='bg-[var(--blue)] text-[var(--white)] sm:text-xl text-sm sm:ml-20  font-semibold mt-3 rounded-lg border-b-3 border-r-0 border-l-0 border-t-0 border-[var(--orange)] px-4 py-4'>We’re here to help you connect with the best artisans or answer any questions you have.</p>
+          </motion.div>     
+          </div>
+          </div>
 
       <div className="max-w-7xl mx-auto px-6 py-20">
         <div className="grid lg:grid-cols-12 gap-16">
@@ -159,8 +172,8 @@ export default function ContactUsPage() {
                     <FaPhone />
                   </div>
                   <div>
-                    <p className="font-semibold text-lg">Call Us</p>
-                    <a href="tel:+2348012345678" className="text-gray-600 hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
+                    <p className="font-semibold text-[var(--blue)] text-lg">Call Us</p>
+                    <a href="tel:+2348069517707" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
                   </div>
                 </div>
 
@@ -169,8 +182,8 @@ export default function ContactUsPage() {
                     <FaWhatsapp />
                   </div>
                   <div>
-                    <p className="font-semibold text-lg">WhatsApp</p>
-                    <a href="https://wa.me/2348012345678" target="_blank" className="text-gray-600 hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
+                    <p className="font-semibold text-[var(--blue)] text-lg">WhatsApp</p>
+                    <a href="https://wa.me/+2348069517707" target="_blank" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
                   </div>
                 </div>
 
@@ -179,8 +192,8 @@ export default function ContactUsPage() {
                     <FaEnvelope />
                   </div>
                   <div>
-                    <p className="font-semibold text-lg">Email</p>
-                    <a href="mailto:support@artismart.com" className="text-gray-600 hover:text-[var(--orange)]">support@artismart.com</a>
+                    <p className="font-semibold text-[var(--blue)] text-lg">Email</p>
+                    <a href="mailto:info@data4decision.org" className="text-[var(--blue)] hover:text-[var(--orange)]">info@data4decision.org</a>
                   </div>
                 </div>
 
@@ -189,10 +202,10 @@ export default function ContactUsPage() {
                     <FaMapMarkerAlt />
                   </div>
                   <div>
-                    <p className="font-semibold text-lg">Visit Us</p>
+                    <p className="font-semibold text-[var(--blue)] text-lg">Visit Us</p>
                     <p className="text-gray-600 leading-tight">
-                      123 Adeola Odeku Street<br />
-                      Victoria Island, Lagos
+                      Nipco Filling Station Along Old Jebba Road Sango Area, <br />
+                     Ilorin Kwara State.
                     </p>
                   </div>
                 </div>
@@ -203,36 +216,43 @@ export default function ContactUsPage() {
       </div>
 
       {/* Have More Questions? Section */}
-      <section className="bg-gray-50 py-24">
-        <div className="max-w-4xl mx-auto px-6 text-center">
+      <section className="relative h-[400px] sm:h-[400px] overflow-hidden">
+        <Image
+                src="/artisan.jpeg"
+                alt="Artisan working on craft - Artismart"
+                fill
+                className="object-cover object-center object-top brightness-75"
+                priority
+              />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-[var(--blue)] mb-6">
+            <h2 className="text-4xl md:text-5xl font-bold text-[var(--white)] mb-6">
               Have More Questions?
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-12">
+            <p className="sm:text-lg text-md text-white max-w-2xl mx-auto mb-12">
               Join thousands of satisfied customers and artisans who trust ArtiSmart every day.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-5 justify-center">
-              <a
-                href="https://wa.me/2348012345678"
+              <Link
+                href="https://wa.me/+2348069517707"
                 target="_blank"
-                className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-4 rounded-2xl text-lg transition-all duration-300 hover:scale-105"
+                className="inline-flex items-center text-sm sm:text-base justify-center bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-2 rounded-2xl text-md transition-all duration-300 hover:scale-105"
               >
                 💬 Chat With Us on WhatsApp
-              </a>
+              </Link>
 
-              <a
-                href="tel:+2348012345678"
-                className="inline-flex items-center justify-center border-2 border-[var(--blue)] text-[var(--blue)] hover:bg-[var(--blue)] hover:text-white font-semibold px-10 py-4 rounded-2xl text-lg transition-all duration-300 hover:scale-105"
+              <Link
+                href="tel:+2348069517707"
+                className="inline-flex items-center text-sm sm:text-base justify-center border-2 border-[var(--blue)] bg-[var(--blue)]/80 text-[var(--white)] hover:bg-[var(--blue)] hover:text-white font-semibold px-10 py-4 rounded-2xl text-lg transition-all duration-300 hover:scale-105"
               >
                 📅 Schedule a Call
-              </a>
+              </Link>
             </div>
           </motion.div>
         </div>
