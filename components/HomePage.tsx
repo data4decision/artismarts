@@ -24,7 +24,7 @@ const HomePage = () => {
     <div>
         <Navbar/>
       <HeroSection/>
-      <MobileHeroSection/>
+      {/* <MobileHeroSection/> */}
       <AllSkills/>
       <MobileAllSkills/>
       <OurMission/>
