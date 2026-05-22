@@ -75,7 +75,7 @@ export default function HeroSlider() {
 
   return (
     <div 
-      className="relative w-full h-[300px] md:h-[550px] overflow-hidden"
+      className="relative w-full h-[300px] md:h-[500px] overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={onTouchStart}
@@ -103,7 +103,7 @@ export default function HeroSlider() {
       </AnimatePresence>
 
       {/* Overlay */}
-      {/* <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" /> */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[var(--blue)]/70 via-[var(--blue)]/40 to-transparent" />
 
       {/* Navigation Buttons */}
       <button
