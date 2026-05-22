@@ -16,7 +16,7 @@ const HeroSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1 items-center">
           
           
-          <div className="text-white md:mt-20 mt-5">
+          <div className="text-white md:mt-0 mt-5">
             <h1 className="text-2xl lg:text-6xl lg:w-[80%] md:text-5xl font-bold leading-tight">
               Find Trusted Artisans Near You
             </h1>
@@ -36,12 +36,12 @@ const HeroSection = () => {
 
          
           <div className="flex justify-center md:justify-end">
-            <div className="relative w-full max-w-[380px] lg:max-w-[680px] md:max-w-[780px] md-w-[700px]  aspect-square ">
+            <div className="relative w-full max-w-[380px] lg:max-w-[680px] md:max-w-[580px] md-w-[700px]  aspect-square ">
               <Image
                 src="/art.png"
                 alt="Artisan working"
                 fill
-                className="object-contain lg:mt-7 md:mt-10 "
+                className="object-contain lg:mt-7 md:mt-0 "
                 priority
               />
             </div>
