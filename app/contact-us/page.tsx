@@ -173,7 +173,7 @@ export default function ContactUsPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-[var(--blue)] text-lg">Call Us</p>
-                    <a href="tel:+2348069517707" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
+                    <a href="tel:+2349168974621" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
                   </div>
                 </div>
 
@@ -183,7 +183,7 @@ export default function ContactUsPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-[var(--blue)] text-lg">WhatsApp</p>
-                    <a href="https://wa.me/+2348069517707" target="_blank" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
+                    <a href="https://wa.me/+2349168974621" target="_blank" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
                   </div>
                 </div>
 
@@ -240,7 +240,7 @@ export default function ContactUsPage() {
 
             <div className="flex flex-col sm:flex-row gap-5 justify-center">
               <Link
-                href="https://wa.me/+2348069517707"
+                href="https://wa.me/+2349168974621"
                 target="_blank"
                 className="inline-flex items-center text-sm sm:text-base justify-center bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-2 rounded-2xl text-md transition-all duration-300 hover:scale-105"
               >
