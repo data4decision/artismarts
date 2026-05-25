@@ -173,7 +173,7 @@ export default function ContactUsPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-[var(--blue)] text-lg">Call Us</p>
-                    <a href="tel:+2349168974621" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
+                    <a href="tel:+2349168974621" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+2349168974621</a>
                   </div>
                 </div>
 
@@ -183,7 +183,7 @@ export default function ContactUsPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-[var(--blue)] text-lg">WhatsApp</p>
-                    <a href="https://wa.me/+2349168974621" target="_blank" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+234 801 234 5678</a>
+                    <a href="https://wa.me/+2349168974621" target="_blank" className="text-[var(--blue)] hover:text-[var(--orange)] text-lg">+2349168974621</a>
                   </div>
                 </div>
 
