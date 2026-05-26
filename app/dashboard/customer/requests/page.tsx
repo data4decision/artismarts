@@ -656,7 +656,13 @@ import {
 } from 'react-icons/fa'
 import Link from 'next/link'
 import Image from 'next/image'
-import CustomerArtisanTracker from '@/components/CustomerArtisanTracker'
+import dynamic from 'next/dynamic'
+
+// Dynamic import to prevent SSR issues
+const CustomerArtisanTracker = dynamic(
+  () => import('@/components/CustomerArtisanTracker'),
+  { ssr: false }
+)
 
 interface CustomerRequest {
   id: string
@@ -724,7 +730,7 @@ export default function MyRequestsPage() {
 
       if (error) throw error
 
-      const typedRequests: CustomerRequest[] = (data || []).map((item: any) => ({
+      let typedRequests: CustomerRequest[] = (data || []).map((item: any) => ({
         id: item.id || '',
         title: item.title || '',
         description: item.description || '',
@@ -745,6 +751,14 @@ export default function MyRequestsPage() {
           : null,
         status_logs: item.status_logs || [],
       }))
+
+      // Sort: Assigned → In Progress → Completed Pending Review → Completed → Others
+      const statusOrder = ['assigned', 'in_progress', 'completed_pending_review', 'completed', 'cancelled', 'pending']
+      typedRequests.sort((a, b) => {
+        const orderA = statusOrder.indexOf(a.status)
+        const orderB = statusOrder.indexOf(b.status)
+        return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB)
+      })
 
       setRequests(typedRequests)
     } catch (err: any) {
@@ -852,20 +866,31 @@ export default function MyRequestsPage() {
           </button>
         </div>
 
-        {/* Loading & Error States */}
+        {/* Loading */}
         {loading && (
           <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
-                  <div className="relative flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
-                    <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
-                      <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
-                        <Image src="/log.png" width={48} height={48} priority alt="Loading..." className="object-contain" />
-                      </div>
-                    </div>
-                  </div>
+            <div className="relative flex items-center justify-center">
+              <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-md"></div>
+              <div className="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                <div className="bg-[var(--white)] rounded-full p-2 shadow-sm">
+                  <Image src="/log.png" width={48} height={48} priority alt="Loading..." className="object-contain" />
                 </div>
+              </div>
+            </div>
+          </div>
         )}
-        {error && <div className="text-red-600 text-center py-10">{error}</div>}
+
+        {/* Error */}
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-10 text-center shadow-inner">
+            <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
+            <h3 className="text-2xl font-bold text-red-800 mb-3">Oops! Something went wrong</h3>
+            <p className="text-red-700 mb-8 text-lg">{error}</p>
+            <button onClick={fetchMyRequests} className="px-10 py-4 bg-red-600 hover:bg-red-700 text-white font-medium text-lg rounded-xl transition shadow-md">
+              Try Again
+            </button>
+          </div>
+        )}
 
         {!loading && !error && (
           <>
@@ -917,12 +942,19 @@ export default function MyRequestsPage() {
                     </div>
 
                     <div className="px-6 py-4 bg-gray-50 border-t flex justify-between items-center">
-                      <button onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); }} className="text-[var(--blue)] hover:text-[var(--orange)] font-medium flex items-center gap-2">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); }} 
+                        className="text-[var(--blue)] hover:text-[var(--orange)] font-medium flex items-center gap-2"
+                      >
                         <FaEye /> View Details
                       </button>
 
                       {req.assigned_artisan && req.status === 'in_progress' && (
-                        <Link href={`/dashboard/customer/payment/${req.id}`} onClick={(e) => e.stopPropagation()} className="px-5 py-2 bg-green-600 text-white rounded-xl text-sm font-medium">
+                        <Link 
+                          href={`/dashboard/customer/payment/${req.id}`} 
+                          onClick={(e) => e.stopPropagation()} 
+                          className="px-5 py-2 bg-green-600 text-white rounded-xl text-sm font-medium"
+                        >
                           Pay Now
                         </Link>
                       )}
@@ -938,7 +970,6 @@ export default function MyRequestsPage() {
         {selectedRequest && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-hidden flex flex-col">
-              {/* Modal Header */}
               <div className="bg-gradient-to-r from-[var(--blue)] to-blue-900 text-white px-8 py-6 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">{selectedRequest.title}</h2>
@@ -948,23 +979,21 @@ export default function MyRequestsPage() {
               </div>
 
               <div className="flex-1 overflow-auto p-8 space-y-8">
-                {/* Status */}
                 <div>{getStatusBadge(selectedRequest.status)}</div>
 
-                {/* Live Tracker - Only show when artisan is assigned and job is active */}
-                {(selectedRequest.status === 'in_progress' || selectedRequest.status === 'assigned') && selectedRequest.assigned_artisan && (
-                  <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden h-[420px]">
+                {/* Live Tracker */}
+                {(selectedRequest.status === 'in_progress' || selectedRequest.status === 'assigned') && 
+                  selectedRequest.assigned_artisan && (
+                  <div className="h-[420px] bg-gray-100 rounded-2xl overflow-hidden border">
                     <CustomerArtisanTracker jobRequestId={selectedRequest.id} />
                   </div>
                 )}
 
-                {/* Description */}
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Description</h3>
                   <p className="text-gray-700 whitespace-pre-line leading-relaxed">{selectedRequest.description}</p>
                 </div>
 
-                {/* Location & Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-gray-50 p-5 rounded-2xl">
                     <h4 className="font-medium mb-2 flex items-center gap-2">
@@ -981,7 +1010,6 @@ export default function MyRequestsPage() {
                   </div>
                 </div>
 
-                {/* Assigned Artisan */}
                 {selectedRequest.assigned_artisan && (
                   <div className="bg-blue-50 p-6 rounded-2xl">
                     <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -993,7 +1021,6 @@ export default function MyRequestsPage() {
                   </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="pt-6 flex flex-col gap-4">
                   {selectedRequest.status === 'in_progress' && selectedRequest.assigned_artisan && (
                     <Link

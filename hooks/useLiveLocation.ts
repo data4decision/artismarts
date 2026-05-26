@@ -98,3 +98,92 @@ supabase
     };
   }, [jobRequestId, isActive, stopSharing]);
 }
+
+
+
+// 'use client';
+
+// import { useEffect, useRef, useCallback } from 'react';
+// import { supabase } from '@/lib/supabase';
+
+// interface UseLiveLocationProps {
+//   jobRequestId: string;
+//   isSharing: boolean;        // ← Toggle controlled by user
+// }
+
+// export function useLiveLocation({ jobRequestId, isSharing }: UseLiveLocationProps) {
+//   const watchIdRef = useRef<number | null>(null);
+//   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+//   const isSharingRef = useRef(false);
+
+//   const stopSharing = useCallback(() => {
+//     if (watchIdRef.current !== null) {
+//       navigator.geolocation.clearWatch(watchIdRef.current);
+//       watchIdRef.current = null;
+//     }
+//     if (intervalRef.current) {
+//       clearInterval(intervalRef.current);
+//       intervalRef.current = null;
+//     }
+//     isSharingRef.current = false;
+//   }, []);
+
+//   useEffect(() => {
+//     if (!isSharing || !jobRequestId) {
+//       stopSharing();
+//       return;
+//     }
+
+//     const startSharing = async () => {
+//       if (!navigator.geolocation) {
+//         console.error("Geolocation not supported");
+//         return;
+//       }
+
+//       if (isSharingRef.current) return;
+//       isSharingRef.current = true;
+
+//       const { data: { user } } = await supabase.auth.getUser();
+//       if (!user) return;
+
+//       const sendLocation = (position: GeolocationPosition) => {
+//         const { latitude, longitude, accuracy, speed, heading } = position.coords;
+
+//         supabase
+//           .from('artisan_locations')
+//           .upsert({
+//             job_request_id: jobRequestId,
+//             artisan_id: user.id,
+//             latitude,
+//             longitude,
+//             accuracy: accuracy ?? null,
+//             speed: speed ?? null,
+//             heading: heading ?? null,
+//             timestamp: new Date().toISOString(),
+//           }, { onConflict: 'job_request_id,artisan_id' })
+//           .then(({ error }) => {
+//             if (error) console.error('Location update failed:', error);
+//           });
+//       };
+
+//       // Initial location
+//       navigator.geolocation.getCurrentPosition(sendLocation);
+
+//       // Continuous tracking
+//       watchIdRef.current = navigator.geolocation.watchPosition(
+//         sendLocation,
+//         (error) => console.error('Geolocation error:', error),
+//         { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+//       );
+
+//       // Backup every 10 seconds
+//       intervalRef.current = setInterval(() => {
+//         navigator.geolocation.getCurrentPosition(sendLocation);
+//       }, 10000);
+//     };
+
+//     startSharing();
+
+//     return () => stopSharing();
+//   }, [jobRequestId, isSharing, stopSharing]);
+// }

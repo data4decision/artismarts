@@ -744,7 +744,8 @@ import {
   FaSpinner, FaCheckCircle, FaUpload, FaImage, FaCommentDots, 
   FaArrowLeft, FaInfoCircle, FaTimes, FaDownload,
   FaExclamationTriangle, FaExpand, FaTools, FaPlayCircle,
-  FaUserTie, FaMapMarkerAlt, FaStop, FaPlay
+  FaUserTie,
+  FaMapMarkerAlt, FaStop, FaPlay
 } from 'react-icons/fa'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -788,21 +789,17 @@ export default function ArtisanActiveJob() {
   const [actionType, setActionType] = useState<'ongoing' | 'complete' | null>(null)
   const [isCompleted, setIsCompleted] = useState(false)
 
-  // Location States
-  const [isSharingLocation, setIsSharingLocation] = useState(true)
-  const [manualLocation, setManualLocation] = useState('')
-  const [isUsingManualLocation, setIsUsingManualLocation] = useState(false)
+  // Location Sharing State
+  const [isSharingLocation, setIsSharingLocation] = useState(false)
 
   const [zoomedPhoto, setZoomedPhoto] = useState<{ url: string; type: string } | null>(null)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-
-  
-
-  // ====================== LIVE GPS LOCATION ======================
-  useLiveLocation({
-    jobRequestId: jobId || '',
-    isActive: isSharingLocation && !isUsingManualLocation && !isCompleted,
+  // Live Location Hook - Fixed property name
+  useLiveLocation({ 
+    jobRequestId: jobId || '', 
+    isActive: isSharingLocation 
   })
 
   useEffect(() => {
@@ -816,8 +813,8 @@ export default function ArtisanActiveJob() {
 
   const fetchJob = async () => {
     if (!jobId) return
-    setLoading(true)
 
+    setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -887,10 +884,11 @@ export default function ArtisanActiveJob() {
 
       setJob(mappedJob)
 
-      const completed = data.status === 'completed_pending_review' || data.status === 'completed'
-      setIsCompleted(completed)
-      if (completed) setIsSharingLocation(false)
-
+      if (data.status === 'completed_pending_review' || data.status === 'completed') {
+        setIsCompleted(true)
+      } else {
+        setIsCompleted(false)
+      }
     } catch (err: any) {
       console.error('Fetch error:', err)
       toast.error(err.message || 'Failed to load job details')
@@ -901,41 +899,9 @@ export default function ArtisanActiveJob() {
   }
 
   const toggleLocationSharing = () => {
-    setIsSharingLocation(prev => !prev)
-    setIsUsingManualLocation(false)
-    toast.success(isSharingLocation ? 'GPS Tracking stopped' : 'GPS Tracking started')
-  }
-
-  const shareManualLocation = async () => {
-    if (!manualLocation.trim()) {
-      toast.error("Please enter your current location (e.g. Agic Road, Ilorin, Kwara)")
-      return
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { error } = await supabase
-        .from('artisan_locations')
-        .upsert({
-          job_request_id: jobId,
-          artisan_id: user.id,
-          latitude: null,
-          longitude: null,
-          manual_address: manualLocation.trim(),
-          timestamp: new Date().toISOString(),
-        }, { onConflict: 'job_request_id,artisan_id' })
-
-      if (error) throw error
-
-      toast.success("Manual location shared successfully!")
-      setIsUsingManualLocation(true)
-      setIsSharingLocation(false)
-    } catch (err) {
-      toast.error("Failed to share manual location")
-      console.error(err)
-    }
+    const newState = !isSharingLocation
+    setIsSharingLocation(newState)
+    toast.success(newState ? '✅ GPS Tracking Started' : '⏹ GPS Tracking Stopped')
   }
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1021,8 +987,13 @@ export default function ArtisanActiveJob() {
       }
 
       if (type === 'ongoing' && note.trim()) {
-        const currentNotes = Array.isArray(job?.progress_notes) ? job.progress_notes : []
-        const timestamp = new Date().toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })
+        const currentNotes = Array.isArray(job?.progress_notes)
+          ? job.progress_notes
+          : []
+        const timestamp = new Date().toLocaleString('en-NG', {
+          dateStyle: 'medium',
+          timeStyle: 'short'
+        })
         const newNoteEntry = `${timestamp}: ${note.trim()}`
         updateData.progress_notes = [...currentNotes, newNoteEntry]
       }
@@ -1031,7 +1002,9 @@ export default function ArtisanActiveJob() {
         updateData.status = 'completed_pending_review'
         updateData.completion_photo_urls = newPhotoUrls.length > 0 ? newPhotoUrls : null
         updateData.completed_at = new Date().toISOString()
-        if (note.trim()) updateData.completion_note = note.trim()
+        if (note.trim()) {
+          updateData.completion_note = note.trim()
+        }
       }
 
       const { error } = await supabase
@@ -1041,7 +1014,11 @@ export default function ArtisanActiveJob() {
 
       if (error) throw error
 
-      toast.success(type === 'complete' ? 'Job submitted for review!' : 'Progress saved!')
+      toast.success(
+        type === 'complete'
+          ? 'Job submitted for review!'
+          : 'Progress saved (photos & note)!'
+      )
 
       previewUrls.forEach(url => URL.revokeObjectURL(url))
       setPhotos([])
@@ -1049,7 +1026,10 @@ export default function ArtisanActiveJob() {
       setNote('')
 
       await fetchJob()
-      if (type === 'complete') setIsCompleted(true)
+
+      if (type === 'complete') {
+        setIsCompleted(true)
+      }
     } catch (err: any) {
       console.error('Submit error:', err)
       toast.error(err.message || 'Failed to submit update')
@@ -1080,10 +1060,12 @@ export default function ArtisanActiveJob() {
         <div className="text-center max-w-md p-8 bg-[var(--white)] rounded-2xl shadow-lg border border-[var(--blue)]/20">
           <FaExclamationTriangle className="text-[var(--orange)] text-6xl mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-[var(--blue)] mb-3">Job not found</h2>
-          <p className="text-[var(--blue)] mb-6">This job may no longer be active or you don't have access.</p>
+          <p className="text-[var(--blue)] mb-6">
+            This job may no longer be active or you don't have access.
+          </p>
           <button
             onClick={() => router.push('/dashboard/artisan/active-jobs')}
-            className="px-6 py-3 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-600 transition font-medium"
+            className="px-6 py-3 bg-[var(--orange)] text-[var(--white)] rounded-xl hover:bg-orange-600 transition font-medium"
           >
             Back to Active Jobs
           </button>
@@ -1099,7 +1081,7 @@ export default function ArtisanActiveJob() {
 
   return (
     <div className="min-h-screen bg-[var(--white)] py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Navigation */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <button
@@ -1111,65 +1093,34 @@ export default function ArtisanActiveJob() {
 
           <Link
             href={`/dashboard/artisan/messages?jobId=${jobId}`}
-            className="flex items-center gap-2 px-6 py-3 bg-[var(--blue)] hover:bg-blue-700 text-white rounded-xl transition shadow-md font-medium"
+            className="flex items-center gap-2 px-6 py-3 bg-[var(--blue)] hover:bg-blue-700 text-[var(--white)] rounded-xl transition shadow-md font-medium"
           >
             <FaCommentDots /> Chat with Customer/Admin
           </Link>
         </div>
 
-        {/* ==================== LOCATION SHARING SECTION ==================== */}
+        {/* ==================== LIVE LOCATION MAP ==================== */}
         {!isCompleted && (
-          <div className="mb-10 space-y-6">
-            {/* GPS Live Tracking */}
-            <div className="bg-white rounded-3xl shadow-2xl border border-[var(--blue)]/10 overflow-hidden">
-              <div className="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FaMapMarkerAlt className="text-[var(--orange)] text-2xl" />
-                  <h3 className="font-semibold text-lg">Live GPS Tracking</h3>
-                </div>
-                <button
-                  onClick={toggleLocationSharing}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 ${
-                    isSharingLocation ? 'bg-red-600 text-white' : 'bg-green-600 text-white'
-                  }`}
-                >
-                  {isSharingLocation ? <FaStop /> : <FaPlay />}
-                  {isSharingLocation ? 'Stop GPS' : 'Start GPS'}
-                </button>
+          <div className="mb-10 bg-white rounded-3xl shadow-xl border border-[var(--blue)]/10 overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FaMapMarkerAlt className="text-[var(--orange)] text-2xl" />
+                <h3 className="font-semibold text-lg">Live Location Sharing</h3>
               </div>
-              <div className="h-[380px]">
-                <ArtisanLiveMap jobRequestId={jobId} isVisible={isSharingLocation && !isUsingManualLocation} />
-              </div>
+              <button
+                onClick={() => setIsSharingLocation(!isSharingLocation)}
+                className={`px-6 py-3 rounded-2xl font-medium flex items-center gap-3 transition-all ${
+                  isSharingLocation 
+                    ? 'bg-red-600 hover:bg-red-700 text-white' 
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
+              >
+                {isSharingLocation ? <FaStop /> : <FaPlay />}
+                {isSharingLocation ? 'Stop GPS' : 'Start GPS Sharing'}
+              </button>
             </div>
-
-            {/* Manual Location Input */}
-            <div className="bg-white rounded-3xl shadow-xl p-6 border border-[var(--blue)]/10">
-              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <FaMapMarkerAlt /> Share Your Current Location Manually
-              </h3>
-              <p className="text-gray-600 mb-4 text-sm">Use this option when GPS is not accurate (e.g. Agic Road, Ilorin)</p>
-
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={manualLocation}
-                  onChange={(e) => setManualLocation(e.target.value)}
-                  placeholder="e.g. Agic Road, Tanke, Ilorin, Kwara State"
-                  className="flex-1 px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-[var(--orange)] focus:ring-1"
-                />
-                <button
-                  onClick={shareManualLocation}
-                  className="px-8 py-3 bg-[var(--orange)] hover:bg-orange-600 text-white rounded-xl transition font-medium whitespace-nowrap"
-                >
-                  Share Location
-                </button>
-              </div>
-
-              {isUsingManualLocation && (
-                <p className="mt-3 text-green-600 text-sm flex items-center gap-2">
-                  ✅ Manual location has been shared
-                </p>
-              )}
+            <div className="h-[420px]">
+              <ArtisanLiveMap jobRequestId={jobId} isVisible={isSharingLocation} />
             </div>
           </div>
         )}
@@ -1177,7 +1128,7 @@ export default function ArtisanActiveJob() {
         {/* Main Content */}
         <div className="bg-[var(--white)] rounded-2xl shadow-xl border border-[var(--blue)]/10 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[var(--blue)] to-blue-800 text-white p-6 sm:p-8">
+          <div className="bg-gradient-to-r from-[var(--blue)] to-blue-800 text-[var(--white)] p-6 sm:p-8">
             <h1 className="text-2xl sm:text-3xl font-bold">{job.title}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm opacity-90">
               <div className="flex items-center gap-2">
@@ -1204,12 +1155,26 @@ export default function ArtisanActiveJob() {
                   <FaInfoCircle />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-[var(--blue)] mb-4">How This Active Workspace Works</h2>
+                  <h2 className="text-xl font-bold text-[var(--blue)] mb-4">
+                    How This Active Workspace Works
+                  </h2>
                   <ul className="space-y-3 text-[var(--blue)] text-base">
-                    <li className="flex items-start gap-3"><FaTools className="text-[var(--orange)] mt-1.5 flex-shrink-0" /><span>Upload clear photos of your work as you go</span></li>
-                    <li className="flex items-start gap-3"><FaCommentDots className="text-[var(--orange)] mt-1.5 flex-shrink-0" /><span>Add notes describing progress — saved with timestamps</span></li>
-                    <li className="flex items-start gap-3"><FaPlayCircle className="text-[var(--orange)] mt-1.5 flex-shrink-0" /><span>"Save Progress" updates without finishing</span></li>
-                    <li className="flex items-start gap-3"><FaCheckCircle className="text-[var(--orange)] mt-1.5 flex-shrink-0" /><span>"Mark as Complete" submits for customer review</span></li>
+                    <li className="flex items-start gap-3">
+                      <FaTools className="text-[var(--orange)] mt-1.5 flex-shrink-0" />
+                      <span>Upload clear photos of your work as you go</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <FaCommentDots className="text-[var(--orange)] mt-1.5 flex-shrink-0" />
+                      <span>Add notes describing progress — saved with timestamps</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <FaPlayCircle className="text-[var(--orange)] mt-1.5 flex-shrink-0" />
+                      <span>"Save Progress" updates without finishing</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <FaCheckCircle className="text-[var(--orange)] mt-1.5 flex-shrink-0" />
+                      <span>"Mark as Complete" submits for customer review</span>
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -1222,21 +1187,32 @@ export default function ArtisanActiveJob() {
               <div className="flex items-start gap-5">
                 <FaCheckCircle className="text-green-600 text-6xl mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="text-3xl font-bold text-green-800 mb-3">Job Submitted for Review!</h3>
-                  <p className="text-green-700 text-xl mb-4">Thank you! All photos and notes have been sent to the customer.</p>
+                  <h3 className="text-3xl font-bold text-green-800 mb-3">
+                    Job Submitted for Review!
+                  </h3>
+                  <p className="text-green-700 text-xl mb-4">
+                    Thank you! All photos and notes have been sent to the customer.
+                  </p>
 
                   {job.completion_note && (
                     <div className="bg-white p-5 rounded-xl border border-green-200 mb-6">
                       <p className="text-sm text-gray-500 mb-2 font-medium">Final Completion Note:</p>
-                      <p className="text-lg text-[var(--blue)] leading-relaxed whitespace-pre-wrap">{job.completion_note}</p>
+                      <p className="text-lg text-[var(--blue)] leading-relaxed whitespace-pre-wrap">
+                        {job.completion_note}
+                      </p>
                     </div>
                   )}
 
                   {job.completed_at && (
-                    <p className="text-green-600 text-lg mb-8">Completed on: {new Date(job.completed_at).toLocaleString()}</p>
+                    <p className="text-green-600 text-lg mb-8">
+                      Completed on: {new Date(job.completed_at).toLocaleString()}
+                    </p>
                   )}
 
-                  <button onClick={() => router.push('/dashboard/artisan/jobs')} className="px-10 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-bold shadow-lg text-lg">
+                  <button
+                    onClick={() => router.push('/dashboard/artisan/jobs')}
+                    className="px-10 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-bold shadow-lg text-lg"
+                  >
                     Back to Active Jobs
                   </button>
                 </div>
@@ -1248,30 +1224,55 @@ export default function ArtisanActiveJob() {
             {/* Photos Gallery */}
             <div className="bg-gradient-to-b from-gray-50 to-white p-6 rounded-2xl border border-[var(--blue)]/10 shadow-inner">
               <h3 className="text-2xl font-bold text-[var(--blue)] mb-6 flex items-center gap-3">
-                <FaImage className="text-[var(--orange)] text-3xl" /> Your Uploaded Photos
+                <FaImage className="text-[var(--orange)] text-3xl" />
+                Your Uploaded Photos
               </h3>
 
               {allUploadedPhotos.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-[var(--blue)]/30">
                   <FaImage className="mx-auto text-7xl text-gray-300 mb-4" />
                   <p className="text-2xl font-medium text-[var(--blue)]">No photos yet</p>
+                  <p className="text-lg text-[var(--blue)]/80 mt-2">
+                    {!isCompleted 
+                      ? 'Upload progress photos above — they appear here after saving.'
+                      : 'Completed without additional photos.'}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                   {allUploadedPhotos.map(({ url, type }, idx) => (
-                    <div key={url} className="group relative rounded-2xl overflow-hidden shadow-lg border border-gray-200 hover:border-[var(--orange)] hover:shadow-2xl transition-all duration-300 bg-white">
-                      <div className="relative cursor-zoom-in aspect-square" onClick={() => setZoomedPhoto({ url, type })}>
-                        <Image src={url} alt={`${type} photo ${idx + 1}`} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <div 
+                      key={url}
+                      className="group relative rounded-2xl overflow-hidden shadow-lg border border-gray-200 hover:border-[var(--orange)] hover:shadow-2xl transition-all duration-300 bg-white"
+                    >
+                      <div 
+                        className="relative cursor-zoom-in aspect-square"
+                        onClick={() => setZoomedPhoto({ url, type })}
+                      >
+                        <Image
+                          src={url}
+                          alt={`${type} photo ${idx + 1}`}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                           <FaExpand className="text-white text-5xl drop-shadow-2xl" />
                         </div>
                       </div>
+
                       <div className="absolute top-3 left-3">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full shadow-md ${type === 'progress' ? 'bg-[var(--orange)] text-white' : 'bg-green-600 text-white'}`}>
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full shadow-md ${
+                          type === 'progress' ? 'bg-[var(--orange)] text-white' : 'bg-green-600 text-white'
+                        }`}>
                           {type === 'progress' ? 'Progress' : 'Completion'}
                         </span>
                       </div>
-                      <button onClick={() => handleDownload(url, `${type}-photo-${idx + 1}.jpg`)} className="absolute bottom-3 right-3 bg-[var(--orange)] text-white p-3 rounded-full shadow-lg hover:bg-orange-700 transition transform hover:scale-110 active:scale-95">
+
+                      <button
+                        onClick={() => handleDownload(url, `${type}-photo-${idx + 1}.jpg`)}
+                        className="absolute bottom-3 right-3 bg-[var(--orange)] text-white p-3 rounded-full shadow-lg hover:bg-orange-700 transition transform hover:scale-110 active:scale-95"
+                        title="Download"
+                      >
                         <FaDownload size={18} />
                       </button>
                     </div>
@@ -1283,21 +1284,37 @@ export default function ArtisanActiveJob() {
             {/* Progress Notes History */}
             <div className="bg-gradient-to-b from-gray-50 to-white p-6 rounded-2xl border border-[var(--blue)]/10 shadow-inner">
               <h3 className="text-2xl font-bold text-[var(--blue)] mb-6 flex items-center gap-3">
-                <FaCommentDots className="text-[var(--orange)] text-3xl" /> Progress Notes History
+                <FaCommentDots className="text-[var(--orange)] text-3xl" />
+                Progress Notes History
               </h3>
+
               {job?.progress_notes?.length > 0 ? (
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                   {job.progress_notes.map((noteEntry: string, idx: number) => (
-                    <div key={idx} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-[var(--orange)] transition">
-                      <p className="text-sm text-gray-500 mb-2 font-medium">{noteEntry.split(': ')[0]}</p>
-                      <p className="text-[var(--blue)] leading-relaxed">{noteEntry.split(': ').slice(1).join(': ')}</p>
+                    <div 
+                      key={idx}
+                      className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-[var(--orange)] transition"
+                    >
+                      <p className="text-sm text-gray-500 mb-2 font-medium">
+                        {noteEntry.split(': ')[0]}
+                      </p>
+                      <p className="text-[var(--blue)] leading-relaxed">
+                        {noteEntry.split(': ').slice(1).join(': ')}
+                      </p>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-[var(--blue)]/30">
                   <FaCommentDots className="mx-auto text-6xl text-gray-300 mb-4" />
-                  <p className="text-xl font-medium text-[var(--blue)]">No progress notes yet</p>
+                  <p className="text-xl font-medium text-[var(--blue)]">
+                    No progress notes yet
+                  </p>
+                  <p className="text-lg text-[var(--blue)]/80 mt-2">
+                    {!isCompleted 
+                      ? 'Add a note when saving progress — it will appear here with timestamp.'
+                      : 'No notes were added during this job.'}
+                  </p>
                 </div>
               )}
             </div>
@@ -1306,28 +1323,54 @@ export default function ArtisanActiveJob() {
             {!isCompleted && (
               <div className="bg-gradient-to-b from-gray-50 to-white p-6 rounded-2xl border border-[var(--blue)]/10 shadow-inner">
                 <h3 className="text-2xl font-bold text-[var(--blue)] mb-6 flex items-center gap-3">
-                  <FaUpload className="text-[var(--orange)]" /> Add New Progress Update
+                  <FaUpload className="text-[var(--orange)]" />
+                  Add New Progress Update
                 </h3>
 
                 <label className="block mb-8 cursor-pointer">
                   <div className="border-3 border-dashed border-[var(--blue)]/40 rounded-2xl p-12 sm:p-16 text-center hover:border-[var(--orange)] hover:bg-[var(--orange)]/5 transition-all duration-300">
-                    <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handlePhotoSelect} className="hidden" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                    />
                     <div className="mx-auto w-24 h-24 rounded-full bg-[var(--orange)]/10 flex items-center justify-center mb-5">
                       <FaUpload className="text-[var(--orange)] text-5xl" />
                     </div>
-                    <p className="text-2xl font-medium text-[var(--blue)] mb-3">Click or drag photos here</p>
-                    <p className="text-lg text-[var(--blue)]/80">Up to 10 images • JPG, PNG</p>
+                    <p className="text-2xl font-medium text-[var(--blue)] mb-3">
+                      Click or drag photos here
+                    </p>
+                    <p className="text-lg text-[var(--blue)]/80">
+                      Up to 10 images • JPG, PNG
+                    </p>
                   </div>
                 </label>
 
                 {previewUrls.length > 0 && (
                   <div className="mb-10">
-                    <p className="text-lg font-medium text-[var(--blue)] mb-4 flex items-center gap-2"><FaImage /> New photos ({previewUrls.length})</p>
+                    <p className="text-lg font-medium text-[var(--blue)] mb-4 flex items-center gap-2">
+                      <FaImage /> New photos ({previewUrls.length})
+                    </p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                       {previewUrls.map((url, idx) => (
-                        <div key={idx} className="relative group rounded-2xl overflow-hidden shadow-md border border-[var(--blue)]/10 hover:border-[var(--orange)] transition-all duration-200">
-                          <Image src={url} alt={`preview ${idx + 1}`} width={400} height={400} className="object-cover w-full aspect-square" />
-                          <button onClick={() => removePreviewPhoto(idx)} className="absolute top-3 right-3 bg-red-500 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-red-600 transition transform hover:scale-110">
+                        <div 
+                          key={idx}
+                          className="relative group rounded-2xl overflow-hidden shadow-md border border-[var(--blue)]/10 hover:border-[var(--orange)] transition-all duration-200"
+                        >
+                          <Image
+                            src={url}
+                            alt={`preview ${idx + 1}`}
+                            width={400}
+                            height={400}
+                            className="object-cover w-full aspect-square"
+                          />
+                          <button
+                            onClick={() => removePreviewPhoto(idx)}
+                            className="absolute top-3 right-3 bg-red-500 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-red-600 transition transform hover:scale-110"
+                          >
                             <FaTimes size={18} />
                           </button>
                         </div>
@@ -1337,8 +1380,16 @@ export default function ArtisanActiveJob() {
                 )}
 
                 <div className="mb-10">
-                  <label className="block text-lg font-medium text-[var(--blue)] mb-3">Progress Note (highly recommended)</label>
-                  <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Describe what you did today..." rows={4} className="w-full px-5 py-4 border border-[var(--blue)]/30 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] resize-none bg-white text-[var(--blue)]" />
+                  <label className="block text-lg font-medium text-[var(--blue)] mb-3">
+                    Progress Note (highly recommended)
+                  </label>
+                  <textarea
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    placeholder="Describe what you did today... (e.g., Installed all pipes, tested system, waiting for final inspection tomorrow...)"
+                    rows={4}
+                    className="w-full px-5 py-4 border border-[var(--blue)]/30 rounded-xl focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] resize-none bg-white text-[var(--blue)]"
+                  />
                 </div>
               </div>
             )}
@@ -1348,21 +1399,62 @@ export default function ArtisanActiveJob() {
               {isCompleted ? (
                 <div className="text-center py-10">
                   <FaCheckCircle className="text-green-600 text-7xl mx-auto mb-6" />
-                  <h3 className="text-3xl font-bold text-green-700 mb-4">Job Submitted for Review</h3>
-                  <button onClick={() => router.push('/dashboard/artisan/jobs')} className="px-10 py-4 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-700 transition font-bold shadow-lg text-lg">
+                  <h3 className="text-3xl font-bold text-green-700 mb-4">
+                    Job Submitted for Review
+                  </h3>
+                  <p className="text-xl text-green-700 mb-6 max-w-2xl mx-auto">
+                    Thank you! All photos and notes have been sent to the customer.
+                  </p>
+
+                  {job.completion_note && (
+                    <div className="bg-white p-6 rounded-xl border border-green-200 mb-8 max-w-3xl mx-auto">
+                      <p className="text-sm text-gray-500 mb-2 font-medium">Final Completion Note:</p>
+                      <p className="text-lg text-[var(--blue)] leading-relaxed whitespace-pre-wrap">
+                        {job.completion_note}
+                      </p>
+                    </div>
+                  )}
+
+                  {job.completed_at && (
+                    <p className="text-green-600 text-lg mb-8">
+                      Completed on: {new Date(job.completed_at).toLocaleString()}
+                    </p>
+                  )}
+
+                  <button
+                    onClick={() => router.push('/dashboard/artisan/jobs')}
+                    className="px-10 py-4 bg-[var(--orange)] text-white rounded-xl hover:bg-orange-700 transition font-bold shadow-lg text-lg"
+                  >
                     Back to Active Jobs
                   </button>
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-5 justify-center">
-                  <button onClick={() => handleSubmit('ongoing')} disabled={submitting || (photos.length === 0 && !note.trim())} className={`flex-1 max-w-md py-5 px-8 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition shadow-lg ${submitting || (photos.length === 0 && !note.trim()) ? 'bg-[var(--blue)]/50 cursor-not-allowed text-white' : 'bg-[var(--orange)] hover:bg-orange-600 text-white'}`}>
+                  <button
+                    onClick={() => handleSubmit('ongoing')}
+                    disabled={submitting || (photos.length === 0 && !note.trim())}
+                    className={`flex-1 max-w-md py-5 px-8 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition shadow-lg ${
+                      submitting || (photos.length === 0 && !note.trim())
+                        ? 'bg-[var(--blue)]/50 cursor-not-allowed text-white'
+                        : 'bg-[var(--orange)] hover:bg-orange-600 text-white'
+                    }`}
+                  >
                     {submitting && actionType === 'ongoing' && <FaSpinner className="animate-spin" />}
                     Save Progress Update
                   </button>
 
-                  <button onClick={() => handleSubmit('complete')} disabled={submitting} className={`flex-1 max-w-md py-5 px-8 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition shadow-lg ${submitting ? 'bg-[var(--blue)]/50 cursor-not-allowed text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}>
+                  <button
+                    onClick={() => handleSubmit('complete')}
+                    disabled={submitting}
+                    className={`flex-1 max-w-md py-5 px-8 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition shadow-lg ${
+                      submitting
+                        ? 'bg-[var(--blue)]/50 cursor-not-allowed text-white'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
                     {submitting && actionType === 'complete' && <FaSpinner className="animate-spin" />}
-                    <FaCheckCircle className="text-xl" /> Mark Job as Complete
+                    <FaCheckCircle className="text-xl" />
+                    Mark Job as Complete
                   </button>
                 </div>
               )}
@@ -1373,13 +1465,34 @@ export default function ArtisanActiveJob() {
 
       {/* Zoom Modal */}
       {zoomedPhoto && (
-        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4" onClick={() => setZoomedPhoto(null)}>
-          <button className="absolute top-6 right-6 text-white bg-black/60 p-5 rounded-full hover:bg-black/80 transition text-3xl" onClick={() => setZoomedPhoto(null)}>
+        <div 
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
+          onClick={() => setZoomedPhoto(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 text-white bg-black/60 p-5 rounded-full hover:bg-black/80 transition text-3xl"
+            onClick={() => setZoomedPhoto(null)}
+          >
             <FaTimes />
           </button>
+
           <div className="relative max-w-[95vw] max-h-[95vh] w-full h-full flex items-center justify-center">
-            <Image src={zoomedPhoto.url} alt="Zoomed photo" fill className="object-contain" quality={100} priority />
-            <button onClick={(e) => { e.stopPropagation(); handleDownload(zoomedPhoto.url, `${zoomedPhoto.type}-full.jpg`); }} className="absolute bottom-10 right-10 bg-[var(--orange)] text-white px-8 py-5 rounded-full shadow-2xl hover:bg-orange-700 transition flex items-center gap-4 text-xl font-bold">
+            <Image
+              src={zoomedPhoto.url}
+              alt="Zoomed photo"
+              fill
+              className="object-contain"
+              quality={100}
+              priority
+            />
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDownload(zoomedPhoto.url, `${zoomedPhoto.type}-full.jpg`)
+              }}
+              className="absolute bottom-10 right-10 bg-[var(--orange)] text-white px-8 py-5 rounded-full shadow-2xl hover:bg-orange-700 transition flex items-center gap-4 text-xl font-bold"
+            >
               <FaDownload /> Download Full Image
             </button>
           </div>

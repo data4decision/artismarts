@@ -25,7 +25,7 @@ const Footer = () => {
                 <Link href="https://instagram.com/data4decision_intl" className="text-[var(--white)] hover:text-[var(--orange)] flex gap-2 items-center">
                   <FaInstagram /> Instagram
                 </Link>
-                <Link href="https://wa.me/+2348069517707" className="text-[var(--white)] hover:text-[var(--orange)] flex gap-2 items-center">
+                <Link href="https://wa.me/+2349168974621" className="text-[var(--white)] hover:text-[var(--orange)] flex gap-2 items-center">
                   <FaWhatsapp /> Whatsapp
                 </Link>
                 <p className="text-[var(--white)] hover:text-[var(--orange)] flex gap-2 items-center">
