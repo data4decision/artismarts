@@ -1,4 +1,3 @@
-// app/dashboard/artisan/active-jobs/page.tsx
 'use client'
 
 export const dynamic = 'force-dynamic'
@@ -8,13 +7,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { 
-  FaSpinner, 
   FaExclamationTriangle, 
-  FaCheckCircle, 
   FaPlayCircle,
   FaMapMarkerAlt, 
-  FaDollarSign, 
-  FaClock, 
   FaUserTie, 
   FaRedo,
   FaTools,
@@ -22,6 +17,7 @@ import {
 } from 'react-icons/fa'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useLiveLocation } from '@/hooks/useLiveLocation'
 
 interface ActiveJob {
   id: string
@@ -46,6 +42,7 @@ export default function ActiveJobsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Fetch jobs
   useEffect(() => {
     fetchActiveJobs()
   }, [])
@@ -90,12 +87,12 @@ export default function ActiveJobsPage() {
         budget_max: item.budget_max != null ? Number(item.budget_max) : null,
         location: String(item.location || ''),
         area: String(item.area || ''),
-        status: String(item.status || 'in_progress'),
+        status: String(item.status || ''),
         created_at: String(item.created_at || ''),
         customer: item.customer ? {
-          first_name: item.customer.first_name != null ? String(item.customer.first_name) : null,
-          last_name: item.customer.last_name != null ? String(item.customer.last_name) : null,
-          phone: item.customer.phone != null ? String(item.customer.phone) : null,
+          first_name: String(item.customer.first_name || ''),
+          last_name: String(item.customer.last_name || ''),
+          phone: item.customer.phone ? String(item.customer.phone) : null,
         } : null,
       }))
 
@@ -108,6 +105,16 @@ export default function ActiveJobsPage() {
       setLoading(false)
     }
   }
+
+  // ==================== LIVE LOCATION HOOKS ====================
+  // Call hook for every in-progress job at the top level
+  // jobs.forEach((job) => {
+  //   const isInProgress = job.status === 'in_progress'
+  //   useLiveLocation({
+  //     jobRequestId: job.id,
+  //     isActive: isInProgress
+  //   })
+  // })
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -140,13 +147,7 @@ export default function ActiveJobsPage() {
               <div className="animate-spin rounded-full h-20 w-20 border-4 border-transparent border-t-[var(--orange)] border-opacity-70 shadow-lg"></div>
               <div className="absolute inset-0 flex items-center justify-center animate-pulse">
                 <div className="bg-white rounded-full p-3 shadow-md">
-                  <Image
-                    src="/log.png"
-                    width={56}
-                    height={56}
-                    alt="Loading..."
-                    className="object-contain"
-                  />
+                  <Image src="/log.png" width={56} height={56} alt="Loading..." className="object-contain" />
                 </div>
               </div>
             </div>
@@ -158,37 +159,27 @@ export default function ActiveJobsPage() {
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
             <FaExclamationTriangle className="text-red-500 text-5xl mx-auto mb-4" />
             <p className="text-red-700 font-medium">{error}</p>
-            <button
-              onClick={fetchActiveJobs}
-              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            >
+            <button onClick={fetchActiveJobs} className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
               Try Again
             </button>
           </div>
         )}
 
-        {/* Active Jobs List */}
+        {/* Jobs List */}
         {!loading && !error && (
           <>
             {jobs.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-500">
                 <FaTools className="text-6xl text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  No active jobs right now
-                </h3>
-                <p className="mb-6">
-                  Accept an assigned job to start working - it will appear here.
-                </p>
-                <Link
-                  href="/dashboard/artisan/assigned-jobs"
-                  className="inline-flex items-center px-6 py-3 bg-[var(--blue)] text-white rounded-xl hover:bg-blue-700 transition"
-                >
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">No active jobs right now</h3>
+                <p className="mb-6">Accept an assigned job to start working.</p>
+                <Link href="/dashboard/artisan/assigned-jobs" className="inline-flex items-center px-6 py-3 bg-[var(--blue)] text-white rounded-xl hover:bg-blue-700 transition">
                   View Assigned Jobs
                 </Link>
               </div>
             ) : (
               <div className="space-y-6">
-                {jobs.map(job => (
+                {jobs.map((job) => (
                   <div
                     key={job.id}
                     className="bg-gradient-to-r from-blue-50 to-white rounded-2xl shadow-lg border border-blue-200 p-6 hover:shadow-xl transition-all"
@@ -204,33 +195,22 @@ export default function ActiveJobsPage() {
                           </span>
                         </div>
 
-                        <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">
-                          {job.title}
-                        </h3>
-
-                        <p className="text-gray-700 mb-4 line-clamp-3">
-                          {job.description}
-                        </p>
+                        <h3 className="text-xl font-semibold text-[var(--blue)] mb-2">{job.title}</h3>
+                        <p className="text-gray-700 mb-4 line-clamp-3">{job.description}</p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
                           <div className="flex items-center gap-2">
-                            {/* <FaDollarSign className="text-[var(--orange)]" />
-                            Budget: {job.budget_min ? `₦${job.budget_min.toLocaleString()}` : '—'}
-                            {job.budget_max ? ` – ₦${job.budget_max.toLocaleString()}` : ''} */}
                             <FaMapMarkerAlt className="text-[var(--orange)]" />
-                           Area: {job.area}
+                            Area: {job.area}
                           </div>
-
                           <div className="flex items-center gap-2">
                             <FaMapMarkerAlt className="text-[var(--orange)]" />
-                           LGA: {job.location}
+                            LGA: {job.location}
                           </div>
-
                           {job.customer && (
                             <div className="flex items-center gap-2">
                               <FaUserTie className="text-[var(--orange)]" />
                               {job.customer.first_name} {job.customer.last_name}
-                              {job.customer.phone && ` (${job.customer.phone})`}
                             </div>
                           )}
                         </div>
@@ -239,7 +219,7 @@ export default function ActiveJobsPage() {
                       <div className="flex flex-col gap-4 min-w-[240px]">
                         <Link
                           href={`/dashboard/artisan/jobs/${job.id}/active`}
-                          className="px-6 py-3.5 bg-[var(--blue)] hover:bg-blue-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-md text-base"
+                          className="px-6 py-3.5 bg-[var(--blue)] hover:bg-blue-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-md"
                         >
                           <FaPlayCircle className="text-lg" />
                           Open Active Workspace
@@ -247,10 +227,10 @@ export default function ActiveJobsPage() {
 
                         <Link
                           href="/dashboard/artisan/messages"
-                          className="px-6 py-3.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-md text-base"
+                          className="px-6 py-3.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center gap-2 font-medium shadow-md"
                         >
                           <FaCommentDots size={16} />
-                           Admin
+                          Chat with Admin
                         </Link>
                       </div>
                     </div>
