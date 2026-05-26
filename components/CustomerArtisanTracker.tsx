@@ -9,6 +9,7 @@ const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContai
 const TileLayer = dynamic(() => import('react-leaflet').then(m => m.TileLayer), { ssr: false });
 const Marker = dynamic(() => import('react-leaflet').then(m => m.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(m => m.Popup), { ssr: false });
+const Polyline = dynamic(() => import('react-leaflet').then(m => m.Polyline), { ssr: false });
 
 interface Props {
   jobRequestId: string;
@@ -16,59 +17,61 @@ interface Props {
 
 export default function CustomerArtisanTracker({ jobRequestId }: Props) {
   const mapRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const artisanMarkerRef = useRef<any>(null);
+  const customerMarkerRef = useRef<any>(null);
   const circleRef = useRef<any>(null);
-  const channelRef = useRef<any>(null);
+  const polylineRef = useRef<any>(null);
 
-  const [position, setPosition] = useState<[number, number]>([8.9667, 4.5667]);
-  const [address, setAddress] = useState<string>("Connecting to artisan...");
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [artisanPosition, setArtisanPosition] = useState<[number, number]>([8.9667, 4.5667]);
+  const [customerPosition, setCustomerPosition] = useState<[number, number] | null>(null);
+  const [address, setAddress] = useState<string>("Waiting for artisan...");
   const [distance, setDistance] = useState<number | null>(null);
-  const [customerPos, setCustomerPos] = useState<[number, number] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fix Leaflet icons
-  useEffect(() => {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    });
-  }, []);
+  // Custom Icons
+  const artisanIcon = L.divIcon({
+    className: 'custom-artisan-icon',
+    html: `<div style="background:#22c55e; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.4); font-size:22px;">👷</div>`,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+  });
 
-  // Get Customer's Current Location
-  const getCustomerLocation = useCallback(async () => {
+  const customerIcon = L.divIcon({
+    className: 'custom-customer-icon',
+    html: `<div style="background:#3b82f6; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.3);">👤</div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+
+  // Get Customer Location
+  useEffect(() => {
     if (!navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const custPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setCustomerPos(custPos);
+        const posArray: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setCustomerPosition(posArray);
       },
-      (err) => console.warn("Could not get customer location:", err),
-      { enableHighAccuracy: true }
+      (err) => console.warn("Customer location unavailable", err)
     );
   }, []);
 
   // Calculate Distance
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth radius in km
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c; // Distance in km
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   };
 
   useEffect(() => {
     if (!jobRequestId) return;
 
-    getCustomerLocation();
-
-    const fetchLatestLocation = async () => {
+    const fetchArtisanLocation = async () => {
       setIsLoading(true);
       const { data } = await supabase
         .from('artisan_locations')
@@ -80,32 +83,25 @@ export default function CustomerArtisanTracker({ jobRequestId }: Props) {
 
       if (data?.latitude && data?.longitude) {
         const newPos: [number, number] = [data.latitude, data.longitude];
-        setPosition(newPos);
-        setLastUpdated(new Date(data.timestamp));
+        setArtisanPosition(newPos);
 
-        markerRef.current?.setLatLng(newPos);
-        mapRef.current?.flyTo(newPos, 18, { duration: 1.8 });
+        artisanMarkerRef.current?.setLatLng(newPos);
+        mapRef.current?.flyTo(newPos, 17, { duration: 1.6 });
 
-        // Pulsing circle
-        if (circleRef.current) {
-          circleRef.current.setLatLng(newPos);
-        } else if (mapRef.current) {
+        if (circleRef.current) circleRef.current.setLatLng(newPos);
+        else if (mapRef.current) {
           circleRef.current = L.circle(newPos, {
             radius: 700,
             color: '#22c55e',
             fillColor: '#22c55e',
             fillOpacity: 0.25,
-            weight: 4,
+            weight: 3,
           }).addTo(mapRef.current);
         }
 
-        // Calculate distance if customer location is available
-        if (customerPos) {
-          const dist = calculateDistance(
-            customerPos[0], customerPos[1],
-            newPos[0], newPos[1]
-          );
-          setDistance(Math.round(dist * 10) / 10); // 1 decimal place
+        if (customerPosition) {
+          const dist = calculateDistance(customerPosition[0], customerPosition[1], newPos[0], newPos[1]);
+          setDistance(Math.round(dist * 10) / 10);
         }
       }
 
@@ -113,9 +109,9 @@ export default function CustomerArtisanTracker({ jobRequestId }: Props) {
       setIsLoading(false);
     };
 
-    fetchLatestLocation();
+    fetchArtisanLocation();
 
-    // Real-time subscription
+    // Real-time WebSocket tracking
     const channel = supabase
       .channel(`customer-track-${jobRequestId}`)
       .on(
@@ -130,16 +126,15 @@ export default function CustomerArtisanTracker({ jobRequestId }: Props) {
           const loc = payload.new as any;
           if (loc?.latitude && loc?.longitude) {
             const newPos: [number, number] = [loc.latitude, loc.longitude];
-            setPosition(newPos);
-            setLastUpdated(new Date(loc.timestamp));
+            setArtisanPosition(newPos);
 
-            markerRef.current?.setLatLng(newPos);
-            mapRef.current?.flyTo(newPos, 18, { duration: 1.8 });
+            artisanMarkerRef.current?.setLatLng(newPos);
+            mapRef.current?.flyTo(newPos, 17, { duration: 1.6 });
 
             if (circleRef.current) circleRef.current.setLatLng(newPos);
 
-            if (customerPos) {
-              const dist = calculateDistance(customerPos[0], customerPos[1], newPos[0], newPos[1]);
+            if (customerPosition) {
+              const dist = calculateDistance(customerPosition[0], customerPosition[1], newPos[0], newPos[1]);
               setDistance(Math.round(dist * 10) / 10);
             }
           }
@@ -148,18 +143,26 @@ export default function CustomerArtisanTracker({ jobRequestId }: Props) {
       )
       .subscribe();
 
-    channelRef.current = channel;
-
-    // Auto-refresh every 8 seconds (WhatsApp style)
-    const interval = setInterval(fetchLatestLocation, 8000);
-
     return () => {
-      clearInterval(interval);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      supabase.removeChannel(channel);
     };
-  }, [jobRequestId, customerPos]);
+  }, [jobRequestId, customerPosition]);
+
+  // Draw connecting line
+  useEffect(() => {
+    if (!mapRef.current || !customerPosition) return;
+
+    if (polylineRef.current) {
+      polylineRef.current.setLatLngs([customerPosition, artisanPosition]);
+    } else {
+      polylineRef.current = L.polyline([customerPosition, artisanPosition], {
+        color: '#3b82f6',
+        weight: 4,
+        opacity: 0.7,
+        dashArray: '8, 8',
+      }).addTo(mapRef.current);
+    }
+  }, [artisanPosition, customerPosition]);
 
   if (isLoading) {
     return <div className="h-[450px] flex items-center justify-center bg-gray-100 rounded-2xl">Connecting to live location...</div>;
@@ -167,8 +170,8 @@ export default function CustomerArtisanTracker({ jobRequestId }: Props) {
 
   return (
     <MapContainer
-      center={position}
-      zoom={18}
+      center={artisanPosition}
+      zoom={16}
       style={{ height: '100%', width: '100%' }}
       ref={mapRef}
     >
@@ -177,23 +180,35 @@ export default function CustomerArtisanTracker({ jobRequestId }: Props) {
         attribution='&copy; OpenStreetMap contributors'
       />
 
-      <Marker position={position} ref={markerRef}>
+      {/* Artisan Marker */}
+      <Marker position={artisanPosition} ref={artisanMarkerRef} icon={artisanIcon}>
         <Popup>
-          <div className="text-center min-w-[240px]">
-            <div className="text-green-600 font-bold text-lg mb-1">🟢 LIVE</div>
-            <strong>Artisan Current Location</strong><br />
-            <span className="text-sm">{address}</span>
-            {distance && (
-              <p className="text-sm text-gray-600 mt-1">
-                📍 {distance} km away from you
-              </p>
-            )}
-            <p className="text-xs text-gray-500 mt-2">
-              Updated {lastUpdated.toLocaleTimeString()}
-            </p>
+          <div className="text-center">
+            <div className="text-green-600 font-bold">🟢 ARTISAN LIVE</div>
+            <strong>Artisan Location</strong><br />
+            {address}
+            {distance && <p className="text-sm mt-1">📍 {distance} km from you</p>}
           </div>
         </Popup>
       </Marker>
+
+      {/* Customer Marker */}
+      {customerPosition && (
+        <Marker position={customerPosition} ref={customerMarkerRef} icon={customerIcon}>
+          <Popup>You are here</Popup>
+        </Marker>
+      )}
+
+      {/* Connecting Line */}
+      {customerPosition && (
+        <Polyline 
+          positions={[customerPosition, artisanPosition]} 
+          color="#3b82f6" 
+          weight={4} 
+          opacity={0.7} 
+          dashArray="8, 8"
+        />
+      )}
     </MapContainer>
   );
 }
