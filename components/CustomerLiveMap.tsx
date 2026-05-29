@@ -14,10 +14,9 @@ const Circle = dynamic(() => import('react-leaflet').then(m => m.Circle), { ssr:
 interface Props {
   jobRequestId: string;
   isVisible: boolean;
-  isArtisan?: boolean;
 }
 
-export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = false }: Props) {
+export default function CustomerLiveMap({ jobRequestId, isVisible }: Props) {
   const mapRef = useRef<any>(null);
   const artisanMarkerRef = useRef<any>(null);
   const customerMarkerRef = useRef<any>(null);
@@ -26,18 +25,19 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
   const [artisanPos, setArtisanPos] = useState<[number, number]>([9.0820, 8.6753]);
   const [customerPos, setCustomerPos] = useState<[number, number] | null>(null);
   
-  const [artisanAddress, setArtisanAddress] = useState<string>("");
-  const [customerAddress, setCustomerAddress] = useState<string>("");
+  const [artisanAddress, setArtisanAddress] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
   
-  const [hasArtisanLocation, setHasArtisanLocation] = useState<boolean>(false);
-  const [hasCustomerLocation, setHasCustomerLocation] = useState<boolean>(false);
-  const [artisanAccuracy, setArtisanAccuracy] = useState<number>(50);
+  const [hasArtisanLocation, setHasArtisanLocation] = useState(false);
+  const [hasCustomerLocation, setHasCustomerLocation] = useState(false);
+  const [customerAccuracy, setCustomerAccuracy] = useState(50);
 
+  const [isSharing, setIsSharing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSharing, setIsSharing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState("");
+  const [distance, setDistance] = useState<number | null>(null);
 
-  // Custom Icons
+  // Icons
   const blueIcon = L.divIcon({
     className: 'custom-marker',
     html: `<div style="background-color: var(--blue); width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;"><div style="background: white; width: 10px; height: 10px; border-radius: 50%;"></div></div>`,
@@ -52,10 +52,22 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
     iconAnchor: [14, 14],
   });
 
-  // ==================== ARTISAN SHARE LOCATION ====================
+  const calculateDistance = (pos1: [number, number], pos2: [number, number]): number => {
+    const toRad = (x: number) => (x * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(pos2[0] - pos1[0]);
+    const dLon = toRad(pos2[1] - pos1[1]);
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(toRad(pos1[0])) * Math.cos(toRad(pos2[0])) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c * 1000);
+  };
+
+  // Share Customer Location
   const startSharingLocation = async () => {
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser.");
+      setError("Geolocation is not supported.");
       return;
     }
 
@@ -66,7 +78,7 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
       const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000,
           maximumAge: 0,
         });
       });
@@ -74,24 +86,25 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
       const { latitude, longitude, accuracy } = pos.coords;
       const newPos: [number, number] = [latitude, longitude];
 
-      setArtisanPos(newPos);
-      setArtisanAccuracy(accuracy);
-      setHasArtisanLocation(true);
+      setCustomerPos(newPos);
+      setCustomerAccuracy(accuracy);
+      setHasCustomerLocation(true);
 
-      let address = "Artisan Location";
+      let address = "Customer Location";
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
         const data = await res.json();
         address = data.display_name || address;
       } catch {}
-      setArtisanAddress(address);
+      setCustomerAddress(address);
 
+      // Save as customer using user_type field
       await supabase.from('artisan_locations').upsert({
         job_request_id: jobRequestId,
         latitude,
         longitude,
         manual_address: address,
-        user_type: 'artisan',
+        user_type: 'customer',           // ← Important
         timestamp: new Date().toISOString(),
       });
 
@@ -102,8 +115,8 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
           const { latitude: lat, longitude: lng, accuracy: acc } = currentPos.coords;
           const updatedPos: [number, number] = [lat, lng];
 
-          setArtisanPos(updatedPos);
-          setArtisanAccuracy(acc);
+          setCustomerPos(updatedPos);
+          setCustomerAccuracy(acc);
 
           if (mapRef.current) mapRef.current.flyTo(updatedPos, 18);
 
@@ -112,7 +125,7 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
             latitude: lat,
             longitude: lng,
             manual_address: address,
-            user_type: 'artisan',
+            user_type: 'customer',
             timestamp: new Date().toISOString(),
           });
         },
@@ -120,9 +133,7 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
         { enableHighAccuracy: true }
       );
     } catch (err: any) {
-      let msg = "Failed to get location.";
-      if (err.code === 1) msg = "Location permission denied. Please allow it.";
-      setError(msg);
+      setError(err.code === 1 ? "Location permission denied" : "Failed to get location");
       setIsSharing(false);
     }
   };
@@ -131,15 +142,11 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
     if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
     watchIdRef.current = null;
     setIsSharing(false);
-    setError("");
   };
 
-  // ==================== REAL-TIME LISTENING ====================
+  // Real-time updates
   useEffect(() => {
-    if (!isVisible || !jobRequestId) {
-      setIsLoading(false);
-      return;
-    }
+    if (!isVisible || !jobRequestId) return;
 
     const fetchLocations = async () => {
       setIsLoading(true);
@@ -150,7 +157,8 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
         .eq('job_request_id', jobRequestId)
         .order('timestamp', { ascending: false });
 
-      const artisanData = data?.find(item => item.user_type === 'artisan');
+      // Separate artisan and customer
+      const artisanData = data?.find(item => item.user_type !== 'customer');
       const customerData = data?.find(item => item.user_type === 'customer');
 
       if (artisanData) {
@@ -163,9 +171,6 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
         setCustomerPos([customerData.latitude, customerData.longitude]);
         setCustomerAddress(customerData.manual_address || "");
         setHasCustomerLocation(true);
-      } else {
-        setCustomerPos(null);
-        setHasCustomerLocation(false);
       }
 
       setIsLoading(false);
@@ -173,7 +178,7 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
 
     fetchLocations();
 
-    const channel = supabase.channel(`live-job-${jobRequestId}`)
+    const channel = supabase.channel(`customer-map-${jobRequestId}`)
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -202,111 +207,60 @@ export default function ArtisanLiveMap({ jobRequestId, isVisible, isArtisan = fa
   }, [jobRequestId, isVisible]);
 
   if (!isVisible) return null;
-  if (isLoading) {
-    return <div className="h-[450px] flex items-center justify-center bg-gray-100 rounded-2xl">Loading live location...</div>;
-  }
-
-  // ==================== ARTISAN MODE ====================
-  if (isArtisan) {
-    return (
-      <div className="space-y-4">
-        <div className="flex gap-3">
-          <button
-            onClick={startSharingLocation}
-            disabled={isSharing}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-xl font-medium flex-1"
-          >
-            {isSharing ? "✅ Sharing Live Location" : "📍 Start Sharing My Location"}
-          </button>
-
-          {isSharing && (
-            <button onClick={stopSharing} className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl">
-              Stop
-            </button>
-          )}
-        </div>
-
-        {error && <p className="text-red-600 text-sm bg-red-50 p-3 rounded-xl">{error}</p>}
-
-        <MapContainer
-          center={artisanPos}
-          zoom={17}
-          style={{ height: '450px', width: '100%' }}
-          ref={mapRef}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap contributors'
-          />
-
-          {/* Artisan Marker + Accuracy Circle */}
-          {hasArtisanLocation && (
-            <>
-              <Marker position={artisanPos} ref={artisanMarkerRef} icon={blueIcon}>
-                <Popup>
-                  <div className="text-center">
-                    <div className="text-blue-600 font-bold text-lg">🟢 YOU (ARTISAN)</div>
-                    {artisanAddress}
-                  </div>
-                </Popup>
-              </Marker>
-              <Circle
-                center={artisanPos}
-                radius={artisanAccuracy}
-                color="#3b82f6"
-                fillColor="#3b82f6"
-                fillOpacity={0.15}
-              />
-            </>
-          )}
-
-          {/* Customer Marker */}
-          {hasCustomerLocation && customerPos && (
-            <Marker position={customerPos} ref={customerMarkerRef} icon={orangeIcon}>
-              <Popup>
-                <div className="text-center">
-                  <div className="text-orange-600 font-bold text-lg">📍 CUSTOMER</div>
-                  {customerAddress}
-                </div>
-              </Popup>
-            </Marker>
-          )}
-        </MapContainer>
-      </div>
-    );
-  }
-
-  // ==================== CUSTOMER VIEW MODE ====================
-  if (!hasArtisanLocation) {
-    return (
-      <div className="h-[450px] flex flex-col items-center justify-center bg-gray-100 rounded-2xl border border-dashed border-gray-300">
-        <div className="text-6xl mb-4 opacity-75">📍</div>
-        <h3 className="text-xl font-semibold text-gray-700">Artisan has not started sharing location</h3>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="h-[450px] flex items-center justify-center bg-gray-100 rounded-2xl">Loading map...</div>;
 
   return (
-    <MapContainer
-      center={artisanPos}
-      zoom={18}
-      style={{ height: '450px', width: '100%' }}
-      ref={mapRef}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; OpenStreetMap contributors'
-      />
-      
-      <Marker position={artisanPos} ref={artisanMarkerRef} icon={blueIcon}>
-        <Popup>
-          <div className="text-center">
-            <div className="text-green-600 font-bold text-lg">🟢 LIVE</div>
-            <strong>Artisan Current Location</strong><br />
-            {artisanAddress}
-          </div>
-        </Popup>
-      </Marker>
-    </MapContainer>
+    <div className="space-y-4">
+      <div className="flex gap-3">
+        <button
+          onClick={startSharingLocation}
+          disabled={isSharing}
+          className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-xl font-medium"
+        >
+          {isSharing ? "✅ Sharing My Location" : "📍 Share My Location to Artisan"}
+        </button>
+
+        {isSharing && (
+          <button onClick={stopSharing} className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl">
+            Stop
+          </button>
+        )}
+      </div>
+
+      {error && <div className="text-red-600 bg-red-50 p-4 rounded-xl">{error}</div>}
+
+      <MapContainer
+        center={customerPos || artisanPos}
+        zoom={17}
+        style={{ height: '450px', width: '100%' }}
+        ref={mapRef}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; OpenStreetMap contributors'
+        />
+
+        {hasArtisanLocation && (
+          <Marker position={artisanPos} ref={artisanMarkerRef} icon={blueIcon}>
+            <Popup>🟢 ARTISAN</Popup>
+          </Marker>
+        )}
+
+        {hasCustomerLocation && customerPos && (
+          <>
+            <Marker position={customerPos} ref={customerMarkerRef} icon={orangeIcon}>
+              <Popup>📍 YOU (CUSTOMER)</Popup>
+            </Marker>
+            <Circle
+              center={customerPos}
+              radius={customerAccuracy}
+              color="#f97316"
+              fillColor="#f97316"
+              fillOpacity={0.2}
+            />
+          </>
+        )}
+      </MapContainer>
+    </div>
   );
 }

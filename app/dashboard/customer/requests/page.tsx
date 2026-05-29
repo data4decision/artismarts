@@ -658,6 +658,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import ArtisanLiveMap from '@/components/ArtisanLiveMap'
+import CustomerLiveMap from '@/components/CustomerLiveMap'
 
 // Dynamic import to prevent SSR issues
 const CustomerArtisanTracker = dynamic(
@@ -987,7 +988,10 @@ export default function MyRequestsPage() {
                   selectedRequest.assigned_artisan && (
                   <div className="h-[420px] bg-gray-100 rounded-2xl overflow-hidden border">
                     {/* <CustomerArtisanTracker jobRequestId={selectedRequest.id} /> */}
-                    <ArtisanLiveMap jobRequestId={selectedRequest.id} isVisible={true} userType="customer" />
+                    {/* <ArtisanLiveMap jobRequestId={selectedRequest.id} isVisible={true} userType="customer" /> */}
+                    <CustomerLiveMap jobRequestId={selectedRequest.id} isVisible={true} />
+
+
                   </div>
                 )}
 
