@@ -1120,7 +1120,7 @@ export default function ArtisanActiveJob() {
               </button>
             </div>
             <div className="h-[420px]">
-              <ArtisanLiveMap jobRequestId={jobId} isVisible={isSharingLocation} />
+              <ArtisanLiveMap jobRequestId={jobId} isVisible={true} userType="artisan" />
             </div>
           </div>
         )}
