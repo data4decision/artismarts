@@ -631,11 +631,11 @@
 // }
 
 
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import toast from 'react-hot-toast'
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 import { 
   FaSpinner, 
   FaExclamationTriangle, 
@@ -653,60 +653,66 @@ import {
   FaCommentDots,
   FaHistory,
   FaStar
-} from 'react-icons/fa'
-import Link from 'next/link'
-import Image from 'next/image'
-import dynamic from 'next/dynamic'
-import CustomerLiveMap from '@/components/CustomerLiveMap'
+} from 'react-icons/fa';
+import Link from 'next/link';
+import Image from 'next/image';
+import dynamic from 'next/dynamic';
 
-// Dynamic import to prevent SSR issues
-const CustomerArtisanTracker = dynamic(
-  () => import('@/components/CustomerArtisanTracker'),
-  { ssr: false }
-)
+// Dynamic import to prevent "window is not defined" error
+const CustomerLiveMap = dynamic(
+  () => import('@/components/CustomerLiveMap'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[420px] flex items-center justify-center bg-gray-100 rounded-2xl border">
+        Loading live map...
+      </div>
+    )
+  }
+);
 
 interface CustomerRequest {
-  id: string
-  title: string
-  description: string
-  budget_min: number | null
-  budget_max: number | null
-  location: string
-  area: string
-  preferred_date: string | null
-  preferred_time: string | null
-  status: string
-  created_at: string
+  id: string;
+  title: string;
+  description: string;
+  budget_min: number | null;
+  budget_max: number | null;
+  location: string;
+  area: string;
+  preferred_date: string | null;
+  preferred_time: string | null;
+  status: string;
+  created_at: string;
   assigned_artisan: {
-    first_name: string | null
-    last_name: string | null
-    primary_skill: string | null
-  } | null
-  status_logs?: { status: string; changed_at: string; notes?: string | null }[]
+    first_name: string | null;
+    last_name: string | null;
+    primary_skill: string | null;
+  } | null;
+  status_logs?: { status: string; changed_at: string; notes?: string | null }[];
 }
 
 export default function MyRequestsPage() {
-  const [requests, setRequests] = useState<CustomerRequest[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedRequest, setSelectedRequest] = useState<CustomerRequest | null>(null)
-  const [cancelling, setCancelling] = useState<string | null>(null)
-  const [cancelModalOpen, setCancelModalOpen] = useState<string | null>(null)
-  const [cancelReason, setCancelReason] = useState('')
+  const [requests, setRequests] = useState<CustomerRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<CustomerRequest | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   useEffect(() => {
-    fetchMyRequests()
-  }, [])
+    fetchMyRequests();
+  }, []);
 
   const fetchMyRequests = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Please sign in')
-        return
+        toast.error('Please sign in');
+        return;
       }
 
       const { data, error } = await supabase
@@ -727,9 +733,9 @@ export default function MyRequestsPage() {
           status_logs:request_status_logs (status, changed_at, notes)
         `)
         .eq('customer_id', user.id)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false });
 
-      if (error) throw error
+      if (error) throw error;
 
       let typedRequests: CustomerRequest[] = (data || []).map((item: any) => ({
         id: item.id || '',
@@ -751,33 +757,32 @@ export default function MyRequestsPage() {
             }
           : null,
         status_logs: item.status_logs || [],
-      }))
+      }));
 
-      // Sort: Assigned → In Progress → Completed Pending Review → Completed → Others
-      const statusOrder = ['assigned', 'in_progress', 'completed_pending_review', 'completed', 'cancelled', 'pending']
+      const statusOrder = ['assigned', 'in_progress', 'completed_pending_review', 'completed', 'cancelled', 'pending'];
       typedRequests.sort((a, b) => {
-        const orderA = statusOrder.indexOf(a.status)
-        const orderB = statusOrder.indexOf(b.status)
-        return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB)
-      })
+        const orderA = statusOrder.indexOf(a.status);
+        const orderB = statusOrder.indexOf(b.status);
+        return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB);
+      });
 
-      setRequests(typedRequests)
+      setRequests(typedRequests);
     } catch (err: any) {
-      console.error('Fetch error:', err)
-      setError(err.message || 'Failed to load your requests')
-      toast.error('Failed to load requests')
+      console.error('Fetch error:', err);
+      setError(err.message || 'Failed to load your requests');
+      toast.error('Failed to load requests');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCancel = async (requestId: string) => {
     if (!cancelReason.trim()) {
-      toast.error('Please provide a reason for cancelling')
-      return
+      toast.error('Please provide a reason for cancelling');
+      return;
     }
 
-    setCancelling(requestId)
+    setCancelling(requestId);
 
     try {
       const { error } = await supabase
@@ -786,9 +791,9 @@ export default function MyRequestsPage() {
           status: 'cancelled',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', requestId)
+        .eq('id', requestId);
 
-      if (error) throw error
+      if (error) throw error;
 
       await supabase
         .from('request_status_logs')
@@ -797,51 +802,39 @@ export default function MyRequestsPage() {
           status: 'cancelled',
           changed_by: (await supabase.auth.getUser()).data.user?.id,
           notes: `Cancelled by customer: ${cancelReason.trim()}`,
-        })
+        });
 
-      toast.success('Request cancelled successfully')
-      setCancelModalOpen(null)
-      setCancelReason('')
-      fetchMyRequests()
+      toast.success('Request cancelled successfully');
+      setCancelModalOpen(null);
+      setCancelReason('');
+      fetchMyRequests();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to cancel request')
+      toast.error(err.message || 'Failed to cancel request');
     } finally {
-      setCancelling(null)
+      setCancelling(null);
     }
-  }
-
-  const getEstimatedTimeRemaining = (createdAt: string) => {
-    const created = new Date(createdAt)
-    const now = new Date()
-    const diffMs = now.getTime() - created.getTime()
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-
-    if (diffHours < 1) return 'Just submitted'
-    if (diffHours < 24) return `Submitted ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
-    const days = Math.floor(diffHours / 24)
-    return `Submitted ${days} day${days === 1 ? '' : 's'} ago`
-  }
+  };
 
   const getStatusBadge = (status?: string) => {
-    const s = status || 'unknown'
-    const base = 'inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm'
+    const s = status || 'unknown';
+    const base = 'inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm';
     switch (s) {
       case 'pending':
-        return <span className={`${base} bg-yellow-100 text-yellow-800 border border-yellow-200`}><FaHourglassHalf className="mr-1.5" /> Pending</span>
+        return <span className={`${base} bg-yellow-100 text-yellow-800 border border-yellow-200`}><FaHourglassHalf className="mr-1.5" /> Pending</span>;
       case 'assigned':
-        return <span className={`${base} bg-blue-100 text-blue-800 border border-blue-200`}><FaUserCheck className="mr-1.5" /> Assigned</span>
+        return <span className={`${base} bg-blue-100 text-blue-800 border border-blue-200`}><FaUserCheck className="mr-1.5" /> Assigned</span>;
       case 'in_progress':
-        return <span className={`${base} bg-purple-100 text-purple-800 border border-purple-200`}>In Progress</span>
+        return <span className={`${base} bg-purple-100 text-purple-800 border border-purple-200`}>In Progress</span>;
       case 'completed_pending_review':
-        return <span className={`${base} bg-green-100 text-green-800 border border-green-200 animate-pulse`}><FaStar className="mr-1.5" /> Ready for Review</span>
+        return <span className={`${base} bg-green-100 text-green-800 border border-green-200 animate-pulse`}><FaStar className="mr-1.5" /> Ready for Review</span>;
       case 'completed':
-        return <span className={`${base} bg-green-100 text-green-800 border border-green-200`}><FaCheckCircle className="mr-1.5" /> Completed</span>
+        return <span className={`${base} bg-green-100 text-green-800 border border-green-200`}><FaCheckCircle className="mr-1.5" /> Completed</span>;
       case 'cancelled':
-        return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}><FaTimesCircle className="mr-1.5" /> Cancelled</span>
+        return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}><FaTimesCircle className="mr-1.5" /> Cancelled</span>;
       default:
-        return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}>{s}</span>
+        return <span className={`${base} bg-gray-100 text-gray-700 border border-gray-200`}>{s}</span>;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 px-4 sm:px-6 lg:px-8">
@@ -867,7 +860,7 @@ export default function MyRequestsPage() {
           </button>
         </div>
 
-        {/* Loading */}
+        {/* Loading State */}
         {loading && (
           <div className="min-h-screen flex items-center justify-center bg-[var(--white)]">
             <div className="relative flex items-center justify-center">
@@ -881,7 +874,7 @@ export default function MyRequestsPage() {
           </div>
         )}
 
-        {/* Error */}
+        {/* Error State */}
         {error && !loading && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-10 text-center shadow-inner">
             <FaExclamationTriangle className="text-red-500 text-7xl mx-auto mb-6" />
@@ -982,15 +975,14 @@ export default function MyRequestsPage() {
               <div className="flex-1 overflow-auto p-8 space-y-8">
                 <div>{getStatusBadge(selectedRequest.status)}</div>
 
-                {/* Live Tracker */}
+                {/* Live Map - Only show when assigned/in progress */}
                 {(selectedRequest.status === 'in_progress' || selectedRequest.status === 'assigned') && 
                   selectedRequest.assigned_artisan && (
                   <div className="h-[420px] bg-gray-100 rounded-2xl overflow-hidden border">
-                    {/* <CustomerArtisanTracker jobRequestId={selectedRequest.id} /> */}
-                    {/* <ArtisanLiveMap jobRequestId={selectedRequest.id} isVisible={true} userType="customer" /> */}
-                    <CustomerLiveMap jobRequestId={selectedRequest.id} isVisible={true} />
-
-
+                    <CustomerLiveMap 
+                      jobRequestId={selectedRequest.id} 
+                      isVisible={true} 
+                    />
                   </div>
                 )}
 
@@ -1060,13 +1052,24 @@ export default function MyRequestsPage() {
                 className="w-full h-32 border border-gray-300 rounded-2xl p-4 mb-6"
               />
               <div className="flex gap-4">
-                <button onClick={() => { setCancelModalOpen(null); setCancelReason(''); }} className="flex-1 py-4 bg-gray-200 rounded-2xl">Cancel</button>
-                <button onClick={() => handleCancel(cancelModalOpen)} disabled={!cancelReason.trim()} className="flex-1 py-4 bg-red-600 text-white rounded-2xl disabled:opacity-50">Confirm Cancel</button>
+                <button 
+                  onClick={() => { setCancelModalOpen(null); setCancelReason(''); }} 
+                  className="flex-1 py-4 bg-gray-200 rounded-2xl"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => handleCancel(cancelModalOpen)} 
+                  disabled={!cancelReason.trim()} 
+                  className="flex-1 py-4 bg-red-600 text-white rounded-2xl disabled:opacity-50"
+                >
+                  Confirm Cancel
+                </button>
               </div>
             </div>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
