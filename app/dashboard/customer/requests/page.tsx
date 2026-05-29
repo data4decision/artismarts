@@ -657,7 +657,6 @@ import {
 import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
-import ArtisanLiveMap from '@/components/ArtisanLiveMap'
 import CustomerLiveMap from '@/components/CustomerLiveMap'
 
 // Dynamic import to prevent SSR issues
